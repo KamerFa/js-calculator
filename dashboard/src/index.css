@@ -315,6 +315,39 @@ body {
 /* ============================================================
    TASK LIST
    ============================================================ */
+.task-section {
+  margin-bottom: 32px;
+}
+
+.task-section-header {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+}
+
+.task-section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-section-dot.today {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.task-section-dot.later {
+  background: var(--text-3);
+}
+
 .task-group {
   margin-bottom: 28px;
 }
