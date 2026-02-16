@@ -79,6 +79,32 @@ const DB = {
 
   // No-op — seeding is handled server-side on registration
   async seed() {},
+
+  // ── Tweets ──────────────────────────────────────────────────
+  async getTweets() {
+    return api('/tweets');
+  },
+
+  async postTweet(body) {
+    return api('/tweets', { method: 'POST', body: JSON.stringify({ body }) });
+  },
+
+  async deleteTweet(id) {
+    return api(`/tweets/${id}`, { method: 'DELETE' });
+  },
+
+  // ── Community ───────────────────────────────────────────────
+  async getCommunityProjects() {
+    return api('/community/projects');
+  },
+
+  async joinCommunityProject(projectId) {
+    return api(`/community/projects/${projectId}/join`, { method: 'POST' });
+  },
+
+  async leaveCommunityProject(projectId) {
+    return api(`/community/projects/${projectId}/leave`, { method: 'POST' });
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

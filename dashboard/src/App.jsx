@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import TaskList from './components/TaskList';
 import ProjectView from './components/ProjectView';
 import NotesView from './components/NotesView';
+import CommunityView from './components/CommunityView';
 import TaskModal from './components/TaskModal';
 import ProjectModal from './components/ProjectModal';
 import NoteModal from './components/NoteModal';
@@ -24,6 +25,9 @@ export default function App() {
 
   const [view, setView] = useState('tasks');
   const [currentProjectId, setCurrentProjectId] = useState(null);
+
+  // Mobile sidebar
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Modal state
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -209,6 +213,15 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Mobile hamburger button */}
+      <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
       <Sidebar
         view={view}
         currentProjectId={currentProjectId}
@@ -219,6 +232,8 @@ export default function App() {
         onNavigateProject={navigateProject}
         onNewProject={() => openProjectModal()}
         onLogout={authLogout}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
       />
 
       <main className="main">
@@ -263,6 +278,14 @@ export default function App() {
             tasks={tasks}
             onNoteClick={(n) => openNoteModal(n)}
             onNewNote={() => openNoteModal()}
+          />
+        )}
+
+        {view === 'community' && (
+          <CommunityView
+            user={user}
+            onProjectClick={navigateProject}
+            onReload={reload}
           />
         )}
       </main>

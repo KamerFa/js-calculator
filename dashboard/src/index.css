@@ -1362,3 +1362,541 @@ body {
   border-radius: 2px;
   transition: width 0.4s ease;
 }
+
+/* ============================================================
+   MOBILE HAMBURGER
+   ============================================================ */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ============================================================
+   RAMADAN BANNER
+   ============================================================ */
+.ramadan-banner {
+  position: relative;
+  background: linear-gradient(135deg, #1a7a4c 0%, #0d5c36 100%);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  animation: fadeIn 0.3s ease;
+}
+
+.ramadan-banner-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ramadan-banner-close:hover {
+  color: #fff;
+}
+
+.ramadan-banner-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ramadan-banner-content h3 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.ramadan-quote {
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.85;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.ramadan-quote-author {
+  font-style: normal;
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.ramadan-subtitle {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+
+.ramadan-joined-tag {
+  display: inline-block;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.2);
+  font-weight: 500;
+}
+
+/* ============================================================
+   TWEET / COMMUNITY FEED
+   ============================================================ */
+.tweet-compose {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.tweet-compose-avatar,
+.tweet-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tweet-compose-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tweet-textarea {
+  min-height: 48px;
+  resize: none;
+  border: none;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.tweet-textarea:focus {
+  border: none;
+  outline: none;
+}
+
+.tweet-compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tweet-char-count {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.tweet-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tweet-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  transition: background 0.12s;
+}
+
+.tweet-card:hover {
+  background: var(--surface);
+}
+
+.tweet-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tweet-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tweet-username {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.tweet-time {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.tweet-delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.tweet-card:hover .tweet-delete {
+  opacity: 1;
+}
+
+.tweet-delete:hover {
+  color: var(--danger);
+}
+
+.tweet-body {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ============================================================
+   COMMUNITY PROJECTS
+   ============================================================ */
+.community-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.community-project-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.community-project-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.community-project-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.community-project-name {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.community-global-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.community-project-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 12px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.community-project-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 14px;
+}
+
+.community-project-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.community-project-footer {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============================================================
+   RESPONSIVE — TABLET (≤ 900px)
+   ============================================================ */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 9;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 60px 20px 40px;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+
+  .project-header {
+    padding: 20px;
+  }
+
+  .project-header-top {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .project-header-actions {
+    align-self: flex-start;
+  }
+
+  .modal-card {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+
+  .match-detail-modal {
+    max-width: calc(100vw - 32px);
+  }
+
+  .ramadan-banner {
+    padding: 18px 20px;
+  }
+
+  .community-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE (≤ 600px)
+   ============================================================ */
+@media (max-width: 600px) {
+  body {
+    font-size: 14px;
+  }
+
+  .main {
+    padding: 56px 14px 32px;
+  }
+
+  .page-header {
+    margin-bottom: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .page-header-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filter-bar {
+    gap: 6px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  /* Tasks */
+  .task-row {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+
+  .project-tag,
+  .priority-badge,
+  .task-due {
+    display: none;
+  }
+
+  .task-actions {
+    opacity: 1;
+  }
+
+  /* Notes grid */
+  .notes-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .note-card {
+    padding: 16px;
+  }
+
+  /* Project header */
+  .project-header {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: var(--radius);
+  }
+
+  .project-stats {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Modal full-screen on mobile */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    margin: 0;
+  }
+
+  .modal-card.wide {
+    max-width: 100%;
+  }
+
+  .modal-header {
+    padding: 16px 18px 0;
+  }
+
+  .modal-body {
+    padding: 16px 18px;
+  }
+
+  .modal-footer {
+    padding: 0 18px 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Tweet */
+  .tweet-compose {
+    padding: 12px 14px;
+  }
+
+  .tweet-card {
+    padding: 12px 10px;
+  }
+
+  /* Ramadan banner */
+  .ramadan-banner {
+    flex-direction: column;
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .ramadan-banner-icon {
+    font-size: 28px;
+  }
+
+  .ramadan-banner-content h3 {
+    font-size: 15px;
+  }
+
+  /* Login */
+  .login-card {
+    padding: 28px 20px;
+  }
+
+  /* Share */
+  .share-invite-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Match modal */
+  .match-summary {
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .match-summary-right {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .sb-stat {
+    width: 36px;
+    font-size: 11px;
+  }
+}

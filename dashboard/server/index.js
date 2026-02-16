@@ -8,6 +8,8 @@ import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import taskRoutes from './routes/tasks.js';
 import noteRoutes from './routes/notes.js';
+import tweetRoutes from './routes/tweets.js';
+import communityRoutes from './routes/community.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -23,6 +25,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', authMiddleware, projectRoutes);
 app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/notes', authMiddleware, noteRoutes);
+app.use('/api/tweets', authMiddleware, tweetRoutes);
+app.use('/api/community', authMiddleware, communityRoutes);
 
 // ── Serve frontend in production ────────────────────────────
 const distDir = path.join(__dirname, '..', 'dist');
