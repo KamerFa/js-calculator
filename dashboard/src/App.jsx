@@ -9,6 +9,8 @@ import ProjectModal from './components/ProjectModal';
 import NoteModal from './components/NoteModal';
 import ConfirmModal from './components/ConfirmModal';
 import TaskDetailModal from './components/TaskDetailModal';
+import PerformanceView from './components/PerformanceView';
+import FaceitSettingsModal from './components/FaceitSettingsModal';
 
 export default function App() {
   const [projects, setProjects] = useState([]);
@@ -35,6 +37,8 @@ export default function App() {
 
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
   const [taskDetailItem, setTaskDetailItem] = useState(null);
+
+  const [faceitSettingsOpen, setFaceitSettingsOpen] = useState(false);
 
   // Init
   useEffect(() => {
@@ -223,6 +227,10 @@ export default function App() {
           />
         )}
 
+        {view === 'performance' && (
+          <PerformanceView onOpenSettings={() => setFaceitSettingsOpen(true)} />
+        )}
+
         {view === 'notes' && (
           <NotesView
             notes={notes}
@@ -274,6 +282,12 @@ export default function App() {
         onClose={() => setTaskDetailOpen(false)}
         onEdit={(t) => openTaskModal(t)}
         onProjectClick={navigateProject}
+      />
+
+      <FaceitSettingsModal
+        open={faceitSettingsOpen}
+        onClose={() => setFaceitSettingsOpen(false)}
+        onSaved={() => {}}
       />
     </div>
   );

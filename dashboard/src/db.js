@@ -50,9 +50,18 @@ const DB = {
 
     const pid1 = uid(),
       pid2 = uid(),
-      pid3 = uid();
+      pid3 = uid(),
+      pidWellness = uid();
 
     const projects = [
+      {
+        id: pidWellness,
+        name: 'Daily Wellness',
+        description:
+          'Daily health, hygiene, nutrition, and self-care tracker. Reset and check off every day.',
+        color: '#0891b2',
+        createdAt: new Date().toISOString(),
+      },
       {
         id: pid1,
         name: 'Website Redesign',
@@ -179,6 +188,43 @@ const DB = {
         customFields: [],
         createdAt: new Date().toISOString(),
       },
+      // ── Daily Wellness tasks ──────────────────────
+      ...[
+        // Hydration
+        { title: 'Drink water — morning (500ml)', description: 'First thing when you wake up, before anything else.', priority: 'high', category: 'Hydration' },
+        { title: 'Drink water — afternoon (500ml)', description: '', priority: 'medium', category: 'Hydration' },
+        { title: 'Drink water — evening (500ml)', description: '', priority: 'medium', category: 'Hydration' },
+        // Meals
+        { title: 'Eat breakfast', description: 'Aim for protein + complex carbs.', priority: 'high', category: 'Nutrition' },
+        { title: 'Eat lunch', description: '', priority: 'high', category: 'Nutrition' },
+        { title: 'Eat dinner', description: '', priority: 'high', category: 'Nutrition' },
+        { title: 'Take vitamins / supplements', description: '', priority: 'low', category: 'Nutrition' },
+        // Hygiene
+        { title: 'Brush teeth — morning', description: '', priority: 'high', category: 'Hygiene' },
+        { title: 'Brush teeth — night', description: '', priority: 'high', category: 'Hygiene' },
+        { title: 'Shower', description: '', priority: 'medium', category: 'Hygiene' },
+        { title: 'Skincare routine', description: 'Cleanser, moisturiser, SPF (morning).', priority: 'low', category: 'Hygiene' },
+        // Exercise & Movement
+        { title: 'Exercise / workout', description: 'At least 30 minutes of movement.', priority: 'high', category: 'Exercise' },
+        { title: 'Stretch / mobility (10 min)', description: '', priority: 'medium', category: 'Exercise' },
+        { title: 'Go outside — get sunlight', description: 'Even 15 minutes helps circadian rhythm.', priority: 'medium', category: 'Exercise' },
+        // Mental Health
+        { title: 'No screens 30 min before bed', description: '', priority: 'medium', category: 'Mental Health' },
+        { title: 'Journal / reflect (5 min)', description: 'What went well today? What to improve?', priority: 'low', category: 'Mental Health' },
+        { title: 'Tidy up workspace', description: 'Clean desk = clear mind.', priority: 'low', category: 'Mental Health' },
+        // Sleep
+        { title: 'In bed by target bedtime', description: 'Aim for 7-8 hours of sleep.', priority: 'high', category: 'Sleep' },
+      ].map((t) => ({
+        id: uid(),
+        title: t.title,
+        description: t.description,
+        projectId: pidWellness,
+        status: 'todo',
+        priority: t.priority,
+        dueDate: d(0),
+        customFields: t.category ? [{ key: 'Category', value: t.category }] : [],
+        createdAt: new Date().toISOString(),
+      })),
     ];
 
     const notes = [

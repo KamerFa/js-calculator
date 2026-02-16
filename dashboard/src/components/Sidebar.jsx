@@ -1,4 +1,4 @@
-import { IconGrid, IconCheck, IconFile } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconBarChart } from './Icons';
 
 export default function Sidebar({ view, currentProjectId, projects, tasks, onNavigate, onNavigateProject, onNewProject }) {
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
@@ -20,6 +20,16 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, onNav
           >
             <IconCheck />
             All Tasks
+          </a>
+        </li>
+        <li>
+          <a
+            href="#"
+            className={view === 'performance' ? 'active' : ''}
+            onClick={(e) => { e.preventDefault(); onNavigate('performance'); }}
+          >
+            <IconBarChart />
+            Performance
           </a>
         </li>
         <li>
