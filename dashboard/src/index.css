@@ -1647,7 +1647,7 @@ body {
    ============================================================ */
 .toggle-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   cursor: pointer;
   user-select: none;
@@ -1656,16 +1656,17 @@ body {
 .toggle-switch {
   position: relative;
   width: 40px;
+  min-width: 40px;
   height: 22px;
-  background: var(--border);
+  background: var(--border-strong);
   border-radius: 11px;
   flex-shrink: 0;
-  transition: background 0.2s;
-  margin-top: 2px;
+  transition: background 0.25s;
 }
 
 .toggle-switch.on {
   background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .toggle-knob {
@@ -1676,8 +1677,8 @@ body {
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: transform 0.25s;
 }
 
 .toggle-switch.on .toggle-knob {
@@ -1690,12 +1691,21 @@ body {
   gap: 2px;
   font-weight: 500;
   font-size: 13px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toggle-label > span:first-child,
+.toggle-label > :not(.toggle-hint) {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toggle-hint {
   font-weight: 400;
   font-size: 12px;
   color: var(--text-3);
+  line-height: 1.3;
 }
 
 /* ============================================================
