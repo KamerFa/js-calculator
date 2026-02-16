@@ -38,6 +38,11 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
       for (let d = 1; d <= daysInMonth; d++) {
         const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         for (const t of recurringTasks) {
+          // Check if task's project has date bounds and if this date is within them
+          const project = projects.find((p) => p.id === t.projectId);
+          if (project?.startDate && ds < project.startDate) continue;
+          if (project?.endDate && ds > project.endDate) continue;
+
           if (t.recurrence === 'daily') {
             if (!map[ds]) map[ds] = [];
             map[ds].push(t);
@@ -59,7 +64,7 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
     }
 
     return map;
-  }, [tasks, year, month]);
+  }, [tasks, projects, year, month]);
 
   const cells = [];
   for (let i = 0; i < startPad; i++) cells.push(null);

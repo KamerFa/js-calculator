@@ -141,9 +141,6 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
   const [tweetBody, setTweetBody] = useState('');
   const [posting, setPosting] = useState(false);
   const [tab, setTab] = useState('feed');
-  const [dismissedBanner, setDismissedBanner] = useState(() =>
-    localStorage.getItem('ramadan_banner_dismissed') === '1'
-  );
 
   const loadData = async () => {
     const [tw, cp] = await Promise.all([DB.getTweets(), DB.getCommunityProjects()]);
@@ -197,40 +194,8 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     if (onReload) onReload();
   };
 
-  const ramadanProject = projects.find((p) => p.isGlobal);
-
-  const dismissBanner = () => {
-    setDismissedBanner(true);
-    localStorage.setItem('ramadan_banner_dismissed', '1');
-  };
-
   return (
     <div>
-      {/* Ramadan Banner */}
-      {ramadanProject && !dismissedBanner && (
-        <div className="ramadan-banner">
-          <button className="ramadan-banner-close" onClick={dismissBanner}>&times;</button>
-          <div className="ramadan-banner-icon">&#9770;</div>
-          <div className="ramadan-banner-content">
-            <h3>Ramazan Mubarek! Pridruzi se {ramadanProject.memberCount} drugih koji prate ibadet</h3>
-            <p className="ramadan-quote">
-              "Traziti nevolju - to nije hrabrost, to je ludost. Hrabrost je spremnost covjeka da razumno podnese nevolje koje ne moze izbijeci."
-              <span className="ramadan-quote-author"> - Alija Izetbegovic</span>
-            </p>
-            <p className="ramadan-subtitle">
-              ...a preskakanje sehura je definitivno trazenje nevolje. Nemoj biti ta osoba.
-            </p>
-            {!ramadanProject.isMember ? (
-              <button className="btn btn-primary btn-sm" onClick={() => handleJoin(ramadanProject.id)}>
-                Pridruzi se Ramazanu
-              </button>
-            ) : (
-              <span className="ramadan-joined-tag">Unutra si! MashaAllah</span>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="page-header">
         <div className="page-header-row">
           <div>

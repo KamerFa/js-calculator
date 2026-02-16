@@ -1823,79 +1823,6 @@ body {
   display: none;
 }
 
-/* ============================================================
-   RAMADAN BANNER
-   ============================================================ */
-.ramadan-banner {
-  position: relative;
-  background: linear-gradient(135deg, #1a7a4c 0%, #0d5c36 100%);
-  color: #fff;
-  border-radius: var(--radius-lg);
-  padding: 24px 28px;
-  margin-bottom: 28px;
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  animation: fadeIn 0.3s ease;
-}
-
-.ramadan-banner-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.6);
-  font-size: 20px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.ramadan-banner-close:hover {
-  color: #fff;
-}
-
-.ramadan-banner-icon {
-  font-size: 36px;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.ramadan-banner-content h3 {
-  font-family: var(--font-heading);
-  font-weight: 500;
-  font-size: 17px;
-  margin-bottom: 8px;
-}
-
-.ramadan-quote {
-  font-size: 13px;
-  font-style: italic;
-  opacity: 0.85;
-  margin-bottom: 4px;
-  line-height: 1.5;
-}
-
-.ramadan-quote-author {
-  font-style: normal;
-  opacity: 0.7;
-  font-size: 12px;
-}
-
-.ramadan-subtitle {
-  font-size: 13px;
-  opacity: 0.9;
-  margin-bottom: 12px;
-}
-
-.ramadan-joined-tag {
-  display: inline-block;
-  font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.2);
-  font-weight: 500;
-}
 
 /* ============================================================
    TWEET / COMMUNITY FEED
@@ -2159,10 +2086,6 @@ body {
     max-width: calc(100vw - 32px);
   }
 
-  .ramadan-banner {
-    padding: 18px 20px;
-  }
-
   .community-projects-grid {
     grid-template-columns: 1fr;
   }
@@ -2299,21 +2222,6 @@ body {
 
   .tweet-card {
     padding: 12px 10px;
-  }
-
-  /* Ramadan banner */
-  .ramadan-banner {
-    flex-direction: column;
-    padding: 16px;
-    gap: 10px;
-  }
-
-  .ramadan-banner-icon {
-    font-size: 28px;
-  }
-
-  .ramadan-banner-content h3 {
-    font-size: 15px;
   }
 
   /* Login */
