@@ -324,7 +324,7 @@ export default function App() {
         )}
 
         {view === 'users' && (
-          <UsersView onUserClick={(username) => navigate('profile', username)} />
+          <UsersView onUserClick={(username) => navigateProfile(username)} />
         )}
 
         {view === 'calendar' && (
