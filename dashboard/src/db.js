@@ -167,6 +167,10 @@ const DB = {
   async leaveCommunityProject(projectId) {
     return api(`/community/projects/${projectId}/leave`, { method: 'POST' });
   },
+
+  async importProject(data) {
+    return api('/projects/import', { method: 'POST', body: JSON.stringify(data) });
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

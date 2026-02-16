@@ -275,4 +275,55 @@ router.get('/:id/stats', async (req, res) => {
   res.json({ completions });
 });
 
+// ── POST import project from JSON (project + tasks in one go) ──
+router.post('/import', async (req, res) => {
+  const { name, description, color, isPublic, startDate, endDate, tasks } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Project name is required' });
+  if (!Array.isArray(tasks) || tasks.length === 0) return res.status(400).json({ error: 'At least one task is required' });
+  if (tasks.length > 100) return res.status(400).json({ error: 'Maximum 100 tasks per import' });
+
+  const projectId = uid();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `INSERT INTO projects (id, user_id, name, description, color, is_public, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [projectId, req.userId, name.trim(), description || '', color || '#2a5caa', isPublic ? true : false, startDate || null, endDate || null]
+    );
+
+    await client.query(
+      `INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, 'owner')`,
+      [uid(), projectId, req.userId]
+    );
+
+    for (const t of tasks) {
+      if (!t.title?.trim()) continue;
+      const rec = ['daily', 'weekly', 'monthly', 'none'].includes(t.recurrence) ? t.recurrence : 'none';
+      const pri = ['high', 'medium', 'low'].includes(t.priority) ? t.priority : 'medium';
+      await client.query(
+        `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, recurrence, task_type)
+         VALUES ($1, $2, $3, $4, $5, 'todo', $6, $7, $8, $9)`,
+        [uid(), req.userId, projectId, t.title.trim(), t.description || '', pri, t.dueDate || null, rec, t.taskType || 'shared']
+      );
+    }
+
+    await client.query('COMMIT');
+
+    const { rows } = await pool.query(
+      `SELECT p.*, (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) AS member_count
+       FROM projects p WHERE p.id = $1`,
+      [projectId]
+    );
+    res.json(toJSON(rows[0], { isOwner: true, memberCount: parseInt(rows[0].member_count), taskCount: tasks.length }));
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('Import error:', e.message);
+    res.status(500).json({ error: 'Import failed: ' + e.message });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

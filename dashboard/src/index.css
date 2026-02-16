@@ -146,6 +146,27 @@ body {
   font-weight: 400;
 }
 
+.sidebar-btn-row {
+  display: flex;
+  gap: 6px;
+  margin: 8px 16px 20px;
+}
+
+.sidebar-btn-row .sidebar-btn {
+  margin: 0;
+}
+
+.sidebar-btn-row .sidebar-btn:first-child {
+  flex: 1;
+}
+
+.sidebar-btn-import {
+  padding: 7px 10px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .sidebar-btn {
   margin: 8px 16px 20px;
   padding: 7px 14px;
@@ -667,6 +688,117 @@ body {
 
 .modal-card.wide {
   max-width: 680px;
+}
+
+/* ── Import Project Modal ──────────────────────────────── */
+.import-modal {
+  max-width: 600px;
+}
+
+.import-instructions {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.import-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.import-textarea {
+  min-height: 240px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  white-space: pre;
+}
+
+.import-error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.import-preview-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.import-preview-color {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.import-preview-header h3 {
+  font-size: 16px;
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+
+.import-preview-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.import-preview-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.import-public-tag {
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.import-preview-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.import-preview-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.import-task-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-task-due {
+  font-size: 11px;
+  color: var(--text-2);
 }
 
 .modal-header {

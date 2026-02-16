@@ -17,6 +17,7 @@ import ProfileView from './components/ProfileView';
 import UsersView from './components/UsersView';
 import FaceitSettingsModal from './components/FaceitSettingsModal';
 import ShareModal from './components/ShareModal';
+import ImportProjectModal from './components/ImportProjectModal';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -55,6 +56,7 @@ export default function App() {
 
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // ── Auth check ──────────────────────────────────────────────
   useEffect(() => {
@@ -169,6 +171,12 @@ export default function App() {
     setProjectModalOpen(false);
   };
 
+  const handleImportProject = async (data) => {
+    await DB.importProject(data);
+    await reload();
+    setImportModalOpen(false);
+  };
+
   const handleDeleteProject = (project) => {
     const taskCount = tasks.filter((t) => t.projectId === project.id).length;
     setConfirmMessage(`Delete project "${project.name}" and its ${taskCount} task(s)? This cannot be undone.`);
@@ -259,6 +267,7 @@ export default function App() {
         onNavigate={navigate}
         onNavigateProject={navigateProject}
         onNewProject={() => openProjectModal()}
+        onImportProject={() => setImportModalOpen(true)}
         onLogout={authLogout}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
@@ -395,6 +404,12 @@ export default function App() {
         user={user}
         onClose={() => setShareModalOpen(false)}
         onChanged={reload}
+      />
+
+      <ImportProjectModal
+        open={importModalOpen}
+        onImport={handleImportProject}
+        onClose={() => setImportModalOpen(false)}
       />
     </div>
   );
