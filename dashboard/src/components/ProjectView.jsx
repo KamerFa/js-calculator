@@ -17,7 +17,7 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
 
   if (!project) return null;
 
-  const projectTasks = tasks.filter((t) => t.projectId === project.id);
+  const projectTasks = tasks.filter((t) => t.projectId === project.id && (!user || t.userId === user.id));
   const openCount = projectTasks.filter((t) => t.status !== 'done').length;
   const doneCount = projectTasks.filter((t) => t.status === 'done').length;
   const progress = projectTasks.length === 0 ? 0 : Math.round((doneCount / projectTasks.length) * 100);
@@ -101,7 +101,7 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
                 task={task}
                 project={null}
                 showProject={false}
-                showCreator={isShared}
+                showCreator={false}
                 currentUserId={user?.id}
                 onToggle={onToggle}
                 onClick={onTaskClick}
