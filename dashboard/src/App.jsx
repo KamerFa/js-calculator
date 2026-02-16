@@ -121,6 +121,7 @@ export default function App() {
       priority: form.priority,
       dueDate: form.dueDate || null,
       recurrence: form.recurrence || 'none',
+      taskType: form.taskType || 'shared',
       customFields: form.customFields.filter((f) => f.key.trim()),
     };
     const saved = await DB.save('tasks', task);

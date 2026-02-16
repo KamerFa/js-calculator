@@ -15,7 +15,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   const fileRef = useRef(null);
 
   function emptyForm() {
-    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', recurrence: 'none', customFields: [] };
+    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', recurrence: 'none', taskType: 'shared', customFields: [] };
   }
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         priority: task.priority,
         dueDate: task.dueDate || '',
         recurrence: task.recurrence || 'none',
+        taskType: task.taskType || 'shared',
         customFields: task.customFields ? task.customFields.map((f) => ({ ...f })) : [],
       });
       setScreenshotPreview(task.screenshotUrl || null);
@@ -43,6 +44,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
 
   if (!open) return null;
 
+  const selectedProject = form.projectId ? projects.find((p) => p.id === form.projectId) : null;
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const updateField = (index, key, value) => {
@@ -133,7 +135,17 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
                 ))}
               </select>
             </div>
-            <div className="form-group" />
+            {selectedProject && selectedProject.memberCount > 1 ? (
+              <div className="form-group">
+                <label>Tracking</label>
+                <select className="form-select" value={form.taskType} onChange={(e) => set('taskType', e.target.value)}>
+                  <option value="shared">Shared (done once for all)</option>
+                  <option value="per_member">Per member (each tracks own)</option>
+                </select>
+              </div>
+            ) : (
+              <div className="form-group" />
+            )}
           </div>
 
           <div className="form-group">
