@@ -1,6 +1,6 @@
 import { IconGrid, IconCheck, IconFile, IconBarChart } from './Icons';
 
-export default function Sidebar({ view, currentProjectId, projects, tasks, onNavigate, onNavigateProject, onNewProject }) {
+export default function Sidebar({ view, currentProjectId, projects, tasks, user, onNavigate, onNavigateProject, onNewProject, onLogout }) {
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 
   return (
@@ -62,6 +62,13 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, onNav
         ))}
       </ul>
       <button className="sidebar-btn" onClick={onNewProject}>+ New Project</button>
+
+      {user && (
+        <div className="user-menu">
+          <span className="user-menu-name">{user.username}</span>
+          <button className="user-menu-logout" onClick={onLogout}>Log out</button>
+        </div>
+      )}
     </aside>
   );
 }
