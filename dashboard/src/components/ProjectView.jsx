@@ -38,7 +38,10 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
           <div className="project-header-info">
             <span className="project-header-dot" style={{ background: project.color }} />
             <div>
-              <h1>{project.name}</h1>
+              <h1>
+                {project.name}
+                {project.isPublic && <span className="public-badge">Public</span>}
+              </h1>
               <p className="desc">{project.description || 'No description'}</p>
             </div>
           </div>

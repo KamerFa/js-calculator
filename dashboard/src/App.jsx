@@ -147,6 +147,7 @@ export default function App() {
       name: form.name.trim(),
       description: form.description.trim(),
       color: form.color,
+      isPublic: form.isPublic || false,
     };
     await DB.save('projects', project);
     await reload();

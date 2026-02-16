@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers } from './Icons';
 
 function IconCalendar() {
@@ -29,8 +30,33 @@ function IconDatabase() {
   );
 }
 
+function IconDownload() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
 export default function Sidebar({ view, currentProjectId, projects, tasks, user, onNavigate, onNavigateProject, onNewProject, onLogout, mobileOpen, onCloseMobile }) {
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
+
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState(null);
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === 'accepted') setInstallPrompt(null);
+  };
 
   const nav = (v) => {
     onNavigate(v);
@@ -132,6 +158,12 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
           ))}
         </ul>
         <button className="sidebar-btn" onClick={() => { onNewProject(); if (onCloseMobile) onCloseMobile(); }}>+ New Project</button>
+
+        {installPrompt && (
+          <button className="sidebar-install-btn" onClick={handleInstall}>
+            <IconDownload /> Install App
+          </button>
+        )}
 
         {user && (
           <div className="user-menu">

@@ -9,6 +9,8 @@ function toJSON(row, extra = {}) {
     name: row.name,
     description: row.description,
     color: row.color,
+    isPublic: row.is_public || false,
+    isGlobal: row.is_global || false,
     createdAt: row.created_at,
     ownerId: row.user_id,
     ...extra,
@@ -41,10 +43,11 @@ router.get('/', async (req, res) => {
 
 // ── POST create/update project ───────────────────────────────
 router.post('/', async (req, res) => {
-  const { name, description, color } = req.body;
+  const { name, description, color, isPublic } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
 
   const id = req.body.id || uid();
+  const pub = isPublic ? true : false;
   const { rows: existingRows } = await pool.query('SELECT * FROM projects WHERE id = $1', [id]);
   const existing = existingRows[0];
 
@@ -53,16 +56,16 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ error: 'Only the project owner can edit' });
     }
     await pool.query(
-      'UPDATE projects SET name = $1, description = $2, color = $3 WHERE id = $4 AND user_id = $5',
-      [name.trim(), description || '', color || '#2a5caa', id, req.userId]
+      'UPDATE projects SET name = $1, description = $2, color = $3, is_public = $4 WHERE id = $5 AND user_id = $6',
+      [name.trim(), description || '', color || '#2a5caa', pub, id, req.userId]
     );
   } else {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       await client.query(
-        'INSERT INTO projects (id, user_id, name, description, color) VALUES ($1, $2, $3, $4, $5)',
-        [id, req.userId, name.trim(), description || '', color || '#2a5caa']
+        'INSERT INTO projects (id, user_id, name, description, color, is_public) VALUES ($1, $2, $3, $4, $5, $6)',
+        [id, req.userId, name.trim(), description || '', color || '#2a5caa', pub]
       );
       await client.query(
         'INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, $4)',

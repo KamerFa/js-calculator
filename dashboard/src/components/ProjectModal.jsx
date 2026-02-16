@@ -4,14 +4,14 @@ import { IconX } from './Icons';
 const PRESET_COLORS = ['#2a5caa', '#c0392b', '#276749', '#b45309', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#6366f1', '#78716c'];
 
 export default function ProjectModal({ open, project, onSave, onClose }) {
-  const [form, setForm] = useState({ name: '', description: '', color: PRESET_COLORS[0] });
+  const [form, setForm] = useState({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false });
 
   useEffect(() => {
     if (!open) return;
     if (project) {
-      setForm({ name: project.name, description: project.description || '', color: project.color });
+      setForm({ name: project.name, description: project.description || '', color: project.color, isPublic: project.isPublic || false });
     } else {
-      setForm({ name: '', description: '', color: PRESET_COLORS[0] });
+      setForm({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false });
     }
   }, [open, project]);
 
@@ -52,6 +52,19 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
                 />
               ))}
             </div>
+          </div>
+          <div className="form-group">
+            <label className="toggle-row" onClick={() => set('isPublic', !form.isPublic)}>
+              <span className={`toggle-switch${form.isPublic ? ' on' : ''}`}>
+                <span className="toggle-knob" />
+              </span>
+              <span className="toggle-label">
+                Share with Community
+                <span className="toggle-hint">
+                  {form.isPublic ? 'Visible in Community — anyone can join' : 'Private — only invited members can see it'}
+                </span>
+              </span>
+            </label>
           </div>
         </div>
         <div className="modal-footer">
