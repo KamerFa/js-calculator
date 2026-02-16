@@ -11,6 +11,8 @@ function toJSON(row, extra = {}) {
     color: row.color,
     isPublic: row.is_public || false,
     isGlobal: row.is_global || false,
+    startDate: row.start_date || null,
+    endDate: row.end_date || null,
     createdAt: row.created_at,
     ownerId: row.user_id,
     ...extra,
@@ -43,7 +45,7 @@ router.get('/', async (req, res) => {
 
 // ── POST create/update project ───────────────────────────────
 router.post('/', async (req, res) => {
-  const { name, description, color, isPublic } = req.body;
+  const { name, description, color, isPublic, startDate, endDate } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
 
   const id = req.body.id || uid();
@@ -56,16 +58,16 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ error: 'Only the project owner can edit' });
     }
     await pool.query(
-      'UPDATE projects SET name = $1, description = $2, color = $3, is_public = $4 WHERE id = $5 AND user_id = $6',
-      [name.trim(), description || '', color || '#2a5caa', pub, id, req.userId]
+      'UPDATE projects SET name = $1, description = $2, color = $3, is_public = $4, start_date = $5, end_date = $6 WHERE id = $7 AND user_id = $8',
+      [name.trim(), description || '', color || '#2a5caa', pub, startDate || null, endDate || null, id, req.userId]
     );
   } else {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       await client.query(
-        'INSERT INTO projects (id, user_id, name, description, color, is_public) VALUES ($1, $2, $3, $4, $5, $6)',
-        [id, req.userId, name.trim(), description || '', color || '#2a5caa', pub]
+        'INSERT INTO projects (id, user_id, name, description, color, is_public, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [id, req.userId, name.trim(), description || '', color || '#2a5caa', pub, startDate || null, endDate || null]
       );
       await client.query(
         'INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, $4)',

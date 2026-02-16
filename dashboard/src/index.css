@@ -518,6 +518,12 @@ body {
   margin-top: 4px;
 }
 
+.project-dates {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
 .project-stats {
   display: flex;
   gap: 24px;

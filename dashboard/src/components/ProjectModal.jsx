@@ -4,14 +4,21 @@ import { IconX } from './Icons';
 const PRESET_COLORS = ['#2a5caa', '#c0392b', '#276749', '#b45309', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#6366f1', '#78716c'];
 
 export default function ProjectModal({ open, project, onSave, onClose }) {
-  const [form, setForm] = useState({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false });
+  const [form, setForm] = useState({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false, startDate: '', endDate: '' });
 
   useEffect(() => {
     if (!open) return;
     if (project) {
-      setForm({ name: project.name, description: project.description || '', color: project.color, isPublic: project.isPublic || false });
+      setForm({
+        name: project.name,
+        description: project.description || '',
+        color: project.color,
+        isPublic: project.isPublic || false,
+        startDate: project.startDate || '',
+        endDate: project.endDate || ''
+      });
     } else {
-      setForm({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false });
+      setForm({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false, startDate: '', endDate: '' });
     }
   }, [open, project]);
 
@@ -39,6 +46,16 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
           <div className="form-group">
             <label>Description</label>
             <textarea className="form-textarea" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Optional description" />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Start Date</label>
+              <input className="form-input" type="date" value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>End Date</label>
+              <input className="form-input" type="date" value={form.endDate} onChange={(e) => set('endDate', e.target.value)} />
+            </div>
           </div>
           <div className="form-group">
             <label>Color</label>

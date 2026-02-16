@@ -68,6 +68,8 @@ async function initDB() {
   // Add columns if they don't exist (safe for re-runs)
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS start_date DATE`);
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS end_date DATE`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence TEXT NOT NULL DEFAULT 'none'`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by TEXT REFERENCES users(id) ON DELETE SET NULL`);
@@ -225,6 +227,13 @@ async function seedRamadanProject() {
 async function seedBugListProject() {
   const BUG_ID = 'global-bug-list';
   const SYS_USER = 'system-global';
+
+  // Rename existing Bug List to Insider List
+  await pool.query(
+    `UPDATE projects SET name = 'Insider List', description = 'Feature requests, bug reports, and ideas. Anyone can contribute!' WHERE id = $1`,
+    [BUG_ID]
+  );
+
   const { rows } = await pool.query('SELECT id FROM projects WHERE id = $1', [BUG_ID]);
   if (rows.length > 0) return;
 
@@ -234,7 +243,7 @@ async function seedBugListProject() {
     await client.query(
       `INSERT INTO projects (id, user_id, name, description, color, is_public, is_global)
        VALUES ($1, $2, $3, $4, $5, true, true)`,
-      [BUG_ID, SYS_USER, 'Bug List', 'Report bugs with screenshots. Anyone can fix and mark as done!', '#c0392b']
+      [BUG_ID, SYS_USER, 'Insider List', 'Feature requests, bug reports, and ideas. Anyone can contribute!', '#c0392b']
     );
     await client.query(
       `INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, 'owner')`,
@@ -243,7 +252,7 @@ async function seedBugListProject() {
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');
-    console.error('Bug List seed error (may already exist):', e.message);
+    console.error('Insider List seed error (may already exist):', e.message);
   } finally {
     client.release();
   }

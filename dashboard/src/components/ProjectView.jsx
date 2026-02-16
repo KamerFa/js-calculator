@@ -44,6 +44,13 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
                 {project.isPublic && <span className="public-badge">Public</span>}
               </h1>
               <p className="desc">{project.description || 'No description'}</p>
+              {(project.startDate || project.endDate) && (
+                <p className="project-dates">
+                  {project.startDate && <span>Start: {new Date(project.startDate).toLocaleDateString()}</span>}
+                  {project.startDate && project.endDate && <span> • </span>}
+                  {project.endDate && <span>End: {new Date(project.endDate).toLocaleDateString()}</span>}
+                </p>
+              )}
             </div>
           </div>
           <div className="project-header-actions">
