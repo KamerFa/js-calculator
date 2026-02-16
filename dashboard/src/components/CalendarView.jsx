@@ -31,17 +31,35 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
       map[t.dueDate].push(t);
     }
 
-    // For recurring tasks without a due date, show them on today
-    const todayStr = today.toISOString().split('T')[0];
-    for (const t of tasks) {
-      if (t.dueDate) continue;
-      if (!t.recurrence || t.recurrence === 'none') continue;
-      if (!map[todayStr]) map[todayStr] = [];
-      map[todayStr].push(t);
+    // Spread recurring tasks (no due date) across the visible month
+    const recurringTasks = tasks.filter((t) => !t.dueDate && t.recurrence && t.recurrence !== 'none');
+    if (recurringTasks.length > 0) {
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        for (const t of recurringTasks) {
+          if (t.recurrence === 'daily') {
+            if (!map[ds]) map[ds] = [];
+            map[ds].push(t);
+          } else if (t.recurrence === 'weekly') {
+            // Show on every same weekday (use the first day of the month's weekday as anchor)
+            if (d === 1 || d % 7 === 1) {
+              if (!map[ds]) map[ds] = [];
+              map[ds].push(t);
+            }
+          } else if (t.recurrence === 'monthly') {
+            // Show on the 1st of the month
+            if (d === 1) {
+              if (!map[ds]) map[ds] = [];
+              map[ds].push(t);
+            }
+          }
+        }
+      }
     }
 
     return map;
-  }, [tasks]);
+  }, [tasks, year, month]);
 
   const cells = [];
   for (let i = 0; i < startPad; i++) cells.push(null);
