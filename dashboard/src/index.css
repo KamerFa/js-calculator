@@ -2161,7 +2161,6 @@ body {
   }
 
   .project-tag,
-  .priority-badge,
   .task-due {
     display: none;
   }

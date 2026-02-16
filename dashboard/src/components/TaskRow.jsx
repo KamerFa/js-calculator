@@ -30,15 +30,6 @@ export default function TaskRow({ task, project, showProject, showCreator, curre
       {task.recurrence && task.recurrence !== 'none' && (
         <span className="recurrence-badge">{REC_LABELS[task.recurrence]}</span>
       )}
-      {task.taskType === 'per_member' && (
-        <span className="per-member-badge" title="Each member tracks this independently">Per member</span>
-      )}
-      {showCreator && task.status === 'done' && task.completedBy && (
-        <span className="creator-tag completed-by-tag" title={`Completed by ${task.completedBy}`}>{task.completedBy}</span>
-      )}
-      {showCreator && task.status !== 'done' && task.createdBy && (
-        <span className="creator-tag">{task.createdBy}</span>
-      )}
       {showProject && project && (
         <span
           className="project-tag"
