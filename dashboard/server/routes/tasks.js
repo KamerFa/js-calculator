@@ -89,7 +89,10 @@ router.get('/', async (req, res) => {
      LEFT JOIN users cu ON cu.id = t.completed_by
      LEFT JOIN project_members pm ON t.project_id = pm.project_id AND pm.user_id = $1
      LEFT JOIN task_completions tc ON tc.task_id = t.id AND tc.user_id = $1
-     WHERE t.user_id = $1 OR pm.user_id = $1
+     LEFT JOIN projects proj ON proj.id = t.project_id
+     WHERE (t.user_id = $1 OR pm.user_id = $1)
+       AND (proj.start_date IS NULL OR proj.start_date <= CURRENT_DATE)
+       AND (proj.end_date   IS NULL OR proj.end_date   >= CURRENT_DATE)
      ORDER BY t.id, t.created_at`,
     [req.userId]
   );

@@ -19,6 +19,8 @@ router.get('/projects', async (req, res) => {
      FROM projects p
      JOIN users u ON u.id = p.user_id
      WHERE p.is_public = true
+       AND (p.start_date IS NULL OR p.start_date <= CURRENT_DATE)
+       AND (p.end_date   IS NULL OR p.end_date   >= CURRENT_DATE)
      ORDER BY p.is_global DESC, p.created_at DESC`
   );
 

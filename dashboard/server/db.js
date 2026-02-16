@@ -163,14 +163,16 @@ async function seedRamadanProject() {
     await client.query('BEGIN');
 
     await client.query(
-      `INSERT INTO projects (id, user_id, name, description, color, is_public, is_global)
-       VALUES ($1, $2, $3, $4, $5, true, true)`,
+      `INSERT INTO projects (id, user_id, name, description, color, is_public, is_global, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $5, true, true, $6, $7)`,
       [
         RAMADAN_ID,
         SYS_USER,
         'Ramazan 2026',
         'Prati svoj post, ibadet i dobra djela tokom Ramazana. Pridruzi se zajednici!',
         '#1a7a4c',
+        '2026-02-17',  // 1 day before Ramadan starts (~Feb 18)
+        '2026-03-22',  // 3 days after Ramadan ends (~Mar 19) for Bajram
       ]
     );
 
