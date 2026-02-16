@@ -1695,10 +1695,10 @@ body {
   flex: 1;
 }
 
-.toggle-label > span:first-child,
-.toggle-label > :not(.toggle-hint) {
+.toggle-label > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toggle-hint {

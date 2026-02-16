@@ -85,7 +85,7 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
                 <span className="toggle-knob" />
               </span>
               <span className="toggle-label">
-                {t('projects.shareWithCommunity')}
+                <span>{t('projects.shareWithCommunity')}</span>
                 <span className="toggle-hint">
                   {form.isPublic ? t('projects.publicHint') : t('projects.privateHint')}
                 </span>

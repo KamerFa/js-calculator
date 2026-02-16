@@ -27,11 +27,9 @@ function toJSON(row, extra = {}) {
 
 // ── GET all projects (owned + shared) ────────────────────────
 router.get('/', async (req, res) => {
-  const dateFilter = `AND (p.start_date IS NULL OR p.start_date <= CURRENT_DATE)
-       AND (p.end_date IS NULL OR p.end_date >= CURRENT_DATE)`;
   const { rows: owned } = await pool.query(
     `SELECT p.*, (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) AS member_count
-     FROM projects p WHERE p.user_id = $1 ${dateFilter} ORDER BY p.created_at`,
+     FROM projects p WHERE p.user_id = $1 ORDER BY p.created_at`,
     [req.userId]
   );
   const { rows: shared } = await pool.query(
@@ -39,7 +37,7 @@ router.get('/', async (req, res) => {
             (SELECT COUNT(*) FROM project_members pm2 WHERE pm2.project_id = p.id) AS member_count
      FROM projects p
      JOIN project_members pm ON pm.project_id = p.id
-     WHERE pm.user_id = $1 AND p.user_id != $1 ${dateFilter}
+     WHERE pm.user_id = $1 AND p.user_id != $1
      ORDER BY p.created_at`,
     [req.userId]
   );
