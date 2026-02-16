@@ -213,4 +213,56 @@ router.delete('/:id/members/:userId', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── GET project stats (task completion history) ──────────────
+router.get('/:id/stats', async (req, res) => {
+  const { rows: projectRows } = await pool.query('SELECT * FROM projects WHERE id = $1', [req.params.id]);
+  if (!projectRows[0]) return res.status(404).json({ error: 'Project not found' });
+
+  const project = projectRows[0];
+  const { rows: memberCheck } = await pool.query(
+    'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2',
+    [req.params.id, req.userId]
+  );
+  if (project.user_id !== req.userId && memberCheck.length === 0) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  // Get shared task completions
+  const { rows: sharedCompletions } = await pool.query(
+    `SELECT DATE(completed_at) as date, COUNT(*) as count
+     FROM tasks
+     WHERE project_id = $1 AND task_type = 'shared' AND status = 'done' AND completed_at IS NOT NULL
+     GROUP BY DATE(completed_at)
+     ORDER BY date`,
+    [req.params.id]
+  );
+
+  // Get per-member task completions
+  const { rows: perMemberCompletions } = await pool.query(
+    `SELECT DATE(tc.completed_at) as date, COUNT(*) as count
+     FROM task_completions tc
+     JOIN tasks t ON t.id = tc.task_id
+     WHERE t.project_id = $1 AND t.task_type = 'per_member'
+     GROUP BY DATE(tc.completed_at)
+     ORDER BY date`,
+    [req.params.id]
+  );
+
+  // Merge both completion types by date
+  const completionMap = {};
+  for (const row of sharedCompletions) {
+    const dateStr = row.date.toISOString().split('T')[0];
+    completionMap[dateStr] = (completionMap[dateStr] || 0) + parseInt(row.count);
+  }
+  for (const row of perMemberCompletions) {
+    const dateStr = row.date.toISOString().split('T')[0];
+    completionMap[dateStr] = (completionMap[dateStr] || 0) + parseInt(row.count);
+  }
+
+  const completions = Object.entries(completionMap).map(([date, count]) => ({ date, count }));
+  completions.sort((a, b) => a.date.localeCompare(b.date));
+
+  res.json({ completions });
+});
+
 export default router;

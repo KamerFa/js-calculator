@@ -179,6 +179,16 @@ export default function App() {
     setConfirmOpen(true);
   };
 
+  const handleLeaveProject = (project) => {
+    setConfirmMessage(`Leave project "${project.name}"? You can be re-invited later.`);
+    setConfirmAction(() => async () => {
+      await DB.removeProjectMember(project.id, user.id);
+      await reload();
+      navigate('tasks');
+    });
+    setConfirmOpen(true);
+  };
+
   // ── Share actions ──────────────────────────────────────────
   const openShareModal = (project) => {
     setShareModalProject(project);
@@ -278,6 +288,7 @@ export default function App() {
             onNewTask={(pid) => openTaskModal(null, pid)}
             onEditProject={(p) => openProjectModal(p)}
             onDeleteProject={handleDeleteProject}
+            onLeaveProject={handleLeaveProject}
             onShare={openShareModal}
           />
         )}

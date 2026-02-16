@@ -77,6 +77,10 @@ const DB = {
     return api(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' });
   },
 
+  async getProjectStats(projectId) {
+    return api(`/projects/${projectId}/stats`);
+  },
+
   // No-op — seeding is handled server-side on registration
   async seed() {},
 

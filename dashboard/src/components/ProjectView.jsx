@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { DB } from '../db';
 import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
+import ProjectStatsGraph from './ProjectStatsGraph';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 const STATUS_LABELS = { todo: 'Todo', 'in-progress': 'In Progress', done: 'Done' };
 
-export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onShare }) {
+export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare }) {
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
@@ -49,11 +50,13 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
             <button className="btn btn-sm" onClick={() => onShare(project)}>
               <IconUsers /> {isShared ? `${members.length} Members` : 'Share'}
             </button>
-            {isOwner && (
+            {isOwner ? (
               <>
                 <button className="btn btn-sm" onClick={() => onEditProject(project)}>Edit</button>
                 <button className="btn btn-sm btn-danger" onClick={() => onDeleteProject(project)}>Delete</button>
               </>
+            ) : (
+              <button className="btn btn-sm btn-danger" onClick={() => onLeaveProject(project)}>Leave Project</button>
             )}
           </div>
         </div>
@@ -78,6 +81,8 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
           <div className="progress-bar-fill" style={{ width: progress + '%' }} />
         </div>
       </div>
+
+      <ProjectStatsGraph projectId={project.id} />
 
       <div className="page-header">
         <div className="page-header-row">

@@ -2665,6 +2665,122 @@ body {
   padding: 6px 10px;
 }
 
+/* ── Project Stats Graph ──────────────────────────── */
+
+.project-stats-graph {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.project-stats-graph.loading,
+.project-stats-graph.empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.project-stats-summary {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.graph-container {
+  margin-top: 16px;
+}
+
+.graph-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.graph-bars {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 200px;
+  padding: 10px 0;
+}
+
+.graph-bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.graph-bar-container {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+}
+
+.graph-bar {
+  width: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.graph-bar:hover {
+  opacity: 0.8;
+}
+
+.graph-bar-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+}
+
+.graph-bar-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  writing-mode: horizontal-tb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
 /* ── Mobile responsive tweaks ─────────────────────── */
 
 @media (max-width: 600px) {
