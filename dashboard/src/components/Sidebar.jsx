@@ -45,17 +45,26 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
 
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(
+    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  );
   useEffect(() => {
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    const onInstalled = () => setIsInstalled(true);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
   }, []);
 
   const handleInstall = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const result = await installPrompt.userChoice;
-    if (result.outcome === 'accepted') setInstallPrompt(null);
+    if (installPrompt) {
+      installPrompt.prompt();
+      const result = await installPrompt.userChoice;
+      if (result.outcome === 'accepted') setIsInstalled(true);
+    }
   };
 
   const nav = (v) => {
@@ -159,8 +168,8 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
         </ul>
         <button className="sidebar-btn" onClick={() => { onNewProject(); if (onCloseMobile) onCloseMobile(); }}>+ New Project</button>
 
-        {installPrompt && (
-          <button className="sidebar-install-btn" onClick={handleInstall}>
+        {!isInstalled && (
+          <button className="sidebar-install-btn" onClick={handleInstall} title={installPrompt ? 'Install as app on your device' : 'Use your browser menu to install this app'}>
             <IconDownload /> Install App
           </button>
         )}
