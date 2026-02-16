@@ -14,6 +14,7 @@ import ConfirmModal from './components/ConfirmModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import PerformanceView from './components/PerformanceView';
 import ProfileView from './components/ProfileView';
+import UsersView from './components/UsersView';
 import FaceitSettingsModal from './components/FaceitSettingsModal';
 import ShareModal from './components/ShareModal';
 
@@ -318,6 +319,10 @@ export default function App() {
 
         {view === 'profile' && (
           <ProfileView user={user} profileUsername={profileUsername} />
+        )}
+
+        {view === 'users' && (
+          <UsersView onUserClick={(username) => navigate('profile', username)} />
         )}
 
         {view === 'calendar' && (

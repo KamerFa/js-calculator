@@ -130,6 +130,16 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               {t('sidebar.community')}
             </a>
           </li>
+          <li>
+            <a
+              href="#"
+              className={view === 'users' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('users'); }}
+            >
+              <IconUsers />
+              {t('community.users')}
+            </a>
+          </li>
         </ul>
 
         {user?.username?.toLowerCase() === 'kamer' && (
