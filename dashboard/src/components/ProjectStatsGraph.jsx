@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { DB } from '../db';
+import { useTranslation } from '../i18n';
 
 export default function ProjectStatsGraph({ projectId }) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,9 +17,9 @@ export default function ProjectStatsGraph({ projectId }) {
     }
   }, [projectId]);
 
-  if (loading) return <div className="project-stats-graph loading">Loading stats...</div>;
+  if (loading) return <div className="project-stats-graph loading">{t('projectStats.loading')}</div>;
   if (!stats || !stats.completions || stats.completions.length === 0) {
-    return <div className="project-stats-graph empty">No completion history yet</div>;
+    return <div className="project-stats-graph empty">{t('projectStats.noHistory')}</div>;
   }
 
   const completions = stats.completions;
@@ -55,21 +57,21 @@ export default function ProjectStatsGraph({ projectId }) {
     <div className="project-stats-graph">
       <div className="project-stats-summary">
         <div className="stat-item">
-          <span className="stat-label">Total Completed</span>
+          <span className="stat-label">{t('projectStats.totalCompleted')}</span>
           <span className="stat-value">{totalDone}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Days Active</span>
+          <span className="stat-label">{t('projectStats.daysActive')}</span>
           <span className="stat-value">{completions.length}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Avg Per Day</span>
+          <span className="stat-label">{t('projectStats.avgPerDay')}</span>
           <span className="stat-value">{(totalDone / completions.length).toFixed(1)}</span>
         </div>
       </div>
 
       <div className="graph-container">
-        <div className="graph-title">{groupByWeek ? 'Weekly' : 'Daily'} Completion Frequency</div>
+        <div className="graph-title">{groupByWeek ? t('projectStats.weeklyFrequency') : t('projectStats.dailyFrequency')}</div>
         <div className="graph-bars">
           {data.map((item, idx) => (
             <div className="graph-bar-wrapper" key={idx}>

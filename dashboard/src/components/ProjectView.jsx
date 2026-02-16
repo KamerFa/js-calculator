@@ -3,11 +3,13 @@ import { DB } from '../db';
 import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
 import ProjectStatsGraph from './ProjectStatsGraph';
+import { useTranslation } from '../i18n';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
-const STATUS_LABELS = { todo: 'Todo', 'in-progress': 'In Progress', done: 'Done' };
 
 export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare }) {
+  const { t } = useTranslation();
+  const STATUS_LABELS = { todo: t('tasks.todo'), 'in-progress': t('tasks.inProgress'), done: t('tasks.done') };
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
@@ -41,29 +43,29 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
             <div>
               <h1>
                 {project.name}
-                {project.isPublic && <span className="public-badge">Public</span>}
+                {project.isPublic && <span className="public-badge">{t('projects.public')}</span>}
               </h1>
-              <p className="desc">{project.description || 'No description'}</p>
+              <p className="desc">{project.description || t('projects.noDescription')}</p>
               {(project.startDate || project.endDate) && (
                 <p className="project-dates">
-                  {project.startDate && <span>Start: {new Date(project.startDate).toLocaleDateString()}</span>}
+                  {project.startDate && <span>{t('projects.startDate')}: {new Date(project.startDate).toLocaleDateString()}</span>}
                   {project.startDate && project.endDate && <span> • </span>}
-                  {project.endDate && <span>End: {new Date(project.endDate).toLocaleDateString()}</span>}
+                  {project.endDate && <span>{t('projects.endDate')}: {new Date(project.endDate).toLocaleDateString()}</span>}
                 </p>
               )}
             </div>
           </div>
           <div className="project-header-actions">
             <button className="btn btn-sm" onClick={() => onShare(project)}>
-              <IconUsers /> {isShared ? `${members.length} Members` : 'Share'}
+              <IconUsers /> {isShared ? t('projects.memberCount', { count: members.length }) : t('projects.share')}
             </button>
             {isOwner ? (
               <>
-                <button className="btn btn-sm" onClick={() => onEditProject(project)}>Edit</button>
-                <button className="btn btn-sm btn-danger" onClick={() => onDeleteProject(project)}>Delete</button>
+                <button className="btn btn-sm" onClick={() => onEditProject(project)}>{t('modal.edit')}</button>
+                <button className="btn btn-sm btn-danger" onClick={() => onDeleteProject(project)}>{t('projects.deleteProject')}</button>
               </>
             ) : (
-              <button className="btn btn-sm btn-danger" onClick={() => onLeaveProject(project)}>Leave Project</button>
+              <button className="btn btn-sm btn-danger" onClick={() => onLeaveProject(project)}>{t('projects.leaveProject')}</button>
             )}
           </div>
         </div>
@@ -71,7 +73,7 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
         {isShared && (
           <div className="project-members-row">
             {members.map((m) => (
-              <div className="member-chip" key={m.userId} title={`${m.username} — ${m.tasks.done}/${m.tasks.total} done`}>
+              <div className="member-chip" key={m.userId} title={`${m.username} — ${m.tasks.done}/${m.tasks.total} ${t('tasks.completed')}`}>
                 <span className="member-chip-avatar">{m.username.charAt(0).toUpperCase()}</span>
                 <span>{m.username}</span>
               </div>
@@ -80,9 +82,9 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
         )}
 
         <div className="project-stats">
-          <span><strong>{projectTasks.length}</strong> total</span>
-          <span><strong>{openCount}</strong> open</span>
-          <span><strong>{doneCount}</strong> done</span>
+          <span><strong>{projectTasks.length}</strong> {t('tasks.total')}</span>
+          <span><strong>{openCount}</strong> {t('tasks.open')}</span>
+          <span><strong>{doneCount}</strong> {t('tasks.completed')}</span>
         </div>
         <div className="progress-bar">
           <div className="progress-bar-fill" style={{ width: progress + '%' }} />
@@ -93,9 +95,9 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
 
       <div className="page-header">
         <div className="page-header-row">
-          <div><h1 style={{ fontSize: 20 }}>Tasks</h1></div>
+          <div><h1 style={{ fontSize: 20 }}>{t('tasks.title')}</h1></div>
           <button className="btn btn-primary btn-sm" onClick={() => onNewTask(project.id)}>
-            <IconPlus /> New Task
+            <IconPlus /> {t('tasks.newTask')}
           </button>
         </div>
       </div>
@@ -126,7 +128,7 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
         ) : null
       )}
 
-      {projectTasks.length === 0 && <div className="empty-state">No tasks in this project yet.</div>}
+      {projectTasks.length === 0 && <div className="empty-state">{t('tasks.noTasks')}</div>}
     </div>
   );
 }
