@@ -4,22 +4,36 @@ import pool, { uid } from '../db.js';
 const router = Router();
 
 function toJSON(row) {
+  const isPerMember = row.task_type === 'per_member';
+
+  // For per_member tasks, derive status from user's completion record
+  let effectiveStatus = row.status;
+  let effectiveCompletedAt = row.completed_at || null;
+  let effectiveCompletedBy = row.completer_username || null;
+
+  if (isPerMember) {
+    effectiveStatus = row.my_completed_at ? 'done' : 'todo';
+    effectiveCompletedAt = row.my_completed_at || null;
+    effectiveCompletedBy = null; // per-member: you complete it for yourself
+  }
+
   return {
     id: row.id,
     projectId: row.project_id,
     title: row.title,
     description: row.description,
-    status: row.status,
+    status: effectiveStatus,
     priority: row.priority,
     dueDate: row.due_date,
     recurrence: row.recurrence || 'none',
-    completedAt: row.completed_at || null,
-    completedBy: row.completer_username || null,
+    completedAt: effectiveCompletedAt,
+    completedBy: effectiveCompletedBy,
     screenshotUrl: row.screenshot_url || null,
     customFields: JSON.parse(row.custom_fields || '[]'),
     createdAt: row.created_at,
     userId: row.user_id,
     createdBy: row.creator_username || null,
+    taskType: row.task_type || 'shared',
   };
 }
 
@@ -35,21 +49,29 @@ function nextDueDate(recurrence, fromDate) {
   return d.toISOString().split('T')[0];
 }
 
-// ── Helper: should this recurring task auto-reset? ────────
+// ── Helper: should this shared recurring task auto-reset? ──
 function shouldReset(task) {
   if (!task.recurrence || task.recurrence === 'none') return false;
   if (task.status !== 'done') return false;
   if (!task.completed_at) return false;
 
-  const completedDate = new Date(task.completed_at).toISOString().split('T')[0];
+  return isStaleCompletion(task.recurrence, task.completed_at);
+}
+
+// ── Helper: should a per-member completion be reset? ───────
+function isStaleCompletion(recurrence, completedAt) {
+  if (!recurrence || recurrence === 'none') return false;
+  if (!completedAt) return false;
+
+  const completedDate = new Date(completedAt).toISOString().split('T')[0];
   const today = new Date().toISOString().split('T')[0];
 
-  if (task.recurrence === 'daily') return completedDate < today;
-  if (task.recurrence === 'weekly') {
+  if (recurrence === 'daily') return completedDate < today;
+  if (recurrence === 'weekly') {
     const diff = (new Date(today) - new Date(completedDate)) / 86400000;
     return diff >= 7;
   }
-  if (task.recurrence === 'monthly') {
+  if (recurrence === 'monthly') {
     const comp = new Date(completedDate);
     const now = new Date(today);
     return now.getMonth() !== comp.getMonth() || now.getFullYear() !== comp.getFullYear();
@@ -60,35 +82,55 @@ function shouldReset(task) {
 // ── GET: Own tasks + tasks from shared projects ───────────
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT DISTINCT ON (t.id) t.*, u.username AS creator_username, cu.username AS completer_username
+    `SELECT DISTINCT ON (t.id) t.*, u.username AS creator_username, cu.username AS completer_username,
+            tc.completed_at AS my_completed_at
      FROM tasks t
      JOIN users u ON u.id = t.user_id
      LEFT JOIN users cu ON cu.id = t.completed_by
      LEFT JOIN project_members pm ON t.project_id = pm.project_id AND pm.user_id = $1
+     LEFT JOIN task_completions tc ON tc.task_id = t.id AND tc.user_id = $1
      WHERE t.user_id = $1 OR pm.user_id = $1
      ORDER BY t.id, t.created_at`,
     [req.userId]
   );
 
-  // Auto-reset recurring tasks that are due
-  const resetIds = [];
+  // Auto-reset recurring tasks
+  const sharedResetIds = [];
+  const perMemberResetIds = [];
+
   for (const row of rows) {
-    if (shouldReset(row)) {
-      resetIds.push(row.id);
-      row.status = 'todo';
-      row.completed_at = null;
-      row.completed_by = null;
-      row.completer_username = null;
-      // Advance due_date if it exists
-      if (row.due_date) {
-        row.due_date = nextDueDate(row.recurrence, row.due_date);
+    if (row.task_type === 'per_member') {
+      // Per-member: check if THIS USER's completion is stale
+      if (row.my_completed_at && isStaleCompletion(row.recurrence, row.my_completed_at)) {
+        perMemberResetIds.push(row.id);
+        row.my_completed_at = null; // clear in-memory for response
+      }
+    } else {
+      // Shared: existing reset logic
+      if (shouldReset(row)) {
+        sharedResetIds.push(row.id);
+        row.status = 'todo';
+        row.completed_at = null;
+        row.completed_by = null;
+        row.completer_username = null;
+        if (row.due_date) {
+          row.due_date = nextDueDate(row.recurrence, row.due_date);
+        }
       }
     }
   }
 
-  if (resetIds.length > 0) {
-    // Batch reset in DB
-    for (const id of resetIds) {
+  // Batch reset per-member completions
+  if (perMemberResetIds.length > 0) {
+    await pool.query(
+      `DELETE FROM task_completions WHERE user_id = $1 AND task_id = ANY($2::text[])`,
+      [req.userId, perMemberResetIds]
+    );
+  }
+
+  // Batch reset shared tasks
+  if (sharedResetIds.length > 0) {
+    for (const id of sharedResetIds) {
       const row = rows.find((r) => r.id === id);
       await pool.query(
         `UPDATE tasks SET status = 'todo', completed_at = NULL, completed_by = NULL, due_date = $1 WHERE id = $2`,
@@ -102,7 +144,7 @@ router.get('/', async (req, res) => {
 
 // ── POST: Create or update task ───────────────────────────
 router.post('/', async (req, res) => {
-  const { title, description, projectId, status, priority, dueDate, customFields, recurrence } = req.body;
+  const { title, description, projectId, status, priority, dueDate, customFields, recurrence, taskType } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
 
   const id = req.body.id || uid();
@@ -129,7 +171,35 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ error: 'No access to this task' });
     }
 
-    // If only toggling status (member but not creator), restrict to status-only updates
+    // Per-member tasks: toggle via task_completions, not tasks.status
+    if (existing.task_type === 'per_member') {
+      const newStatus = status || existing.status;
+      if (newStatus === 'done') {
+        await pool.query(
+          `INSERT INTO task_completions (id, task_id, user_id) VALUES ($1, $2, $3) ON CONFLICT (task_id, user_id) DO NOTHING`,
+          [uid(), existing.id, req.userId]
+        );
+      } else {
+        await pool.query(
+          `DELETE FROM task_completions WHERE task_id = $1 AND user_id = $2`,
+          [existing.id, req.userId]
+        );
+      }
+      // Return the task with this user's completion state
+      const { rows } = await pool.query(
+        `SELECT t.*, u.username AS creator_username, cu.username AS completer_username,
+                tc.completed_at AS my_completed_at
+         FROM tasks t
+         JOIN users u ON u.id = t.user_id
+         LEFT JOIN users cu ON cu.id = t.completed_by
+         LEFT JOIN task_completions tc ON tc.task_id = t.id AND tc.user_id = $1
+         WHERE t.id = $2`,
+        [req.userId, existing.id]
+      );
+      return res.json(toJSON(rows[0]));
+    }
+
+    // Shared tasks: existing logic
     if (!canEdit && canToggle) {
       // Members can only toggle status
       const newStatus = status || existing.status;
@@ -164,20 +234,22 @@ router.post('/', async (req, res) => {
       if (access.length === 0) return res.status(403).json({ error: 'No access to this project' });
     }
     await pool.query(
-      `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, custom_fields, recurrence)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, custom_fields, recurrence, task_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [id, req.userId, projectId || null, title.trim(), description || '',
-       status || 'todo', priority || 'medium', dueDate || null, cf, rec]
+       status || 'todo', priority || 'medium', dueDate || null, cf, rec, taskType || 'shared']
     );
   }
 
   const { rows } = await pool.query(
-    `SELECT t.*, u.username AS creator_username, cu.username AS completer_username
+    `SELECT t.*, u.username AS creator_username, cu.username AS completer_username,
+            tc.completed_at AS my_completed_at
      FROM tasks t
      JOIN users u ON u.id = t.user_id
      LEFT JOIN users cu ON cu.id = t.completed_by
-     WHERE t.id = $1`,
-    [id]
+     LEFT JOIN task_completions tc ON tc.task_id = t.id AND tc.user_id = $1
+     WHERE t.id = $2`,
+    [req.userId, id]
   );
   res.json(toJSON(rows[0]));
 });

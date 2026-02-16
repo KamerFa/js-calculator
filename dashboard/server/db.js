@@ -100,6 +100,21 @@ async function initDB() {
     )
   `);
 
+  // Per-member task tracking
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_type TEXT NOT NULL DEFAULT 'shared'`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_completions (
+      id           TEXT PRIMARY KEY,
+      task_id      TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(task_id, user_id)
+    )
+  `);
+
+  // Backfill: mark existing Ramadan tasks as per_member
+  await pool.query(`UPDATE tasks SET task_type = 'per_member' WHERE project_id = 'global-ramadan' AND task_type = 'shared'`);
+
   // Backfill: ensure every existing project owner has a project_members entry
   await pool.query(`
     INSERT INTO project_members (id, project_id, user_id, role)
@@ -192,8 +207,8 @@ async function seedRamadanProject() {
 
     for (const t of tasks) {
       await client.query(
-        `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, recurrence)
-         VALUES ($1, $2, $3, $4, $5, 'todo', $6, $7)`,
+        `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, recurrence, task_type)
+         VALUES ($1, $2, $3, $4, $5, 'todo', $6, $7, 'per_member')`,
         [uid(), SYS_USER, RAMADAN_ID, t.title, t.desc, t.priority, t.rec]
       );
     }

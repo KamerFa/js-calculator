@@ -1555,6 +1555,17 @@ body {
   letter-spacing: 0.3px;
 }
 
+.per-member-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(26, 122, 76, 0.1);
+  color: #1a7a4c;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
 /* ============================================================
    CALENDAR VIEW
    ============================================================ */

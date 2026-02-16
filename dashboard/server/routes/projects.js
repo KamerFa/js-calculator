@@ -121,17 +121,33 @@ router.get('/:id/members', async (req, res) => {
     [req.params.id]
   );
 
-  const { rows: taskStats } = await pool.query(
-    `SELECT user_id,
-            COUNT(*) as total,
+  // Shared task stats (counted per creator)
+  const { rows: sharedStats } = await pool.query(
+    `SELECT user_id, COUNT(*) as total,
             SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done
-     FROM tasks WHERE project_id = $1 GROUP BY user_id`,
+     FROM tasks WHERE project_id = $1 AND task_type = 'shared' GROUP BY user_id`,
+    [req.params.id]
+  );
+
+  // Per-member task stats (each member gets the full per_member task count)
+  const { rows: perMemberStats } = await pool.query(
+    `SELECT pm.user_id,
+            (SELECT COUNT(*) FROM tasks WHERE project_id = $1 AND task_type = 'per_member') as total,
+            (SELECT COUNT(*) FROM task_completions tc
+             JOIN tasks t ON t.id = tc.task_id
+             WHERE t.project_id = $1 AND t.task_type = 'per_member' AND tc.user_id = pm.user_id) as done
+     FROM project_members pm WHERE pm.project_id = $1`,
     [req.params.id]
   );
 
   const statsMap = {};
-  for (const s of taskStats) {
+  for (const s of sharedStats) {
     statsMap[s.user_id] = { total: parseInt(s.total), done: parseInt(s.done) };
+  }
+  for (const s of perMemberStats) {
+    if (!statsMap[s.user_id]) statsMap[s.user_id] = { total: 0, done: 0 };
+    statsMap[s.user_id].total += parseInt(s.total);
+    statsMap[s.user_id].done += parseInt(s.done);
   }
 
   res.json(members.map((m) => ({

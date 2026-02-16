@@ -9,8 +9,13 @@ router.get('/projects', async (req, res) => {
     `SELECT p.*,
             u.username AS owner_name,
             (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) AS member_count,
-            (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id) AS task_count,
-            (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.status = 'done') AS done_count
+            (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.task_type = 'shared') +
+            (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.task_type = 'per_member')
+              * (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) AS task_count,
+            (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.task_type = 'shared' AND t.status = 'done') +
+            (SELECT COUNT(*) FROM task_completions tc
+             JOIN tasks t ON t.id = tc.task_id
+             WHERE t.project_id = p.id AND t.task_type = 'per_member') AS done_count
      FROM projects p
      JOIN users u ON u.id = p.user_id
      WHERE p.is_public = true
