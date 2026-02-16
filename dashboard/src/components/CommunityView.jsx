@@ -3,7 +3,33 @@ import { DB } from '../db';
 import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
 
-const REACTION_EMOJIS = ['\u2764\uFE0F', '\uD83D\uDE02', '\uD83D\uDE4F', '\uD83D\uDD25', '\uD83D\uDC4D', '\uD83D\uDE22'];
+const REACTION_EMOJIS = [
+  '\u2764\uFE0F', // ❤️ red heart
+  '\uD83D\uDE02', // 😂 laugh
+  '\uD83D\uDE4F', // 🙏 pray
+  '\uD83D\uDD25', // 🔥 fire
+  '\uD83D\uDC4D', // 👍 thumbs up
+  '\uD83D\uDE22', // 😢 sad
+  '\uD83D\uDC4F', // 👏 clap
+  '\uD83D\uDE0D', // 😍 heart eyes
+  '\uD83E\uDD2F', // 🤯 exploding head
+  '\uD83D\uDE80', // 🚀 rocket
+  '\uD83C\uDF89', // 🎉 party
+  '\uD83E\uDD14', // 🤔 thinking
+  '\u2705', // ✅ checkmark
+  '\uD83D\uDCAF', // 💯 hundred
+  '\uD83D\uDC40', // 👀 eyes
+  '\uD83E\uDD21', // 🤡 clown
+  '\uD83D\uDCA9', // 💩 poop
+  '\u2615', // ☕ coffee
+];
+
+const TWEET_TEMPLATES = [
+  "Danas radim na... 💪",
+  "Uspjesno zavrsio/la... 🎉",
+  "Trebam pomoc oko... 🤔",
+  "Pozdrav svima! 👋",
+];
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -16,15 +42,26 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-function TweetCard({ tw, user, onDelete, onReact, onComment, onDeleteComment, onUserClick }) {
+function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteComment, onUserClick }) {
   const [showComments, setShowComments] = useState(false);
   const [commentBody, setCommentBody] = useState('');
   const [showReactPicker, setShowReactPicker] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editBody, setEditBody] = useState(tw.body);
 
   const handleComment = async () => {
     if (!commentBody.trim()) return;
     await onComment(tw.id, commentBody.trim());
     setCommentBody('');
+  };
+
+  const handleEdit = async () => {
+    if (!editBody.trim() || editBody === tw.body) {
+      setIsEditing(false);
+      return;
+    }
+    await onEdit(tw.id, editBody.trim());
+    setIsEditing(false);
   };
 
   const reactionEntries = Object.entries(tw.reactions || {});
@@ -44,10 +81,28 @@ function TweetCard({ tw, user, onDelete, onReact, onComment, onDeleteComment, on
           </span>
           <span className="tweet-time">{timeAgo(tw.createdAt)}</span>
           {tw.userId === user?.id && (
-            <button className="tweet-delete" onClick={() => onDelete(tw.id)}>&times;</button>
+            <>
+              <button className="tweet-edit" onClick={() => setIsEditing(!isEditing)} title="Edit">✏️</button>
+              <button className="tweet-delete" onClick={() => onDelete(tw.id)}>&times;</button>
+            </>
           )}
         </div>
-        <p className="tweet-body">{tw.body}</p>
+        {isEditing ? (
+          <div className="tweet-edit-form">
+            <textarea
+              className="form-textarea"
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value.slice(0, 280))}
+              rows={2}
+            />
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button className="btn btn-primary btn-sm" onClick={handleEdit}>Save</button>
+              <button className="btn btn-sm" onClick={() => { setIsEditing(false); setEditBody(tw.body); }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <p className="tweet-body">{tw.body}</p>
+        )}
 
         {/* Reactions display */}
         <div className="tweet-reactions">
@@ -141,6 +196,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
   const [tweetBody, setTweetBody] = useState('');
   const [posting, setPosting] = useState(false);
   const [tab, setTab] = useState('feed');
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const loadData = async () => {
     const [tw, cp] = await Promise.all([DB.getTweets(), DB.getCommunityProjects()]);
@@ -164,6 +220,11 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
 
   const handleDeleteTweet = async (id) => {
     await DB.deleteTweet(id);
+    await loadData();
+  };
+
+  const handleEditTweet = async (id, body) => {
+    await DB.editTweet(id, body);
     await loadData();
   };
 
@@ -234,7 +295,16 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                 rows={2}
               />
               <div className="tweet-compose-footer">
-                <span className="tweet-char-count">{tweetBody.length}/280</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    title="Template poruke"
+                  >
+                    📝
+                  </button>
+                  <span className="tweet-char-count">{tweetBody.length}/280</span>
+                </div>
                 <button
                   className="btn btn-primary btn-sm"
                   disabled={!tweetBody.trim() || posting}
@@ -243,6 +313,19 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                   Tweet
                 </button>
               </div>
+              {showTemplates && (
+                <div className="tweet-templates">
+                  {TWEET_TEMPLATES.map((tmpl, i) => (
+                    <button
+                      key={i}
+                      className="tweet-template-btn"
+                      onClick={() => { setTweetBody(tmpl); setShowTemplates(false); }}
+                    >
+                      {tmpl}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -257,6 +340,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                 tw={tw}
                 user={user}
                 onDelete={handleDeleteTweet}
+                onEdit={handleEditTweet}
                 onReact={handleReact}
                 onComment={handleComment}
                 onDeleteComment={handleDeleteComment}

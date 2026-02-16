@@ -2099,8 +2099,8 @@ body {
   color: var(--text-3);
 }
 
+.tweet-edit,
 .tweet-delete {
-  margin-left: auto;
   background: none;
   border: none;
   color: var(--text-3);
@@ -2112,12 +2112,50 @@ body {
   transition: opacity 0.15s, color 0.15s;
 }
 
+.tweet-delete {
+  margin-left: auto;
+}
+
+.tweet-card:hover .tweet-edit,
 .tweet-card:hover .tweet-delete {
   opacity: 1;
 }
 
+.tweet-edit:hover {
+  color: var(--accent);
+}
+
 .tweet-delete:hover {
   color: var(--danger);
+}
+
+.tweet-edit-form {
+  margin-top: 8px;
+}
+
+.tweet-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.tweet-template-btn {
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tweet-template-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
 }
 
 .tweet-body {

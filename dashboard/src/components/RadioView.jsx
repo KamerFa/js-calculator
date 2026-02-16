@@ -1,25 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 
 const STATIONS = [
-  { id: 'radio8', name: 'Radio 8', genre: 'Pop / Urban', region: 'Sarajevo', url: 'https://stream.radio8.ba:8443/radio8' },
-  { id: 'tnt', name: 'Radio TNT', genre: 'Pop / Hits', region: 'BiH', url: 'https://stream.tntradio.ba:8001/tnt128' },
-  { id: 'naxi', name: 'Naxi Radio', genre: 'Pop', region: 'Beograd', url: 'https://naxi64.streaming.rs:9162/;' },
-  { id: 'naxi-house', name: 'Naxi House', genre: 'House', region: 'Beograd', url: 'https://naxi64.streaming.rs:8010/;' },
-  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', region: 'Beograd', url: 'https://naxi64.streaming.rs:8110/;' },
-  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club / Techno', region: 'Beograd', url: 'https://naxi64.streaming.rs:8090/;' },
-  { id: 'thetrip', name: 'SomaFM - The Trip', genre: 'Progressive House', region: 'Internet', url: 'https://ice4.somafm.com/thetrip-128-aac' },
-  { id: 'beatblender', name: 'SomaFM - Beat Blender', genre: 'Deep House / Chill', region: 'Internet', url: 'https://ice4.somafm.com/beatblender-128-aac' },
+  // Regional
+  { id: 'naxi', name: 'Naxi Radio', genre: 'Pop', region: 'Beograd', url: 'http://naxi128.streaming.rs:9150/;' },
+  { id: 'naxi-house', name: 'Naxi House', genre: 'House', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8000/;' },
+  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8110/;' },
+  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8090/;' },
+
+  // Islamic Radio
+  { id: 'islamic1', name: 'Radio El-Kelimeh', genre: 'Islamic', region: 'Sarajevo', url: 'http://185.47.65.85:8002/;' },
+  { id: 'islamic2', name: 'Quran Radio', genre: 'Islamic', region: 'Internet', url: 'http://quraan.us:9996/;' },
+  { id: 'islamic3', name: 'Radio Nur', genre: 'Islamic', region: 'BiH', url: 'http://stream.radionur.ba:8000/radionur' },
+
+  // House / Electronic
+  { id: 'beatblender', name: 'SomaFM - Beat Blender', genre: 'Deep House', region: 'Internet', url: 'https://ice4.somafm.com/beatblender-128-aac' },
+  { id: 'groovesalad', name: 'SomaFM - Groove Salad', genre: 'Downtempo', region: 'Internet', url: 'https://ice5.somafm.com/groovesalad-128-aac' },
+  { id: 'spacestation', name: 'SomaFM - Space Station', genre: 'Ambient', region: 'Internet', url: 'https://ice5.somafm.com/spacestation-128-aac' },
+  { id: 'defcon', name: 'SomaFM - DEF CON', genre: 'Electronic', region: 'Internet', url: 'https://ice5.somafm.com/defcon-128-aac' },
 ];
 
 const GENRE_COLORS = {
-  'Pop / Urban': '#2a5caa',
-  'Pop / Hits': '#c0392b',
   'Pop': '#7c3aed',
   'House': '#db2777',
   'Dance': '#b45309',
-  'Club / Techno': '#0891b2',
-  'Progressive House': '#276749',
-  'Deep House / Chill': '#6366f1',
+  'Club': '#0891b2',
+  'Islamic': '#16a34a',
+  'Deep House': '#6366f1',
+  'Downtempo': '#8b5cf6',
+  'Ambient': '#0ea5e9',
+  'Electronic': '#f59e0b',
 };
 
 export default function RadioView() {
@@ -113,8 +122,9 @@ export default function RadioView() {
     if (audioRef.current) audioRef.current.volume = v;
   };
 
-  const regional = STATIONS.filter((s) => s.region !== 'Internet');
-  const house = STATIONS.filter((s) => s.region === 'Internet' || s.genre.toLowerCase().includes('house') || s.genre.toLowerCase().includes('club') || s.genre.toLowerCase().includes('dance'));
+  const regional = STATIONS.filter((s) => s.region !== 'Internet' && s.genre !== 'Islamic');
+  const islamic = STATIONS.filter((s) => s.genre === 'Islamic');
+  const electronic = STATIONS.filter((s) => s.region === 'Internet' && s.genre !== 'Islamic');
 
   return (
     <div>
@@ -178,9 +188,39 @@ export default function RadioView() {
         ))}
       </div>
 
-      <div className="radio-section-label">House / Electronic</div>
+      {islamic.length > 0 && (
+        <>
+          <div className="radio-section-label">Islamske stanice</div>
+          <div className="radio-grid">
+            {islamic.map((s) => (
+              <button
+                key={s.id}
+                className={`radio-card${playing?.id === s.id ? ' radio-card-active' : ''}`}
+                onClick={() => play(s)}
+                disabled={loading}
+              >
+                <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || '#16a34a' }} />
+                <div className="radio-card-body">
+                  <span className="radio-card-name">{s.name}</span>
+                  <span className="radio-card-meta">{s.genre} &middot; {s.region}</span>
+                </div>
+                <div className="radio-card-action">
+                  {playing?.id === s.id ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                  )}
+                </div>
+                {error === s.id && <span className="radio-card-error">Greska</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="radio-section-label">Electronic</div>
       <div className="radio-grid">
-        {house.map((s) => (
+        {electronic.map((s) => (
           <button
             key={s.id}
             className={`radio-card${playing?.id === s.id ? ' radio-card-active' : ''}`}

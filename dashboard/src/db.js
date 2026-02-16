@@ -114,6 +114,10 @@ const DB = {
     return api(`/tweets/${id}`, { method: 'DELETE' });
   },
 
+  async editTweet(id, body) {
+    return api(`/tweets/${id}`, { method: 'PUT', body: JSON.stringify({ body }) });
+  },
+
   async reactToTweet(tweetId, emoji) {
     return api(`/tweets/${tweetId}/react`, { method: 'POST', body: JSON.stringify({ emoji }) });
   },

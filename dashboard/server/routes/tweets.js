@@ -88,6 +88,27 @@ router.post('/', async (req, res) => {
   res.json(enriched[0]);
 });
 
+// ── PUT edit own tweet ────────────────────────────────────
+router.put('/:id', async (req, res) => {
+  const { body } = req.body;
+  if (!body?.trim() || body.trim().length > 280) {
+    return res.status(400).json({ error: 'Tweet must be 1-280 characters' });
+  }
+  await pool.query(
+    'UPDATE tweets SET body = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3',
+    [body.trim(), req.params.id, req.userId]
+  );
+  const { rows } = await pool.query(
+    `SELECT t.*, u.username, u.avatar_url FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    [req.params.id]
+  );
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Tweet not found or not authorized' });
+  }
+  const enriched = await enrichTweets(rows);
+  res.json(enriched[0]);
+});
+
 // ── DELETE own tweet ──────────────────────────────────────
 router.delete('/:id', async (req, res) => {
   await pool.query('DELETE FROM tweets WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
