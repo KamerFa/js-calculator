@@ -73,6 +73,33 @@ async function initDB() {
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by TEXT REFERENCES users(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS screenshot_url TEXT`);
 
+  // User profile columns
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS music_service TEXT`);  // spotify, youtube, tidal
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS music_username TEXT`);
+
+  // Tweet reactions & comments
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tweet_reactions (
+      id          TEXT PRIMARY KEY,
+      tweet_id    TEXT NOT NULL REFERENCES tweets(id) ON DELETE CASCADE,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      emoji       TEXT NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(tweet_id, user_id, emoji)
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tweet_comments (
+      id          TEXT PRIMARY KEY,
+      tweet_id    TEXT NOT NULL REFERENCES tweets(id) ON DELETE CASCADE,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body        TEXT NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   // Backfill: ensure every existing project owner has a project_members entry
   await pool.query(`
     INSERT INTO project_members (id, project_id, user_id, role)

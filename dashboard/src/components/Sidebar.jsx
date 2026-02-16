@@ -176,7 +176,11 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
 
         {user && (
           <div className="user-menu">
-            <span className="user-menu-name">{user.username}</span>
+            <span
+              className="user-menu-name"
+              style={{ cursor: 'pointer' }}
+              onClick={() => nav('profile')}
+            >{user.username}</span>
             <button className="user-menu-logout" onClick={onLogout}>Log out</button>
           </div>
         )}

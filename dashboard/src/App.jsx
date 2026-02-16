@@ -13,6 +13,7 @@ import NoteModal from './components/NoteModal';
 import ConfirmModal from './components/ConfirmModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import PerformanceView from './components/PerformanceView';
+import ProfileView from './components/ProfileView';
 import FaceitSettingsModal from './components/FaceitSettingsModal';
 import ShareModal from './components/ShareModal';
 
@@ -26,6 +27,7 @@ export default function App() {
 
   const [view, setView] = useState('tasks');
   const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [profileUsername, setProfileUsername] = useState(null);
 
   // Mobile sidebar
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -87,11 +89,17 @@ export default function App() {
   const navigate = (v) => {
     setView(v);
     setCurrentProjectId(null);
+    setProfileUsername(null);
   };
 
   const navigateProject = (id) => {
     setView('project');
     setCurrentProjectId(id);
+  };
+
+  const navigateProfile = (username) => {
+    setProfileUsername(username || null);
+    setView('profile');
   };
 
   const currentProject = projects.find((p) => p.id === currentProjectId) || null;
@@ -292,7 +300,12 @@ export default function App() {
             user={user}
             onProjectClick={navigateProject}
             onReload={reload}
+            onUserClick={navigateProfile}
           />
+        )}
+
+        {view === 'profile' && (
+          <ProfileView user={user} profileUsername={profileUsername} />
         )}
 
         {view === 'calendar' && (

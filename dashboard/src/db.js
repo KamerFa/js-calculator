@@ -110,6 +110,47 @@ const DB = {
     return api(`/tweets/${id}`, { method: 'DELETE' });
   },
 
+  async reactToTweet(tweetId, emoji) {
+    return api(`/tweets/${tweetId}/react`, { method: 'POST', body: JSON.stringify({ emoji }) });
+  },
+
+  async commentOnTweet(tweetId, body) {
+    return api(`/tweets/${tweetId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+  },
+
+  async deleteComment(commentId) {
+    return api(`/tweets/comments/${commentId}`, { method: 'DELETE' });
+  },
+
+  // ── Profile ─────────────────────────────────────────────────
+  async getProfile() {
+    return api('/profile/me');
+  },
+
+  async getPublicProfile(username) {
+    return api(`/profile/user/${username}`);
+  },
+
+  async updateProfile(data) {
+    return api('/profile/me', { method: 'PUT', body: JSON.stringify(data) });
+  },
+
+  async uploadAvatar(file) {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const res = await fetch(`${BASE}/profile/avatar`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Upload failed');
+    }
+    return res.json();
+  },
+
   // ── Community ───────────────────────────────────────────────
   async getCommunityProjects() {
     return api('/community/projects');

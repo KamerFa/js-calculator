@@ -11,6 +11,7 @@ import taskRoutes from './routes/tasks.js';
 import noteRoutes from './routes/notes.js';
 import tweetRoutes from './routes/tweets.js';
 import communityRoutes from './routes/community.js';
+import profileRoutes from './routes/profile.js';
 import pool from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,8 +34,9 @@ app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/notes', authMiddleware, noteRoutes);
 app.use('/api/tweets', authMiddleware, tweetRoutes);
 app.use('/api/community', authMiddleware, communityRoutes);
+app.use('/api/profile', authMiddleware, profileRoutes);
 
-// ── Screenshot upload ────────────────────────────────────────
+// ── File uploads (screenshots + avatars) ──────────────────────
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadsDir,
@@ -55,6 +57,13 @@ app.post('/api/tasks/:id/screenshot', authMiddleware, upload.single('screenshot'
   const url = `/uploads/${req.file.filename}`;
   await pool.query('UPDATE tasks SET screenshot_url = $1 WHERE id = $2', [url, req.params.id]);
   res.json({ screenshotUrl: url });
+});
+
+app.post('/api/profile/avatar', authMiddleware, upload.single('avatar'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const url = `/uploads/${req.file.filename}`;
+  await pool.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [url, req.userId]);
+  res.json({ avatarUrl: url });
 });
 
 // ── Serve frontend in production ────────────────────────────
