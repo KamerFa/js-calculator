@@ -2943,6 +2943,283 @@ body {
   color: var(--text-dim);
 }
 
+/* ── Project Status Badges ─────────────────────────── */
+
+.status-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-completed {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-upcoming {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.project-dates-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.project-time-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary);
+  background: var(--primary-bg);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+/* Timeline progress */
+.timeline-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.timeline-progress-bar {
+  flex: 1;
+  max-width: 200px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.timeline-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.timeline-progress-pct {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* Sidebar status */
+.project-dot-completed {
+  opacity: 0.5;
+}
+
+.sidebar-status-icon {
+  font-size: 10px;
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+/* ── Completion Summary ───────────────────────────── */
+
+.completion-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.completion-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.completion-summary-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.completion-elapsed {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+
+.completion-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.completion-stat {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.completion-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.completion-stat-total {
+  font-size: 16px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.completion-stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Completion ring */
+.completion-ring-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.completion-ring {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.completion-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+.completion-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.completion-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.completion-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cb-label {
+  font-size: 13px;
+  color: var(--text-2);
+  flex: 1;
+}
+
+.cb-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Completion chart */
+.completion-chart {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.completion-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.completion-chart-bars {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 100px;
+  overflow-x: auto;
+}
+
+.completion-chart-bar-wrapper {
+  flex: 1;
+  min-width: 28px;
+  max-width: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.completion-chart-bar-container {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.completion-chart-bar {
+  width: 70%;
+  min-height: 4px;
+  background: var(--primary);
+  border-radius: 3px 3px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  transition: height 0.3s;
+}
+
+.completion-chart-bar-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  margin-top: 2px;
+}
+
+.completion-chart-bar-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 /* ── Avatar Picker ─────────────────────────────────── */
 
 .avatar-picker-modal {

@@ -3,7 +3,9 @@ import { DB } from '../db';
 import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
 import ProjectStatsGraph from './ProjectStatsGraph';
+import ProjectCompletionSummary from './ProjectCompletionSummary';
 import { useTranslation } from '../i18n';
+import { getProjectStatus, getProjectTimeInfo, getProjectProgress } from '../projectStatus';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 
@@ -34,6 +36,27 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
   const isShared = members.length > 1;
   const isOwner = project.isOwner;
 
+  // Project date status
+  const status = getProjectStatus(project);
+  const timeInfo = getProjectTimeInfo(project);
+  const timelineProgress = getProjectProgress(project);
+
+  const statusBadge = status === 'completed'
+    ? <span className="status-badge status-completed">{t('projectStatus.completed')}</span>
+    : status === 'active'
+    ? <span className="status-badge status-active">{t('projectStatus.active')}</span>
+    : status === 'upcoming'
+    ? <span className="status-badge status-upcoming">{t('projectStatus.upcoming')}</span>
+    : null;
+
+  const timeLabel = timeInfo
+    ? timeInfo.type === 'remaining'
+      ? t('projectStatus.daysRemaining', { days: timeInfo.days })
+      : timeInfo.type === 'today'
+      ? t('projectStatus.endsToday')
+      : t('projectStatus.endedAgo', { days: timeInfo.days })
+    : null;
+
   return (
     <div>
       <div className="project-header">
@@ -44,14 +67,27 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
               <h1>
                 {project.name}
                 {project.isPublic && <span className="public-badge">{t('projects.public')}</span>}
+                {statusBadge}
               </h1>
               <p className="desc">{project.description || t('projects.noDescription')}</p>
               {(project.startDate || project.endDate) && (
-                <p className="project-dates">
-                  {project.startDate && <span>{t('projects.startDate')}: {new Date(project.startDate).toLocaleDateString()}</span>}
-                  {project.startDate && project.endDate && <span> • </span>}
-                  {project.endDate && <span>{t('projects.endDate')}: {new Date(project.endDate).toLocaleDateString()}</span>}
-                </p>
+                <div className="project-dates-row">
+                  <p className="project-dates">
+                    {project.startDate && <span>{t('projects.startDate')}: {new Date(project.startDate).toLocaleDateString()}</span>}
+                    {project.startDate && project.endDate && <span> — </span>}
+                    {project.endDate && <span>{t('projects.endDate')}: {new Date(project.endDate).toLocaleDateString()}</span>}
+                  </p>
+                  {timeLabel && <span className="project-time-label">{timeLabel}</span>}
+                </div>
+              )}
+              {/* Timeline progress bar */}
+              {timelineProgress !== null && status !== 'completed' && (
+                <div className="timeline-progress">
+                  <div className="timeline-progress-bar">
+                    <div className="timeline-progress-fill" style={{ width: `${timelineProgress}%` }} />
+                  </div>
+                  <span className="timeline-progress-pct">{timelineProgress}%</span>
+                </div>
               )}
             </div>
           </div>
@@ -90,6 +126,11 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
           <div className="progress-bar-fill" style={{ width: progress + '%' }} />
         </div>
       </div>
+
+      {/* Show completion summary for completed projects */}
+      {status === 'completed' && (
+        <ProjectCompletionSummary project={project} tasks={tasks} />
+      )}
 
       <ProjectStatsGraph projectId={project.id} />
 

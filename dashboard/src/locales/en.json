@@ -93,6 +93,20 @@
     "noHistory": "No completion history yet",
     "loading": "Loading stats..."
   },
+  "projectStatus": {
+    "active": "Active",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "daysRemaining": "{days} days remaining",
+    "endsToday": "Ends today",
+    "endedAgo": "Ended {days} days ago",
+    "completionSummary": "Completion Summary",
+    "completionRate": "Completion Rate",
+    "tasksCompleted": "Tasks Completed",
+    "durationDays": "Duration (days)",
+    "remaining": "Remaining",
+    "completionTimeline": "Completion Timeline"
+  },
   "notes": {
     "title": "Notes",
     "newNote": "New Note",

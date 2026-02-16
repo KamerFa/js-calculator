@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
+import { getProjectStatus } from '../projectStatus';
 
 function IconCalendar() {
   return (
@@ -163,25 +164,29 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
 
         <div className="sidebar-section-label">{t('sidebar.projects')}</div>
         <ul className="sidebar-nav">
-          {projects.map((project) => (
-            <li key={project.id}>
-              <button
-                className={view === 'project' && currentProjectId === project.id ? 'active' : ''}
-                onClick={() => navProject(project.id)}
-              >
-                <span className="project-dot" style={{ background: project.color }} />
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {project.name}
-                </span>
-                {project.memberCount > 1 && (
-                  <span className="shared-badge" title={t('projects.share')}>
-                    <IconUsers />
+          {projects.map((project) => {
+            const pStatus = getProjectStatus(project);
+            return (
+              <li key={project.id}>
+                <button
+                  className={view === 'project' && currentProjectId === project.id ? 'active' : ''}
+                  onClick={() => navProject(project.id)}
+                >
+                  <span className={`project-dot${pStatus === 'completed' ? ' project-dot-completed' : ''}`} style={{ background: project.color }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: pStatus === 'completed' ? 0.6 : 1 }}>
+                    {project.name}
                   </span>
-                )}
-                <span className="project-badge">{openCount(project.id)}</span>
-              </button>
-            </li>
-          ))}
+                  {pStatus === 'completed' && <span className="sidebar-status-icon" title={t('projectStatus.completed')}>&#10003;</span>}
+                  {project.memberCount > 1 && (
+                    <span className="shared-badge" title={t('projects.share')}>
+                      <IconUsers />
+                    </span>
+                  )}
+                  <span className="project-badge">{openCount(project.id)}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
         <button className="sidebar-btn" onClick={() => { onNewProject(); if (onCloseMobile) onCloseMobile(); }}>+ {t('projects.newProject')}</button>
 

@@ -161,6 +161,8 @@ export default function App() {
       description: form.description.trim(),
       color: form.color,
       isPublic: form.isPublic || false,
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
     };
     await DB.save('projects', project);
     await reload();

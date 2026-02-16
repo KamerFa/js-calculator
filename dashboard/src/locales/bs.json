@@ -93,6 +93,20 @@
     "noHistory": "Nema istorije završavanja još",
     "loading": "Učitavanje statistika..."
   },
+  "projectStatus": {
+    "active": "Aktivan",
+    "completed": "Završen",
+    "upcoming": "Nadolazeći",
+    "daysRemaining": "Još {days} dana",
+    "endsToday": "Završava danas",
+    "endedAgo": "Završen prije {days} dana",
+    "completionSummary": "Završni pregled",
+    "completionRate": "Stopa završenosti",
+    "tasksCompleted": "Završeni zadaci",
+    "durationDays": "Trajanje (dana)",
+    "remaining": "Preostalo",
+    "completionTimeline": "Vremenski tok završavanja"
+  },
   "notes": {
     "title": "Bilješke",
     "newNote": "Nova bilješka",
