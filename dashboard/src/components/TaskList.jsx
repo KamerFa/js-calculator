@@ -14,11 +14,12 @@ function isToday(dateStr) {
   return String(dateStr).slice(0, 10) === getToday();
 }
 
-function isDueOrRecurringToday(task) {
+function isDueToday(task) {
   if (task.status === 'done') return false;
-  if (isToday(task.dueDate)) return true;
-  if (task.recurrence && task.recurrence !== 'none') return true;
-  return false;
+  if (!task.dueDate) return false;
+  const due = String(task.dueDate).slice(0, 10);
+  const today = getToday();
+  return due <= today;
 }
 
 export default function TaskList({ tasks, projects, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask }) {
@@ -31,8 +32,8 @@ export default function TaskList({ tasks, projects, onToggle, onTaskClick, onEdi
     return true;
   });
 
-  const todayTasks = filtered.filter((t) => isDueOrRecurringToday(t));
-  const laterTasks = filtered.filter((t) => !isDueOrRecurringToday(t));
+  const todayTasks = filtered.filter((t) => isDueToday(t));
+  const laterTasks = filtered.filter((t) => !isDueToday(t));
 
   const makeGroups = (list) =>
     STATUS_ORDER.map((s) => ({
