@@ -117,6 +117,12 @@ async function initDB() {
   // Backfill: mark existing Ramadan tasks as per_member
   await pool.query(`UPDATE tasks SET task_type = 'per_member' WHERE project_id = 'global-ramadan' AND task_type = 'shared'`);
 
+  // ── Delete old Ramadan project to re-seed with strictly Ramadan tasks ──
+  await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
+  await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);
+  await pool.query(`DELETE FROM project_members WHERE project_id = 'global-ramadan'`);
+  await pool.query(`DELETE FROM projects WHERE id = 'global-ramadan'`);
+
   // Backfill: ensure every existing project owner has a project_members entry
   await pool.query(`
     INSERT INTO project_members (id, project_id, user_id, role)
@@ -162,8 +168,8 @@ async function seedRamadanProject() {
       [
         RAMADAN_ID,
         SYS_USER,
-        'Ramadan',
-        'Track your fasting, salah, and dhikr throughout Ramadan. Join the community!',
+        'Ramazan 2026',
+        'Prati svoj post, ibadet i dobra djela tokom Ramazana. Pridruzi se zajednici!',
         '#1a7a4c',
       ]
     );
@@ -173,38 +179,35 @@ async function seedRamadanProject() {
       [uid(), RAMADAN_ID, SYS_USER]
     );
 
-    // Tasks categorised by Islamic obligation level
+    // Strictly Ramadan-specific tasks only
     // recurrence: 'daily' auto-resets each day, 'none' is a one-off goal
     const tasks = [
-      // ─── Fard (Obligatory) ───────────────────────────────
-      { title: 'Fajr Prayer',              desc: 'Perform Fajr salah on time (Fard - Quran 17:78)',                                             priority: 'high', rec: 'daily' },
-      { title: 'Dhuhr Prayer',             desc: 'Perform Dhuhr salah on time (Fard - Quran 17:78)',                                             priority: 'high', rec: 'daily' },
-      { title: 'Asr Prayer',               desc: 'Perform Asr salah on time (Fard - Quran 103:1-3, Bukhari 553)',                                priority: 'high', rec: 'daily' },
-      { title: 'Maghrib Prayer',           desc: 'Perform Maghrib salah on time (Fard - Quran 17:78)',                                           priority: 'high', rec: 'daily' },
-      { title: 'Isha Prayer',              desc: 'Perform Isha salah on time (Fard - Quran 17:78)',                                              priority: 'high', rec: 'daily' },
-      { title: 'Fast from Suhoor to Iftar',desc: 'Keep the obligatory fast (Fard - Quran 2:183)',                                                priority: 'high', rec: 'daily' },
-      { title: 'Zakat al-Fitr',            desc: 'Pay Zakat al-Fitr before Eid prayer (Wajib - Bukhari 1503)',                                   priority: 'high', rec: 'none' },
+      // ─── Post (Fasting) ─────────────────────────────────
+      { title: 'Post od sehura do iftara',   desc: 'Drzi obavezni post od zore do zalaska sunca (Fard - Kuran 2:183)',                           priority: 'high', rec: 'daily' },
+      { title: 'Sehur',                      desc: 'Ustani na sehur - "Jedite sehur jer je u sehuru bereket" (Buhari 1923)',                     priority: 'high', rec: 'daily' },
+      { title: 'Iftar s hurmama',            desc: 'Iftari se hurmama i vodom po sunnetu (Abu Davud 2356)',                                      priority: 'high', rec: 'daily' },
+      { title: 'Dova na iftaru',             desc: '"Zehebez-zama\' vebtelletil-uruk ve sebetel-edžru in ša Allah" (Abu Davud 2357)',             priority: 'high', rec: 'daily' },
+      { title: 'Zekat ul-fitr',              desc: 'Izdvoj zekat ul-fitr prije bajram-namaza (Vadžib - Buhari 1503)',                             priority: 'high', rec: 'none' },
 
-      // ─── Sunnah Muakkadah (Strongly Recommended) ─────────
-      { title: 'Taraweeh Prayer',          desc: 'Pray Taraweeh after Isha (Sunnah Muakkadah - Bukhari 37)',                                     priority: 'medium', rec: 'daily' },
-      { title: 'Suhoor Meal',              desc: 'Eat suhoor before Fajr - "Take suhoor, for in suhoor there is blessing" (Bukhari 1923)',       priority: 'medium', rec: 'daily' },
-      { title: 'Break fast with dates',    desc: 'Break fast with dates and water (Sunnah - Abu Dawud 2356)',                                    priority: 'medium', rec: 'daily' },
-      { title: 'Dua at Iftar',             desc: '"Dhahaba al-zama wa abtallatil-urooq..." (Abu Dawud 2357)',                                    priority: 'medium', rec: 'daily' },
-      { title: 'Morning Adhkar',           desc: 'Recite morning remembrance after Fajr (Sunnah - Muslim 2723)',                                 priority: 'medium', rec: 'daily' },
-      { title: 'Evening Adhkar',           desc: 'Recite evening remembrance after Asr (Sunnah - Muslim 2723)',                                  priority: 'medium', rec: 'daily' },
-      { title: 'Quran Recitation',         desc: 'Read at least 1 juz daily to complete Quran in Ramadan (Sunnah - Bukhari 4998)',               priority: 'medium', rec: 'daily' },
-      { title: 'Tasbeeh after Salah',      desc: 'SubhanAllah 33x, Alhamdulillah 33x, Allahu Akbar 34x after each salah (Muslim 595)',          priority: 'medium', rec: 'daily' },
+      // ─── Teravija i nocni ibadet ────────────────────────
+      { title: 'Teravija namaz',             desc: 'Klanjaj teraviju poslije jacije (Sunnet muekked - Buhari 37)',                                priority: 'high', rec: 'daily' },
+      { title: 'Hatma Kurana',               desc: 'Citaj barem 1 dzuz dnevno da zavrsis hatmu u Ramazanu (Buhari 4998)',                        priority: 'medium', rec: 'daily' },
+      { title: 'Tehedzdzud / Kijamul-lejl',  desc: 'Nocni namaz u zadnjoj trecini noci - posebno vrijedan u Ramazanu (Kuran 17:79)',             priority: 'medium', rec: 'daily' },
 
-      // ─── Mustahabb (Recommended) ─────────────────────────
-      { title: 'Tahajjud / Qiyam al-Layl', desc: 'Night prayer in last third of night (Mustahabb - Quran 17:79)',                               priority: 'low', rec: 'daily' },
-      { title: 'Istighfar 100x',           desc: 'Seek forgiveness - "I seek Allah\'s forgiveness 100 times a day" (Muslim 2702)',               priority: 'low', rec: 'daily' },
-      { title: 'La ilaha illa Allah 100x', desc: 'Daily dhikr (Bukhari 6403, Muslim 2691)',                                                     priority: 'low', rec: 'daily' },
-      { title: 'Salawat upon the Prophet',  desc: 'Send blessings upon the Prophet (Quran 33:56, Muslim 408)',                                  priority: 'low', rec: 'daily' },
-      { title: 'Charity / Sadaqah',        desc: 'The Prophet was most generous in Ramadan (Bukhari 6, Muslim 2308)',                            priority: 'low', rec: 'daily' },
-      { title: 'Dua: Allahumma innaka afuwwun...', desc: '"O Allah, You are pardoning and love to pardon, so pardon me" (Tirmidhi 3513)',       priority: 'low', rec: 'daily' },
-      { title: 'Feed someone Iftar',       desc: '"Whoever provides iftar for a fasting person earns the same reward" (Tirmidhi 807)',           priority: 'low', rec: 'none' },
-      { title: 'Itikaf (Last 10 days)',    desc: 'Spiritual retreat in the masjid (Sunnah - Bukhari 2025)',                                     priority: 'low', rec: 'none' },
-      { title: 'Seek Laylat al-Qadr',      desc: 'Especially in odd nights of last 10 days (Quran 97:1-5, Bukhari 2020)',                       priority: 'low', rec: 'none' },
+      // ─── Ramazanske dove i zikr ─────────────────────────
+      { title: 'Dova: Allahumme inneke afuvvun...', desc: '"Allahu moj, Ti prashtas i volis oprostiti, pa mi oprosti" - posebno za Lejletul-kadr (Tirmizi 3513)', priority: 'medium', rec: 'daily' },
+
+      // ─── Sadaka i dobra djela ───────────────────────────
+      { title: 'Sadaka / dobro djelo',       desc: 'Poslanik je bio najdarezljiviji u Ramazanu (Buhari 6, Muslim 2308)',                         priority: 'medium', rec: 'daily' },
+      { title: 'Nahrani nekoga iftarom',     desc: '"Ko priredi iftar postaczu, ima istu nagradu" (Tirmizi 807)',                                priority: 'medium', rec: 'none' },
+
+      // ─── Zadnjih 10 dana ────────────────────────────────
+      { title: 'Itikaf (zadnjih 10 dana)',   desc: 'Povuci se u dzamiju zadnjih 10 dana Ramazana (Sunnet - Buhari 2025)',                        priority: 'low', rec: 'none' },
+      { title: 'Trazi Lejletul-kadr',        desc: 'Posebno u neparnim nocima zadnjih 10 dana - bolja od 1000 mjeseci (Kuran 97:1-5, Buhari 2020)', priority: 'low', rec: 'none' },
+      { title: 'Pojacaj ibadet zadnjih 10',  desc: 'Poslanik je pojacavao ibadet u zadnjih 10 noci i budio porodicu (Buhari 2024)',              priority: 'low', rec: 'daily' },
+
+      // ─── Bajram priprema ────────────────────────────────
+      { title: 'Priprema za Bajram',         desc: 'Kupovina poklona, cistoca, priprema za Ramazanski bajram',                                   priority: 'low', rec: 'none' },
     ];
 
     for (const t of tasks) {

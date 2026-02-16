@@ -212,20 +212,20 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           <button className="ramadan-banner-close" onClick={dismissBanner}>&times;</button>
           <div className="ramadan-banner-icon">&#9770;</div>
           <div className="ramadan-banner-content">
-            <h3>Ramadan Mubarak! Join {ramadanProject.memberCount} others tracking their ibadah</h3>
+            <h3>Ramazan Mubarek! Pridruzi se {ramadanProject.memberCount} drugih koji prate ibadet</h3>
             <p className="ramadan-quote">
-              "To seek trouble - this is not courage, this is madness. Courage is the willingness of man to sensibly face the troubles he cannot avoid."
+              "Traziti nevolju - to nije hrabrost, to je ludost. Hrabrost je spremnost covjeka da razumno podnese nevolje koje ne moze izbijeci."
               <span className="ramadan-quote-author"> - Alija Izetbegovic</span>
             </p>
             <p className="ramadan-subtitle">
-              ...and skipping Suhoor is definitely seeking trouble. Don't be that person.
+              ...a preskakanje sehura je definitivno trazenje nevolje. Nemoj biti ta osoba.
             </p>
             {!ramadanProject.isMember ? (
               <button className="btn btn-primary btn-sm" onClick={() => handleJoin(ramadanProject.id)}>
-                Join Ramadan
+                Pridruzi se Ramazanu
               </button>
             ) : (
-              <span className="ramadan-joined-tag">You're in! MashAllah</span>
+              <span className="ramadan-joined-tag">Unutra si! MashaAllah</span>
             )}
           </div>
         </div>
