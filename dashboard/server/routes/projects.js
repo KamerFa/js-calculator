@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
 
   const result = [
     ...owned.map((r) => toJSON(r, { isOwner: true, memberCount: parseInt(r.member_count) })),
-    ...shared.map((r) => toJSON(r, { isOwner: false, role: r.role, memberCount: parseInt(r.member_count) })),
+    ...shared.map((r) => toJSON(r, { isOwner: r.role === 'owner', role: r.role, memberCount: parseInt(r.member_count) })),
   ];
   res.json(result);
 });
