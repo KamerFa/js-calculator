@@ -1,3 +1,9 @@
+databases:
+  - name: dashboard-db
+    plan: free
+    databaseName: dashboard
+    user: dashboard_user
+
 services:
   - type: web
     name: productivity-dashboard
@@ -10,3 +16,7 @@ services:
         generateValue: true
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dashboard-db
+          property: connectionString

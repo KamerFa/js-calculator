@@ -1,14 +1,9 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import db, { uid } from '../db.js';
+import pool, { uid } from '../db.js';
 import { signToken, authMiddleware } from '../auth.js';
 
 const router = Router();
-
-const findUser = db.prepare('SELECT * FROM users WHERE username = ?');
-const insertUser = db.prepare(
-  'INSERT INTO users (id, username, password) VALUES (?, ?, ?)'
-);
 
 router.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -19,14 +14,19 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 4 characters' });
   }
 
-  const existing = findUser.get(username.trim());
-  if (existing) {
+  const { rows: existing } = await pool.query(
+    'SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]
+  );
+  if (existing.length > 0) {
     return res.status(409).json({ error: 'Username already taken' });
   }
 
   const hash = await bcrypt.hash(password, 10);
   const id = uid();
-  insertUser.run(id, username.trim(), hash);
+  await pool.query(
+    'INSERT INTO users (id, username, password) VALUES ($1, $2, $3)',
+    [id, username.trim(), hash]
+  );
 
   const token = signToken(id);
   res.json({ token, user: { id, username: username.trim() } });
@@ -38,7 +38,10 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  const user = findUser.get(username.trim());
+  const { rows } = await pool.query(
+    'SELECT * FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]
+  );
+  const user = rows[0];
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
@@ -52,10 +55,12 @@ router.post('/login', async (req, res) => {
   res.json({ token, user: { id: user.id, username: user.username } });
 });
 
-router.get('/me', authMiddleware, (req, res) => {
-  const user = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(req.userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ user });
+router.get('/me', authMiddleware, async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, username, created_at FROM users WHERE id = $1', [req.userId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+  res.json({ user: rows[0] });
 });
 
 export default router;

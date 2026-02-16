@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initDB } from './db.js';
 import { authMiddleware } from './auth.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
@@ -30,6 +31,14 @@ app.get('/{*splat}', (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Dashboard API running on http://localhost:${PORT}`);
-});
+// ── Initialize DB then start server ─────────────────────────
+initDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Dashboard API running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
