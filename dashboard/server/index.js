@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 import { initDB } from './db.js';
 import { authMiddleware } from './auth.js';
 import authRoutes from './routes/auth.js';
@@ -10,6 +11,7 @@ import taskRoutes from './routes/tasks.js';
 import noteRoutes from './routes/notes.js';
 import tweetRoutes from './routes/tweets.js';
 import communityRoutes from './routes/community.js';
+import pool from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -17,6 +19,10 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// ── Serve uploaded files ──────────────────────────────────────
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // ── Public routes (login/register) ──────────────────────────
 app.use('/api/auth', authRoutes);
@@ -27,6 +33,29 @@ app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/notes', authMiddleware, noteRoutes);
 app.use('/api/tweets', authMiddleware, tweetRoutes);
 app.use('/api/community', authMiddleware, communityRoutes);
+
+// ── Screenshot upload ────────────────────────────────────────
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.png';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (_req, file, cb) => {
+    if (/^image\//.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only images are allowed'));
+  },
+});
+
+app.post('/api/tasks/:id/screenshot', authMiddleware, upload.single('screenshot'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const url = `/uploads/${req.file.filename}`;
+  await pool.query('UPDATE tasks SET screenshot_url = $1 WHERE id = $2', [url, req.params.id]);
+  res.json({ screenshotUrl: url });
+});
 
 // ── Serve frontend in production ────────────────────────────
 const distDir = path.join(__dirname, '..', 'dist');

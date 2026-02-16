@@ -70,6 +70,8 @@ async function initDB() {
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence TEXT NOT NULL DEFAULT 'none'`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by TEXT REFERENCES users(id) ON DELETE SET NULL`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS screenshot_url TEXT`);
 
   // Backfill: ensure every existing project owner has a project_members entry
   await pool.query(`
@@ -82,8 +84,9 @@ async function initDB() {
     ON CONFLICT DO NOTHING
   `);
 
-  // ── Seed global Ramadan project if it doesn't exist ──────
+  // ── Seed global projects if they don't exist ─────────────
   await seedRamadanProject();
+  await seedBugListProject();
 }
 
 async function seedRamadanProject() {
@@ -168,6 +171,42 @@ async function seedRamadanProject() {
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Ramadan seed error (may already exist):', e.message);
+  } finally {
+    client.release();
+  }
+}
+
+async function seedBugListProject() {
+  const BUG_ID = 'global-bug-list';
+  const { rows } = await pool.query('SELECT id FROM projects WHERE id = $1', [BUG_ID]);
+  if (rows.length > 0) return;
+
+  // Reuse the system user created by Ramadan seed
+  const SYS_USER = 'system-global';
+  const { rows: sysRows } = await pool.query('SELECT id FROM users WHERE id = $1', [SYS_USER]);
+  if (sysRows.length === 0) {
+    await pool.query(
+      `INSERT INTO users (id, username, password) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [SYS_USER, '_system', 'nologin']
+    );
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO projects (id, user_id, name, description, color, is_public, is_global)
+       VALUES ($1, $2, $3, $4, $5, true, true)`,
+      [BUG_ID, SYS_USER, 'Bug List', 'Report bugs with screenshots. Anyone can fix and mark as done!', '#c0392b']
+    );
+    await client.query(
+      `INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, 'owner')`,
+      [uid(), BUG_ID, SYS_USER]
+    );
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('Bug List seed error (may already exist):', e.message);
   } finally {
     client.release();
   }

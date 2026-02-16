@@ -80,6 +80,23 @@ const DB = {
   // No-op — seeding is handled server-side on registration
   async seed() {},
 
+  // ── Screenshot upload ──────────────────────────────────────
+  async uploadScreenshot(taskId, file) {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('screenshot', file);
+    const res = await fetch(`${BASE}/tasks/${taskId}/screenshot`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Upload failed');
+    }
+    return res.json();
+  },
+
   // ── Tweets ──────────────────────────────────────────────────
   async getTweets() {
     return api('/tweets');

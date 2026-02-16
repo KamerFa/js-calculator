@@ -14,6 +14,8 @@ function toJSON(row) {
     dueDate: row.due_date,
     recurrence: row.recurrence || 'none',
     completedAt: row.completed_at || null,
+    completedBy: row.completer_username || null,
+    screenshotUrl: row.screenshot_url || null,
     customFields: JSON.parse(row.custom_fields || '[]'),
     createdAt: row.created_at,
     userId: row.user_id,
@@ -58,8 +60,10 @@ function shouldReset(task) {
 // ── GET: Own tasks + tasks from shared projects ───────────
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT DISTINCT ON (t.id) t.*, u.username AS creator_username FROM tasks t
+    `SELECT DISTINCT ON (t.id) t.*, u.username AS creator_username, cu.username AS completer_username
+     FROM tasks t
      JOIN users u ON u.id = t.user_id
+     LEFT JOIN users cu ON cu.id = t.completed_by
      LEFT JOIN project_members pm ON t.project_id = pm.project_id AND pm.user_id = $1
      WHERE t.user_id = $1 OR pm.user_id = $1
      ORDER BY t.id, t.created_at`,
@@ -73,6 +77,8 @@ router.get('/', async (req, res) => {
       resetIds.push(row.id);
       row.status = 'todo';
       row.completed_at = null;
+      row.completed_by = null;
+      row.completer_username = null;
       // Advance due_date if it exists
       if (row.due_date) {
         row.due_date = nextDueDate(row.recurrence, row.due_date);
@@ -85,7 +91,7 @@ router.get('/', async (req, res) => {
     for (const id of resetIds) {
       const row = rows.find((r) => r.id === id);
       await pool.query(
-        `UPDATE tasks SET status = 'todo', completed_at = NULL, due_date = $1 WHERE id = $2`,
+        `UPDATE tasks SET status = 'todo', completed_at = NULL, completed_by = NULL, due_date = $1 WHERE id = $2`,
         [row.due_date, id]
       );
     }
@@ -128,20 +134,23 @@ router.post('/', async (req, res) => {
       // Members can only toggle status
       const newStatus = status || existing.status;
       const completedAt = newStatus === 'done' ? new Date().toISOString() : null;
+      const completedBy = newStatus === 'done' ? req.userId : null;
       await pool.query(
-        `UPDATE tasks SET status = $1, completed_at = $2 WHERE id = $3`,
-        [newStatus, completedAt, id]
+        `UPDATE tasks SET status = $1, completed_at = $2, completed_by = $3 WHERE id = $4`,
+        [newStatus, completedAt, completedBy, id]
       );
     } else {
       // Full edit by owner
       const completedAt = (status === 'done' && existing.status !== 'done') ? new Date().toISOString() :
                           (status !== 'done' ? null : existing.completed_at);
+      const completedBy = (status === 'done' && existing.status !== 'done') ? req.userId :
+                          (status !== 'done' ? null : existing.completed_by);
       await pool.query(
         `UPDATE tasks SET project_id = $1, title = $2, description = $3, status = $4,
-         priority = $5, due_date = $6, custom_fields = $7, recurrence = $8, completed_at = $9
-         WHERE id = $10 AND user_id = $11`,
+         priority = $5, due_date = $6, custom_fields = $7, recurrence = $8, completed_at = $9, completed_by = $10
+         WHERE id = $11 AND user_id = $12`,
         [projectId || null, title.trim(), description || '', status || 'todo',
-         priority || 'medium', dueDate || null, cf, rec, completedAt, id, req.userId]
+         priority || 'medium', dueDate || null, cf, rec, completedAt, completedBy, id, req.userId]
       );
     }
   } else {
@@ -163,8 +172,11 @@ router.post('/', async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT t.*, u.username AS creator_username FROM tasks t
-     JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    `SELECT t.*, u.username AS creator_username, cu.username AS completer_username
+     FROM tasks t
+     JOIN users u ON u.id = t.user_id
+     LEFT JOIN users cu ON cu.id = t.completed_by
+     WHERE t.id = $1`,
     [id]
   );
   res.json(toJSON(rows[0]));

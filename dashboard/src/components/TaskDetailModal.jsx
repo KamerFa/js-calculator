@@ -41,6 +41,23 @@ export default function TaskDetailModal({ open, task, projects, onClose, onEdit,
               </span>
             </div>
           )}
+          {task.screenshotUrl && (
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Screenshot:</span>
+              <img
+                src={task.screenshotUrl}
+                alt="Screenshot"
+                className="screenshot-detail-img"
+                onClick={() => window.open(task.screenshotUrl, '_blank')}
+              />
+            </div>
+          )}
+          {task.completedBy && task.status === 'done' && (
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Completed by: </span>
+              <span className="completed-by-tag" style={{ fontSize: 12, padding: '2px 8px', borderRadius: 10 }}>{task.completedBy}</span>
+            </div>
+          )}
           {task.customFields?.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Custom Fields:</span>

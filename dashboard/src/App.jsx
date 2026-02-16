@@ -115,7 +115,10 @@ export default function App() {
       recurrence: form.recurrence || 'none',
       customFields: form.customFields.filter((f) => f.key.trim()),
     };
-    await DB.save('tasks', task);
+    const saved = await DB.save('tasks', task);
+    if (form._screenshotFile && saved?.id) {
+      await DB.uploadScreenshot(saved.id, form._screenshotFile);
+    }
     await reload();
     setTaskModalOpen(false);
   };

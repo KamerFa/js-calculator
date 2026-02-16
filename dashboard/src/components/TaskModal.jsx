@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconX } from './Icons';
 
 const RECURRENCE_OPTIONS = [
@@ -10,6 +10,9 @@ const RECURRENCE_OPTIONS = [
 
 export default function TaskModal({ open, task, projects, prefillProjectId, onSave, onClose }) {
   const [form, setForm] = useState(emptyForm());
+  const [screenshotFile, setScreenshotFile] = useState(null);
+  const [screenshotPreview, setScreenshotPreview] = useState(null);
+  const fileRef = useRef(null);
 
   function emptyForm() {
     return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', recurrence: 'none', customFields: [] };
@@ -28,11 +31,14 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         recurrence: task.recurrence || 'none',
         customFields: task.customFields ? task.customFields.map((f) => ({ ...f })) : [],
       });
+      setScreenshotPreview(task.screenshotUrl || null);
     } else {
       const f = emptyForm();
       if (prefillProjectId) f.projectId = prefillProjectId;
       setForm(f);
+      setScreenshotPreview(null);
     }
+    setScreenshotFile(null);
   }, [open, task, prefillProjectId]);
 
   if (!open) return null;
@@ -55,9 +61,18 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
     setForm((prev) => ({ ...prev, customFields: [...prev.customFields, { key: '', value: '' }] }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScreenshotFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setScreenshotPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
   const handleSave = () => {
     if (!form.title.trim()) return;
-    onSave({ ...form, id: task?.id });
+    onSave({ ...form, id: task?.id, _screenshotFile: screenshotFile });
   };
 
   return (
@@ -120,6 +135,27 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
             </div>
             <div className="form-group" />
           </div>
+
+          <div className="form-group">
+            <label>Screenshot</label>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+            {screenshotPreview ? (
+              <div className="screenshot-preview">
+                <img src={screenshotPreview} alt="Screenshot" />
+                <button className="screenshot-remove" onClick={() => { setScreenshotFile(null); setScreenshotPreview(null); }}>
+                  <IconX size={12} />
+                </button>
+              </div>
+            ) : (
+              <button className="screenshot-upload-btn" type="button" onClick={() => fileRef.current?.click()}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                </svg>
+                Attach Screenshot
+              </button>
+            )}
+          </div>
+
           <div className="form-group">
             <label>Custom Fields</label>
             <div className="custom-fields-list">

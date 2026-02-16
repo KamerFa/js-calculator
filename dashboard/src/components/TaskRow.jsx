@@ -20,10 +20,20 @@ export default function TaskRow({ task, project, showProject, showCreator, curre
         <IconCheckSmall />
       </div>
       <span className={`task-title${task.status === 'done' ? ' done' : ''}`}>{task.title}</span>
+      {task.screenshotUrl && (
+        <span className="screenshot-thumb-badge" title="Has screenshot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+          </svg>
+        </span>
+      )}
       {task.recurrence && task.recurrence !== 'none' && (
         <span className="recurrence-badge">{REC_LABELS[task.recurrence]}</span>
       )}
-      {showCreator && task.createdBy && (
+      {showCreator && task.status === 'done' && task.completedBy && (
+        <span className="creator-tag completed-by-tag" title={`Completed by ${task.completedBy}`}>{task.completedBy}</span>
+      )}
+      {showCreator && task.status !== 'done' && task.createdBy && (
         <span className="creator-tag">{task.createdBy}</span>
       )}
       {showProject && project && (
