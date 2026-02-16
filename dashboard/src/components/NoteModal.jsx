@@ -1,0 +1,89 @@
+import { useState, useEffect } from 'react';
+import { IconX } from './Icons';
+
+export default function NoteModal({ open, note, projects, tasks, onSave, onDelete, onClose }) {
+  const [form, setForm] = useState({ title: '', body: '', attachType: '', attachId: '' });
+
+  useEffect(() => {
+    if (!open) return;
+    if (note) {
+      setForm({
+        title: note.title,
+        body: note.body,
+        attachType: note.attachedTo ? note.attachedTo.type : '',
+        attachId: note.attachedTo ? note.attachedTo.id : '',
+      });
+    } else {
+      setForm({ title: '', body: '', attachType: '', attachId: '' });
+    }
+  }, [open, note]);
+
+  if (!open) return null;
+
+  const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  const handleSave = () => {
+    if (!form.title.trim() && !form.body.trim()) return;
+    onSave({ ...form, id: note?.id });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{note ? 'Edit Note' : 'New Note'}</h2>
+          <button className="modal-close" onClick={onClose}><IconX /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label>Title</label>
+            <input className="form-input" type="text" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Note title" />
+          </div>
+          <div className="form-group">
+            <label>Body</label>
+            <textarea className="form-textarea large" value={form.body} onChange={(e) => set('body', e.target.value)} placeholder="Write your note..." />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Attach to</label>
+              <select className="form-select" value={form.attachType} onChange={(e) => { set('attachType', e.target.value); set('attachId', ''); }}>
+                <option value="">None (Standalone)</option>
+                <option value="project">Project</option>
+                <option value="task">Task</option>
+              </select>
+            </div>
+            {form.attachType === 'project' && (
+              <div className="form-group">
+                <label>Project</label>
+                <select className="form-select" value={form.attachId} onChange={(e) => set('attachId', e.target.value)}>
+                  <option value="">Select project</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {form.attachType === 'task' && (
+              <div className="form-group">
+                <label>Task</label>
+                <select className="form-select" value={form.attachId} onChange={(e) => set('attachId', e.target.value)}>
+                  <option value="">Select task</option>
+                  {tasks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="modal-footer">
+          {note && (
+            <button className="btn btn-danger" onClick={() => onDelete(note.id)} style={{ marginRight: 'auto' }}>Delete</button>
+          )}
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
