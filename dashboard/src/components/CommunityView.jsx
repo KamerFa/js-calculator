@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DB } from '../db';
 import { IconUsers, IconPlus } from './Icons';
+import { resolveAvatarUrl } from '../avatarUtils';
 
 const REACTION_EMOJIS = ['\u2764\uFE0F', '\uD83D\uDE02', '\uD83D\uDE4F', '\uD83D\uDD25', '\uD83D\uDC4D', '\uD83D\uDE22'];
 
@@ -31,8 +32,8 @@ function TweetCard({ tw, user, onDelete, onReact, onComment, onDeleteComment, on
   return (
     <div className="tweet-card">
       <div className="tweet-avatar" onClick={() => onUserClick(tw.username)} style={{ cursor: 'pointer' }}>
-        {tw.avatarUrl
-          ? <img src={tw.avatarUrl} alt="" className="tweet-avatar-img" />
+        {resolveAvatarUrl(tw.avatarUrl)
+          ? <img src={resolveAvatarUrl(tw.avatarUrl)} alt="" className="tweet-avatar-img" />
           : tw.username.charAt(0).toUpperCase()
         }
       </div>
@@ -97,8 +98,8 @@ function TweetCard({ tw, user, onDelete, onReact, onComment, onDeleteComment, on
             {tw.comments?.map((c) => (
               <div className="comment-row" key={c.id}>
                 <div className="comment-avatar" onClick={() => onUserClick(c.username)} style={{ cursor: 'pointer' }}>
-                  {c.avatarUrl
-                    ? <img src={c.avatarUrl} alt="" className="comment-avatar-img" />
+                  {resolveAvatarUrl(c.avatarUrl)
+                    ? <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="comment-avatar-img" />
                     : c.username.charAt(0).toUpperCase()
                   }
                 </div>
@@ -254,7 +255,10 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           {/* Compose tweet */}
           <div className="tweet-compose">
             <div className="tweet-compose-avatar">
-              {user?.username?.charAt(0).toUpperCase()}
+              {resolveAvatarUrl(user?.avatarUrl)
+                ? <img src={resolveAvatarUrl(user?.avatarUrl)} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                : user?.username?.charAt(0).toUpperCase()
+              }
             </div>
             <div className="tweet-compose-body">
               <textarea

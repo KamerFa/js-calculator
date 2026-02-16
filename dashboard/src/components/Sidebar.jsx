@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers } from './Icons';
 import { useTranslation } from '../i18n';
+import { resolveAvatarUrl } from '../avatarUtils';
 
 function IconCalendar() {
   return (
@@ -85,7 +86,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
       <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}`}>
         <div className="sidebar-logo">
           <IconGrid />
-          {t('app.title')}
+          Dashboard
         </div>
 
         <div className="sidebar-section-label">{t('sidebar.tasks')}</div>
@@ -192,11 +193,14 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
 
         {user && (
           <div className="user-menu">
-            <span
-              className="user-menu-name"
-              style={{ cursor: 'pointer' }}
-              onClick={() => nav('profile')}
-            >{user.username}</span>
+            <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => nav('profile')}>
+              {resolveAvatarUrl(user.avatarUrl) ? (
+                <img src={resolveAvatarUrl(user.avatarUrl)} alt="" className="user-menu-avatar" />
+              ) : (
+                <span className="user-menu-avatar-placeholder">{user.username?.charAt(0).toUpperCase()}</span>
+              )}
+              <span className="user-menu-name">{user.username}</span>
+            </div>
             <button className="user-menu-logout" onClick={onLogout}>{t('auth.logout')}</button>
           </div>
         )}

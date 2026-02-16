@@ -34,7 +34,7 @@ export default function LoginPage({ onAuth }) {
         <div className="login-header">
           <div className="login-logo">
             <IconGrid />
-            <span>{t('app.title')}</span>
+            <span>Dashboard</span>
           </div>
           <div className="language-switcher">
             {availableLanguages.map((lang) => (

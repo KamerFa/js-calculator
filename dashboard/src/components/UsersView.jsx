@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
+import { resolveAvatarUrl } from '../avatarUtils';
 
 export default function UsersView({ onUserClick }) {
   const { t } = useTranslation();
@@ -52,8 +53,8 @@ export default function UsersView({ onUserClick }) {
         {filteredUsers.map((user) => (
           <div key={user.id} className="user-card" onClick={() => onUserClick(user.username)}>
             <div className="user-card-avatar">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.username} />
+              {resolveAvatarUrl(user.avatarUrl) ? (
+                <img src={resolveAvatarUrl(user.avatarUrl)} alt={user.username} />
               ) : (
                 <div className="avatar-placeholder">{user.username.charAt(0).toUpperCase()}</div>
               )}

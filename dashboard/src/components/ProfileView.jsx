@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { DB } from '../db';
+import { useTranslation } from '../i18n';
+import { resolveAvatarUrl } from '../avatarUtils';
+import AvatarPicker from './AvatarPicker';
 
 const MUSIC_SERVICES = [
   { value: '', label: 'None' },
@@ -33,12 +36,14 @@ function MusicBadge({ service, username }) {
 }
 
 export default function ProfileView({ user, profileUsername }) {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState('');
   const [musicService, setMusicService] = useState('');
   const [musicUsername, setMusicUsername] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const fileRef = useRef(null);
 
   const isOwn = !profileUsername || profileUsername === user?.username;
@@ -70,49 +75,62 @@ export default function ProfileView({ user, profileUsername }) {
     }
   };
 
-  const handleAvatar = async (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const { avatarUrl } = await DB.uploadAvatar(file);
     setProfile((prev) => ({ ...prev, avatarUrl }));
   };
 
+  const handleAvatarSelect = async (url, index) => {
+    const avatarRef = `avatar:${index}`;
+    await DB.updateProfile({
+      bio: profile.bio,
+      musicService: profile.musicService || null,
+      musicUsername: profile.musicUsername || null,
+      avatarUrl: avatarRef,
+    });
+    setProfile((prev) => ({ ...prev, avatarUrl: avatarRef }));
+  };
+
   if (!profile) {
     return (
       <div>
-        <div className="page-header"><h1>Profile</h1></div>
-        <div className="empty-state">Loading...</div>
+        <div className="page-header"><h1>{t('profile.title')}</h1></div>
+        <div className="empty-state">{t('common.loading')}</div>
       </div>
     );
   }
 
-  const memberSince = new Date(profile.createdAt).toLocaleDateString('en-US', {
+  const memberSince = new Date(profile.createdAt).toLocaleDateString(undefined, {
     month: 'long', year: 'numeric',
   });
+
+  const avatarSrc = resolveAvatarUrl(profile.avatarUrl);
 
   return (
     <div>
       <div className="page-header">
-        <h1>{isOwn ? 'My Profile' : `@${profile.username}`}</h1>
+        <h1>{isOwn ? t('profile.myProfile') : `@${profile.username}`}</h1>
       </div>
 
       <div className="profile-card">
         <div className="profile-card-top">
-          <div className="profile-avatar-wrapper" onClick={() => isOwn && fileRef.current?.click()}>
-            {profile.avatarUrl ? (
-              <img src={profile.avatarUrl} alt="Avatar" className="profile-avatar-img" />
+          <div className="profile-avatar-wrapper" onClick={() => isOwn && setShowAvatarPicker(true)}>
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="Avatar" className="profile-avatar-img" />
             ) : (
               <div className="profile-avatar-placeholder">
                 {profile.username.charAt(0).toUpperCase()}
               </div>
             )}
-            {isOwn && <span className="profile-avatar-edit">Edit</span>}
-            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatar} />
+            {isOwn && <span className="profile-avatar-edit">{t('modal.edit')}</span>}
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
           </div>
 
           <div className="profile-info">
             <h2>@{profile.username}</h2>
-            <p className="profile-joined">Member since {memberSince}</p>
+            <p className="profile-joined">{t('profile.memberSince')} {memberSince}</p>
             {profile.musicService && (
               <MusicBadge service={profile.musicService} username={profile.musicUsername} />
             )}
@@ -121,20 +139,20 @@ export default function ProfileView({ user, profileUsername }) {
 
         {!editing ? (
           <div className="profile-bio-section">
-            <p className="profile-bio">{profile.bio || (isOwn ? 'No bio yet. Click edit to add one!' : 'No bio yet.')}</p>
+            <p className="profile-bio">{profile.bio || (isOwn ? t('profile.noBioOwn') : t('profile.noBio'))}</p>
             {isOwn && (
-              <button className="btn btn-sm" onClick={() => setEditing(true)}>Edit Profile</button>
+              <button className="btn btn-sm" onClick={() => setEditing(true)}>{t('profile.editProfile')}</button>
             )}
           </div>
         ) : (
           <div className="profile-edit-section">
             <div className="form-group">
-              <label>Bio</label>
+              <label>{t('profile.bio')}</label>
               <textarea
                 className="form-textarea"
                 value={bio}
                 onChange={(e) => setBio(e.target.value.slice(0, 300))}
-                placeholder="Tell us about yourself (300 chars max)"
+                placeholder={t('profile.bioPlaceholder')}
                 rows={3}
               />
               <span className="tweet-char-count">{bio.length}/300</span>
@@ -142,7 +160,7 @@ export default function ProfileView({ user, profileUsername }) {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Music Service</label>
+                <label>{t('profile.musicService')}</label>
                 <select className="form-select" value={musicService} onChange={(e) => setMusicService(e.target.value)}>
                   {MUSIC_SERVICES.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
@@ -150,27 +168,35 @@ export default function ProfileView({ user, profileUsername }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Username / ID</label>
+                <label>{t('profile.musicUsername')}</label>
                 <input
                   className="form-input"
                   type="text"
                   value={musicUsername}
                   onChange={(e) => setMusicUsername(e.target.value)}
-                  placeholder={musicService === 'spotify' ? 'Spotify username' : musicService === 'youtube' ? 'Channel ID' : musicService === 'tidal' ? 'Tidal username' : 'Select a service first'}
+                  placeholder={musicService === 'spotify' ? 'Spotify username' : musicService === 'youtube' ? 'Channel ID' : musicService === 'tidal' ? 'Tidal username' : t('profile.selectService')}
                   disabled={!musicService}
                 />
               </div>
             </div>
 
             <div className="profile-edit-actions">
-              <button className="btn" onClick={() => setEditing(false)}>Cancel</button>
+              <button className="btn" onClick={() => setEditing(false)}>{t('modal.cancel')}</button>
               <button className="btn btn-primary" disabled={saving} onClick={handleSave}>
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('common.loading') : t('modal.save')}
               </button>
             </div>
           </div>
         )}
       </div>
+
+      {showAvatarPicker && (
+        <AvatarPicker
+          selected={avatarSrc}
+          onSelect={handleAvatarSelect}
+          onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
     </div>
   );
 }

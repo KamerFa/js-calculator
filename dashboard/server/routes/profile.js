@@ -37,15 +37,25 @@ router.get('/user/:username', async (req, res) => {
 
 // ── PUT update profile ───────────────────────────────────────
 router.put('/me', async (req, res) => {
-  const { bio, musicService, musicUsername } = req.body;
+  const { bio, musicService, musicUsername, avatarUrl } = req.body;
+  const fields = [
+    'bio = $1', 'music_service = $2', 'music_username = $3'
+  ];
+  const values = [
+    (bio || '').slice(0, 300),
+    musicService || null,
+    musicUsername || null,
+  ];
+
+  if (avatarUrl !== undefined) {
+    fields.push(`avatar_url = $${values.length + 1}`);
+    values.push(avatarUrl);
+  }
+
+  values.push(req.userId);
   await pool.query(
-    `UPDATE users SET bio = $1, music_service = $2, music_username = $3 WHERE id = $4`,
-    [
-      (bio || '').slice(0, 300),
-      musicService || null,
-      musicUsername || null,
-      req.userId,
-    ]
+    `UPDATE users SET ${fields.join(', ')} WHERE id = $${values.length}`,
+    values
   );
   res.json({ ok: true });
 });
