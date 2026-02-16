@@ -2172,6 +2172,192 @@ body {
 }
 
 /* ============================================================
+   RADIO PLAYER
+   ============================================================ */
+.radio-section-label {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin: 28px 0 12px;
+}
+
+.radio-section-label:first-of-type {
+  margin-top: 0;
+}
+
+.radio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.radio-card {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: left;
+  padding: 0;
+  position: relative;
+}
+
+.radio-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.radio-card-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.radio-card-color {
+  width: 5px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.radio-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.radio-card-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radio-card-meta {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.radio-card-action {
+  padding: 0 14px;
+  color: var(--text-3);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.radio-card:hover .radio-card-action {
+  color: var(--accent);
+}
+
+.radio-card-active .radio-card-action {
+  color: var(--accent);
+}
+
+.radio-card-error {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ── Now Playing Bar ─────────────────────────────────────── */
+.radio-now-playing {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  margin-bottom: 24px;
+  animation: fadeIn 0.2s ease;
+}
+
+.radio-now-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.radio-now-name {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radio-now-genre {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.radio-volume {
+  width: 90px;
+  accent-color: #fff;
+  cursor: pointer;
+}
+
+.radio-stop-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.radio-stop-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+/* ── Equalizer Animation ─────────────────────────────────── */
+.radio-now-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.radio-now-eq span {
+  display: block;
+  width: 3px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 1px;
+  animation: eqBounce 0.8s ease-in-out infinite alternate;
+}
+
+.radio-now-eq span:nth-child(1) { height: 6px; animation-delay: 0s; }
+.radio-now-eq span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+.radio-now-eq span:nth-child(3) { height: 10px; animation-delay: 0.3s; }
+.radio-now-eq span:nth-child(4) { height: 16px; animation-delay: 0.45s; }
+
+@keyframes eqBounce {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
+/* ============================================================
    RESPONSIVE — TABLET (≤ 900px)
    ============================================================ */
 @media (max-width: 900px) {

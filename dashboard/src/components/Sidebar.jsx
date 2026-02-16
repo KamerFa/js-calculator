@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers, IconRadio } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
@@ -150,6 +150,16 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             >
               <IconUsers />
               {t('community.users')}
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              className={view === 'radio' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('radio'); }}
+            >
+              <IconRadio />
+              Radio
             </a>
           </li>
         </ul>

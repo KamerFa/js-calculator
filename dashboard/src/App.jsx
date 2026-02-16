@@ -18,6 +18,7 @@ import UsersView from './components/UsersView';
 import FaceitSettingsModal from './components/FaceitSettingsModal';
 import ShareModal from './components/ShareModal';
 import ImportProjectModal from './components/ImportProjectModal';
+import RadioView from './components/RadioView';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -335,6 +336,8 @@ export default function App() {
         {view === 'users' && (
           <UsersView onUserClick={(username) => navigateProfile(username)} />
         )}
+
+        {view === 'radio' && <RadioView />}
 
         {view === 'calendar' && (
           <CalendarView
