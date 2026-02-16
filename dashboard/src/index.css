@@ -1153,6 +1153,13 @@ body {
   box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
 
+.login-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
 .login-logo {
   display: flex;
   align-items: center;
@@ -1161,7 +1168,33 @@ body {
   font-weight: 600;
   font-size: 18px;
   color: var(--text);
-  margin-bottom: 28px;
+}
+
+.language-switcher {
+  display: flex;
+  gap: 4px;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.6;
+}
+
+.lang-btn:hover {
+  opacity: 1;
+  background: var(--hover);
+}
+
+.lang-btn.active {
+  opacity: 1;
+  background: var(--primary-bg);
+  border-color: var(--primary);
 }
 
 .login-card h1 {

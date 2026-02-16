@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers } from './Icons';
+import { useTranslation } from '../i18n';
 
 function IconCalendar() {
   return (
@@ -41,6 +42,7 @@ function IconDownload() {
 }
 
 export default function Sidebar({ view, currentProjectId, projects, tasks, user, onNavigate, onNavigateProject, onNewProject, onLogout, mobileOpen, onCloseMobile }) {
+  const { t } = useTranslation();
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 
   // PWA install prompt
@@ -83,10 +85,10 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
       <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}`}>
         <div className="sidebar-logo">
           <IconGrid />
-          Dashboard
+          {t('app.title')}
         </div>
 
-        <div className="sidebar-section-label">Views</div>
+        <div className="sidebar-section-label">{t('sidebar.tasks')}</div>
         <ul className="sidebar-nav">
           <li>
             <a
@@ -95,7 +97,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               onClick={(e) => { e.preventDefault(); nav('tasks'); }}
             >
               <IconCheck />
-              All Tasks
+              {t('tasks.allTasks')}
             </a>
           </li>
           <li>
@@ -105,7 +107,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               onClick={(e) => { e.preventDefault(); nav('calendar'); }}
             >
               <IconCalendar />
-              Calendar
+              {t('sidebar.calendar')}
             </a>
           </li>
           <li>
@@ -115,7 +117,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               onClick={(e) => { e.preventDefault(); nav('notes'); }}
             >
               <IconFile />
-              Notes
+              {t('sidebar.notes')}
             </a>
           </li>
           <li>
@@ -125,7 +127,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               onClick={(e) => { e.preventDefault(); nav('community'); }}
             >
               <IconCommunity />
-              Community
+              {t('sidebar.community')}
             </a>
           </li>
         </ul>
@@ -141,14 +143,14 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
                   onClick={(e) => { e.preventDefault(); nav('performance'); }}
                 >
                   <IconBarChart />
-                  Performance
+                  {t('sidebar.performance')}
                 </a>
               </li>
             </ul>
           </>
         )}
 
-        <div className="sidebar-section-label">Projects</div>
+        <div className="sidebar-section-label">{t('sidebar.projects')}</div>
         <ul className="sidebar-nav">
           {projects.map((project) => (
             <li key={project.id}>
@@ -161,7 +163,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
                   {project.name}
                 </span>
                 {project.memberCount > 1 && (
-                  <span className="shared-badge" title="Shared project">
+                  <span className="shared-badge" title={t('projects.share')}>
                     <IconUsers />
                   </span>
                 )}
@@ -170,10 +172,10 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             </li>
           ))}
         </ul>
-        <button className="sidebar-btn" onClick={() => { onNewProject(); if (onCloseMobile) onCloseMobile(); }}>+ New Project</button>
+        <button className="sidebar-btn" onClick={() => { onNewProject(); if (onCloseMobile) onCloseMobile(); }}>+ {t('projects.newProject')}</button>
 
-        {!isInstalled && (
-          <button className="sidebar-install-btn" onClick={handleInstall} title={installPrompt ? 'Install as app on your device' : 'Use your browser menu to install this app'}>
+        {!isInstalled && installPrompt && (
+          <button className="sidebar-install-btn" onClick={handleInstall}>
             <IconDownload /> Install App
           </button>
         )}
@@ -185,7 +187,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               style={{ cursor: 'pointer' }}
               onClick={() => nav('profile')}
             >{user.username}</span>
-            <button className="user-menu-logout" onClick={onLogout}>Log out</button>
+            <button className="user-menu-logout" onClick={onLogout}>{t('auth.logout')}</button>
           </div>
         )}
       </aside>

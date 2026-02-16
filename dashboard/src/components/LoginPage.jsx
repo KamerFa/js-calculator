@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { authLogin, authRegister } from '../db';
 import { IconGrid } from './Icons';
+import { useTranslation, availableLanguages } from '../i18n';
 
 export default function LoginPage({ onAuth }) {
+  const { t, language, setLanguage } = useTranslation();
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -29,39 +31,48 @@ export default function LoginPage({ onAuth }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo">
-          <IconGrid />
-          <span>Dashboard</span>
+        <div className="login-header">
+          <div className="login-logo">
+            <IconGrid />
+            <span>{t('app.title')}</span>
+          </div>
+          <div className="language-switcher">
+            {availableLanguages.map((lang) => (
+              <button
+                key={lang.code}
+                className={`lang-btn ${language === lang.code ? 'active' : ''}`}
+                onClick={() => setLanguage(lang.code)}
+                title={lang.name}
+              >
+                {lang.flag}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <h1>{mode === 'login' ? 'Welcome back' : 'Create account'}</h1>
-        <p className="login-subtitle">
-          {mode === 'login'
-            ? 'Sign in to your productivity dashboard'
-            : 'Set up your new account'}
-        </p>
+        <h1>{mode === 'login' ? t('auth.login') : t('auth.register')}</h1>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Username</label>
+            <label>{t('auth.username')}</label>
             <input
               className="form-input"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
+              placeholder={t('auth.username')}
               autoFocus
               required
             />
           </div>
           <div className="form-group">
-            <label>Password</label>
+            <label>{t('auth.password')}</label>
             <input
               className="form-input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder={t('auth.password')}
               required
             />
           </div>
@@ -70,26 +81,26 @@ export default function LoginPage({ onAuth }) {
 
           <button className="btn btn-primary login-btn" type="submit" disabled={loading}>
             {loading
-              ? 'Please wait...'
+              ? t('common.loading')
               : mode === 'login'
-                ? 'Sign In'
-                : 'Create Account'}
+                ? t('auth.loginButton')
+                : t('auth.registerButton')}
           </button>
         </form>
 
         <div className="login-switch">
           {mode === 'login' ? (
             <>
-              Don't have an account?{' '}
+              {t('auth.noAccount')}{' '}
               <button onClick={() => { setMode('register'); setError(''); }}>
-                Sign up
+                {t('auth.registerHere')}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <button onClick={() => { setMode('login'); setError(''); }}>
-                Sign in
+                {t('auth.loginHere')}
               </button>
             </>
           )}
