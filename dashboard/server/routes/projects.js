@@ -3,6 +3,12 @@ import pool, { uid } from '../db.js';
 
 const router = Router();
 
+function toDateStr(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  return String(val).slice(0, 10);
+}
+
 function toJSON(row, extra = {}) {
   return {
     id: row.id,
@@ -11,8 +17,8 @@ function toJSON(row, extra = {}) {
     color: row.color,
     isPublic: row.is_public || false,
     isGlobal: row.is_global || false,
-    startDate: row.start_date || null,
-    endDate: row.end_date || null,
+    startDate: toDateStr(row.start_date),
+    endDate: toDateStr(row.end_date),
     createdAt: row.created_at,
     ownerId: row.user_id,
     ...extra,

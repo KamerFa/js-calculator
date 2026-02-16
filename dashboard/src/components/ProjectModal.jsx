@@ -4,6 +4,13 @@ import { useTranslation } from '../i18n';
 
 const PRESET_COLORS = ['#2a5caa', '#c0392b', '#276749', '#b45309', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#6366f1', '#78716c'];
 
+// Normalize date value to YYYY-MM-DD for HTML date input
+function toDateInput(val) {
+  if (!val) return '';
+  const s = typeof val === 'string' ? val : new Date(val).toISOString();
+  return s.slice(0, 10);
+}
+
 export default function ProjectModal({ open, project, onSave, onClose }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false, startDate: '', endDate: '' });
@@ -16,8 +23,8 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
         description: project.description || '',
         color: project.color,
         isPublic: project.isPublic || false,
-        startDate: project.startDate || '',
-        endDate: project.endDate || ''
+        startDate: toDateInput(project.startDate),
+        endDate: toDateInput(project.endDate)
       });
     } else {
       setForm({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false, startDate: '', endDate: '' });
