@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 
 const STATIONS = [
-  { id: 'radio8', name: 'Radio 8', genre: 'Pop / Urban', region: 'Sarajevo', url: 'https://streamingv2.shoutcast.com/Radio8Sarajevo' },
-  { id: 'tnt', name: 'Radio TNT', genre: 'Pop / Hits', region: 'BiH', url: 'https://radio.itdsolutions.ba:8002/tntradio' },
-  { id: 'naxi', name: 'Naxi Radio', genre: 'Pop', region: 'Beograd', url: 'https://naxi128.streaming.rs:9152/' },
-  { id: 'naxi-house', name: 'Naxi House', genre: 'House', region: 'Beograd', url: 'https://naxidigital128.streaming.rs:8002/' },
-  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', region: 'Beograd', url: 'https://naxidigital128.streaming.rs:8112/' },
-  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club / Techno', region: 'Beograd', url: 'https://naxidigital128.streaming.rs:8092/' },
+  { id: 'radio8', name: 'Radio 8', genre: 'Pop / Urban', region: 'Sarajevo', url: 'https://stream.radio8.ba:8443/radio8' },
+  { id: 'tnt', name: 'Radio TNT', genre: 'Pop / Hits', region: 'BiH', url: 'https://stream.tntradio.ba:8001/tnt128' },
+  { id: 'naxi', name: 'Naxi Radio', genre: 'Pop', region: 'Beograd', url: 'https://naxi64.streaming.rs:9162/;' },
+  { id: 'naxi-house', name: 'Naxi House', genre: 'House', region: 'Beograd', url: 'https://naxi64.streaming.rs:8010/;' },
+  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', region: 'Beograd', url: 'https://naxi64.streaming.rs:8110/;' },
+  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club / Techno', region: 'Beograd', url: 'https://naxi64.streaming.rs:8090/;' },
   { id: 'thetrip', name: 'SomaFM - The Trip', genre: 'Progressive House', region: 'Internet', url: 'https://ice4.somafm.com/thetrip-128-aac' },
   { id: 'beatblender', name: 'SomaFM - Beat Blender', genre: 'Deep House / Chill', region: 'Internet', url: 'https://ice4.somafm.com/beatblender-128-aac' },
 ];
@@ -23,7 +23,18 @@ const GENRE_COLORS = {
 };
 
 export default function RadioView() {
-  const [playing, setPlaying] = useState(null);
+  const [playing, setPlaying] = useState(() => {
+    const saved = localStorage.getItem('radio_playing');
+    if (saved) {
+      try {
+        const stationId = JSON.parse(saved);
+        return STATIONS.find((s) => s.id === stationId) || null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [volume, setVolume] = useState(() => {
     const saved = localStorage.getItem('radio_volume');
@@ -35,6 +46,26 @@ export default function RadioView() {
   useEffect(() => {
     audioRef.current = new Audio();
     audioRef.current.volume = volume;
+
+    // Resume playing if there was a station playing before
+    const savedStation = localStorage.getItem('radio_playing');
+    if (savedStation) {
+      try {
+        const stationId = JSON.parse(savedStation);
+        const station = STATIONS.find((s) => s.id === stationId);
+        if (station) {
+          audioRef.current.src = station.url;
+          audioRef.current.play().catch(() => {
+            setError(station.id);
+            setPlaying(null);
+            localStorage.removeItem('radio_playing');
+          });
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -52,6 +83,7 @@ export default function RadioView() {
       audio.src = '';
       setPlaying(null);
       setError(null);
+      localStorage.removeItem('radio_playing');
       return;
     }
 
@@ -64,11 +96,13 @@ export default function RadioView() {
       .then(() => {
         setPlaying(station);
         setLoading(false);
+        localStorage.setItem('radio_playing', JSON.stringify(station.id));
       })
       .catch(() => {
         setError(station.id);
         setLoading(false);
         setPlaying(null);
+        localStorage.removeItem('radio_playing');
       });
   };
 
