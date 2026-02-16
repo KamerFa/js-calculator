@@ -1,5 +1,7 @@
 import { IconCheckSmall, IconEdit, IconTrash } from './Icons';
 
+const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
+
 export default function TaskRow({ task, project, showProject, showCreator, currentUserId, onToggle, onClick, onEdit, onDelete, onProjectClick }) {
   const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
   const isOwnTask = !currentUserId || task.userId === currentUserId;
@@ -13,12 +15,14 @@ export default function TaskRow({ task, project, showProject, showCreator, curre
     <div className="task-row" onClick={() => onClick(task)}>
       <div
         className={`task-checkbox${task.status === 'done' ? ' checked' : ''}`}
-        onClick={(e) => { e.stopPropagation(); if (isOwnTask) onToggle(task); }}
-        style={!isOwnTask ? { opacity: 0.4, cursor: 'default' } : {}}
+        onClick={(e) => { e.stopPropagation(); onToggle(task); }}
       >
         <IconCheckSmall />
       </div>
       <span className={`task-title${task.status === 'done' ? ' done' : ''}`}>{task.title}</span>
+      {task.recurrence && task.recurrence !== 'none' && (
+        <span className="recurrence-badge">{REC_LABELS[task.recurrence]}</span>
+      )}
       {showCreator && task.createdBy && (
         <span className="creator-tag">{task.createdBy}</span>
       )}

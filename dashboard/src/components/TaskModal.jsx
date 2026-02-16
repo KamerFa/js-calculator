@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { IconX } from './Icons';
 
+const RECURRENCE_OPTIONS = [
+  { value: 'none', label: 'No repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+];
+
 export default function TaskModal({ open, task, projects, prefillProjectId, onSave, onClose }) {
   const [form, setForm] = useState(emptyForm());
 
   function emptyForm() {
-    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', customFields: [] };
+    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', recurrence: 'none', customFields: [] };
   }
 
   useEffect(() => {
@@ -18,6 +25,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         status: task.status,
         priority: task.priority,
         dueDate: task.dueDate || '',
+        recurrence: task.recurrence || 'none',
         customFields: task.customFields ? task.customFields.map((f) => ({ ...f })) : [],
       });
     } else {
@@ -100,6 +108,17 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
               <label>Due Date</label>
               <input className="form-input" type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
             </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Repeat</label>
+              <select className="form-select" value={form.recurrence} onChange={(e) => set('recurrence', e.target.value)}>
+                {RECURRENCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group" />
           </div>
           <div className="form-group">
             <label>Custom Fields</label>

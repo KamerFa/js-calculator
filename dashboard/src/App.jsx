@@ -6,6 +6,7 @@ import TaskList from './components/TaskList';
 import ProjectView from './components/ProjectView';
 import NotesView from './components/NotesView';
 import CommunityView from './components/CommunityView';
+import CalendarView from './components/CalendarView';
 import TaskModal from './components/TaskModal';
 import ProjectModal from './components/ProjectModal';
 import NoteModal from './components/NoteModal';
@@ -111,6 +112,7 @@ export default function App() {
       status: form.status,
       priority: form.priority,
       dueDate: form.dueDate || null,
+      recurrence: form.recurrence || 'none',
       customFields: form.customFields.filter((f) => f.key.trim()),
     };
     await DB.save('tasks', task);
@@ -286,6 +288,19 @@ export default function App() {
             user={user}
             onProjectClick={navigateProject}
             onReload={reload}
+          />
+        )}
+
+        {view === 'calendar' && (
+          <CalendarView
+            tasks={tasks}
+            projects={projects}
+            onToggle={handleToggleTask}
+            onTaskClick={openTaskDetail}
+            onEdit={(t) => openTaskModal(t)}
+            onDelete={handleDeleteTask}
+            onProjectClick={navigateProject}
+            onNewTask={() => openTaskModal()}
           />
         )}
       </main>

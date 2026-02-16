@@ -68,6 +68,8 @@ async function initDB() {
   // Add columns if they don't exist (safe for re-runs)
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence TEXT NOT NULL DEFAULT 'none'`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
 
   // Backfill: ensure every existing project owner has a project_members entry
   await pool.query(`
@@ -121,43 +123,44 @@ async function seedRamadanProject() {
     );
 
     // Seed tasks prioritised by Islamic obligation level
+    // recurrence: 'daily' = resets every day, 'none' = one-off
     const tasks = [
-      // Fard (Obligatory) - highest priority
-      { title: 'Fajr Prayer', desc: 'Perform Fajr salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo' },
-      { title: 'Dhuhr Prayer', desc: 'Perform Dhuhr salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo' },
-      { title: 'Asr Prayer', desc: 'Perform Asr salah on time (Fard - Quran 103:1-3, Bukhari 553)', priority: 'high', status: 'todo' },
-      { title: 'Maghrib Prayer', desc: 'Perform Maghrib salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo' },
-      { title: 'Isha Prayer', desc: 'Perform Isha salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo' },
-      { title: 'Fast from Suhoor to Iftar', desc: 'Keep the obligatory fast (Fard - Quran 2:183 "O you who believe, fasting is prescribed for you...")', priority: 'high', status: 'todo' },
-      { title: 'Zakat al-Fitr', desc: 'Pay Zakat al-Fitr before Eid prayer (Wajib - Bukhari 1503)', priority: 'high', status: 'todo' },
+      // Fard (Obligatory) - highest priority — all daily
+      { title: 'Fajr Prayer', desc: 'Perform Fajr salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo', rec: 'daily' },
+      { title: 'Dhuhr Prayer', desc: 'Perform Dhuhr salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo', rec: 'daily' },
+      { title: 'Asr Prayer', desc: 'Perform Asr salah on time (Fard - Quran 103:1-3, Bukhari 553)', priority: 'high', status: 'todo', rec: 'daily' },
+      { title: 'Maghrib Prayer', desc: 'Perform Maghrib salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo', rec: 'daily' },
+      { title: 'Isha Prayer', desc: 'Perform Isha salah on time (Fard - Quran 17:78)', priority: 'high', status: 'todo', rec: 'daily' },
+      { title: 'Fast from Suhoor to Iftar', desc: 'Keep the obligatory fast (Fard - Quran 2:183 "O you who believe, fasting is prescribed for you...")', priority: 'high', status: 'todo', rec: 'daily' },
+      { title: 'Zakat al-Fitr', desc: 'Pay Zakat al-Fitr before Eid prayer (Wajib - Bukhari 1503)', priority: 'high', status: 'todo', rec: 'none' },
 
       // Sunnah Muakkadah (Strongly Recommended)
-      { title: 'Taraweeh Prayer', desc: 'Pray Taraweeh after Isha (Sunnah Muakkadah - Bukhari 37)', priority: 'medium', status: 'todo' },
-      { title: 'Suhoor Meal', desc: 'Eat suhoor before Fajr - "Take suhoor, for in suhoor there is blessing" (Bukhari 1923)', priority: 'medium', status: 'todo' },
-      { title: 'Break fast with dates', desc: 'Break fast with dates and water (Sunnah - Abu Dawud 2356)', priority: 'medium', status: 'todo' },
-      { title: 'Dua at Iftar', desc: '"Dhahaba al-zama wa abtallatil-urooq..." (Abu Dawud 2357)', priority: 'medium', status: 'todo' },
-      { title: 'Morning Adhkar', desc: 'Recite morning remembrance after Fajr (Sunnah - Muslim 2723)', priority: 'medium', status: 'todo' },
-      { title: 'Evening Adhkar', desc: 'Recite evening remembrance after Asr (Sunnah - Muslim 2723)', priority: 'medium', status: 'todo' },
-      { title: 'Quran Recitation', desc: 'Read at least 1 juz daily to complete Quran in Ramadan (Sunnah - Bukhari 4998)', priority: 'medium', status: 'todo' },
-      { title: 'SubhanAllah 33x, Alhamdulillah 33x, Allahu Akbar 34x', desc: 'After each salah (Sunnah - Muslim 595)', priority: 'medium', status: 'todo' },
+      { title: 'Taraweeh Prayer', desc: 'Pray Taraweeh after Isha (Sunnah Muakkadah - Bukhari 37)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'Suhoor Meal', desc: 'Eat suhoor before Fajr - "Take suhoor, for in suhoor there is blessing" (Bukhari 1923)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'Break fast with dates', desc: 'Break fast with dates and water (Sunnah - Abu Dawud 2356)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'Dua at Iftar', desc: '"Dhahaba al-zama wa abtallatil-urooq..." (Abu Dawud 2357)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'Morning Adhkar', desc: 'Recite morning remembrance after Fajr (Sunnah - Muslim 2723)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'Evening Adhkar', desc: 'Recite evening remembrance after Asr (Sunnah - Muslim 2723)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'Quran Recitation', desc: 'Read at least 1 juz daily to complete Quran in Ramadan (Sunnah - Bukhari 4998)', priority: 'medium', status: 'todo', rec: 'daily' },
+      { title: 'SubhanAllah 33x, Alhamdulillah 33x, Allahu Akbar 34x', desc: 'After each salah (Sunnah - Muslim 595)', priority: 'medium', status: 'todo', rec: 'daily' },
 
       // Mustahabb (Recommended)
-      { title: 'Tahajjud / Qiyam al-Layl', desc: 'Night prayer in last third of night (Mustahabb - Quran 17:79)', priority: 'low', status: 'todo' },
-      { title: 'Istighfar 100x', desc: 'Seek forgiveness throughout the day - "I seek Allahs forgiveness 100 times a day" (Muslim 2702)', priority: 'low', status: 'todo' },
-      { title: 'La ilaha illa Allah 100x', desc: 'Daily dhikr (Bukhari 6403, Muslim 2691)', priority: 'low', status: 'todo' },
-      { title: 'Salawat upon the Prophet (pbuh)', desc: 'Send blessings upon the Prophet (Quran 33:56, Muslim 408)', priority: 'low', status: 'todo' },
-      { title: 'Charity / Sadaqah', desc: 'The Prophet was most generous in Ramadan (Bukhari 6, Muslim 2308)', priority: 'low', status: 'todo' },
-      { title: 'Feed someone Iftar', desc: '"Whoever provides iftar for a fasting person earns the same reward" (Tirmidhi 807)', priority: 'low', status: 'todo' },
-      { title: 'Itikaf (Last 10 days)', desc: 'Spiritual retreat in the masjid (Sunnah - Bukhari 2025)', priority: 'low', status: 'todo' },
-      { title: 'Seek Laylat al-Qadr', desc: 'Especially in odd nights of last 10 days (Quran 97:1-5, Bukhari 2020)', priority: 'low', status: 'todo' },
-      { title: 'Dua: Allahumma innaka afuwwun...', desc: 'For Laylat al-Qadr: "O Allah, You are pardoning and love to pardon, so pardon me" (Tirmidhi 3513)', priority: 'low', status: 'todo' },
+      { title: 'Tahajjud / Qiyam al-Layl', desc: 'Night prayer in last third of night (Mustahabb - Quran 17:79)', priority: 'low', status: 'todo', rec: 'daily' },
+      { title: 'Istighfar 100x', desc: 'Seek forgiveness throughout the day - "I seek Allahs forgiveness 100 times a day" (Muslim 2702)', priority: 'low', status: 'todo', rec: 'daily' },
+      { title: 'La ilaha illa Allah 100x', desc: 'Daily dhikr (Bukhari 6403, Muslim 2691)', priority: 'low', status: 'todo', rec: 'daily' },
+      { title: 'Salawat upon the Prophet (pbuh)', desc: 'Send blessings upon the Prophet (Quran 33:56, Muslim 408)', priority: 'low', status: 'todo', rec: 'daily' },
+      { title: 'Charity / Sadaqah', desc: 'The Prophet was most generous in Ramadan (Bukhari 6, Muslim 2308)', priority: 'low', status: 'todo', rec: 'daily' },
+      { title: 'Feed someone Iftar', desc: '"Whoever provides iftar for a fasting person earns the same reward" (Tirmidhi 807)', priority: 'low', status: 'todo', rec: 'none' },
+      { title: 'Itikaf (Last 10 days)', desc: 'Spiritual retreat in the masjid (Sunnah - Bukhari 2025)', priority: 'low', status: 'todo', rec: 'none' },
+      { title: 'Seek Laylat al-Qadr', desc: 'Especially in odd nights of last 10 days (Quran 97:1-5, Bukhari 2020)', priority: 'low', status: 'todo', rec: 'none' },
+      { title: 'Dua: Allahumma innaka afuwwun...', desc: 'For Laylat al-Qadr: "O Allah, You are pardoning and love to pardon, so pardon me" (Tirmidhi 3513)', priority: 'low', status: 'todo', rec: 'daily' },
     ];
 
     for (const t of tasks) {
       await client.query(
-        `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [uid(), SYS_USER, RAMADAN_ID, t.title, t.desc, t.status, t.priority]
+        `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, recurrence)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [uid(), SYS_USER, RAMADAN_ID, t.title, t.desc, t.status, t.priority, t.rec]
       );
     }
 
