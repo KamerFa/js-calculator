@@ -130,19 +130,23 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
           </li>
         </ul>
 
-        <div className="sidebar-section-label">Custom Data</div>
-        <ul className="sidebar-nav">
-          <li>
-            <a
-              href="#"
-              className={view === 'performance' ? 'active' : ''}
-              onClick={(e) => { e.preventDefault(); nav('performance'); }}
-            >
-              <IconBarChart />
-              Performance
-            </a>
-          </li>
-        </ul>
+        {user?.username?.toLowerCase() === 'kamer' && (
+          <>
+            <div className="sidebar-section-label">Custom Data</div>
+            <ul className="sidebar-nav">
+              <li>
+                <a
+                  href="#"
+                  className={view === 'performance' ? 'active' : ''}
+                  onClick={(e) => { e.preventDefault(); nav('performance'); }}
+                >
+                  <IconBarChart />
+                  Performance
+                </a>
+              </li>
+            </ul>
+          </>
+        )}
 
         <div className="sidebar-section-label">Projects</div>
         <ul className="sidebar-nav">
