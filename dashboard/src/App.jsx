@@ -19,6 +19,49 @@ import FaceitSettingsModal from './components/FaceitSettingsModal';
 import ShareModal from './components/ShareModal';
 import ImportProjectModal from './components/ImportProjectModal';
 import RadioView from './components/RadioView';
+import radioAudio from './radioAudio';
+
+function useRadioState() {
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    return radioAudio.subscribe(() => forceUpdate((n) => n + 1));
+  }, []);
+  return {
+    playing: radioAudio.getStation(),
+    volume: radioAudio.getVolume(),
+  };
+}
+
+function RadioMiniPlayer({ onGoToRadio }) {
+  const { playing, volume } = useRadioState();
+  if (!playing) return null;
+
+  return (
+    <div className="radio-mini-player" onClick={onGoToRadio}>
+      <div className="radio-now-eq">
+        <span /><span /><span /><span />
+      </div>
+      <div className="radio-mini-info">
+        <span className="radio-mini-name">{playing.name}</span>
+        <span className="radio-mini-genre">{playing.genre}</span>
+      </div>
+      <input
+        type="range"
+        className="radio-volume"
+        min="0"
+        max="1"
+        step="0.01"
+        value={volume}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => { e.stopPropagation(); radioAudio.setVolume(e.target.value); }}
+        title={`${Math.round(volume * 100)}%`}
+      />
+      <button className="radio-stop-btn" onClick={(e) => { e.stopPropagation(); radioAudio.stop(); }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -338,6 +381,8 @@ export default function App() {
         )}
 
         {view === 'radio' && <RadioView />}
+
+        {view !== 'radio' && <RadioMiniPlayer onGoToRadio={() => navigate('radio')} />}
 
         {view === 'calendar' && (
           <CalendarView

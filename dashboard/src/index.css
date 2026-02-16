@@ -2428,6 +2428,61 @@ body {
   100% { transform: scaleY(1); }
 }
 
+/* ── Mini Player (persistent across views) ─────────────────── */
+.radio-mini-player {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  z-index: 1000;
+  animation: miniPlayerSlideIn 0.3s ease;
+  max-width: 380px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.radio-mini-player:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+
+.radio-mini-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.radio-mini-name {
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radio-mini-genre {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.radio-mini-player .radio-volume {
+  width: 60px;
+}
+
+@keyframes miniPlayerSlideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* ============================================================
    RESPONSIVE — TABLET (≤ 900px)
    ============================================================ */

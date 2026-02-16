@@ -1,23 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-
-const STATIONS = [
-  // Regional
-  { id: 'naxi', name: 'Naxi Radio', genre: 'Pop', region: 'Beograd', url: 'http://naxi128.streaming.rs:9150/;' },
-  { id: 'naxi-house', name: 'Naxi House', genre: 'House', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8000/;' },
-  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8110/;' },
-  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8090/;' },
-
-  // Islamic Radio
-  { id: 'islamic1', name: 'Radio El-Kelimeh', genre: 'Islamic', region: 'Sarajevo', url: 'http://185.47.65.85:8002/;' },
-  { id: 'islamic2', name: 'Quran Radio', genre: 'Islamic', region: 'Internet', url: 'http://quraan.us:9996/;' },
-  { id: 'islamic3', name: 'Radio Nur', genre: 'Islamic', region: 'BiH', url: 'http://stream.radionur.ba:8000/radionur' },
-
-  // House / Electronic
-  { id: 'beatblender', name: 'SomaFM - Beat Blender', genre: 'Deep House', region: 'Internet', url: 'https://ice4.somafm.com/beatblender-128-aac' },
-  { id: 'groovesalad', name: 'SomaFM - Groove Salad', genre: 'Downtempo', region: 'Internet', url: 'https://ice5.somafm.com/groovesalad-128-aac' },
-  { id: 'spacestation', name: 'SomaFM - Space Station', genre: 'Ambient', region: 'Internet', url: 'https://ice5.somafm.com/spacestation-128-aac' },
-  { id: 'defcon', name: 'SomaFM - DEF CON', genre: 'Electronic', region: 'Internet', url: 'https://ice5.somafm.com/defcon-128-aac' },
-];
+import { useState, useEffect, useSyncExternalStore } from 'react';
+import radioAudio from '../radioAudio';
 
 const GENRE_COLORS = {
   'Pop': '#7c3aed',
@@ -31,95 +13,41 @@ const GENRE_COLORS = {
   'Electronic': '#f59e0b',
 };
 
-export default function RadioView() {
-  const [playing, setPlaying] = useState(() => {
-    const saved = localStorage.getItem('radio_playing');
-    if (saved) {
-      try {
-        const stationId = JSON.parse(saved);
-        return STATIONS.find((s) => s.id === stationId) || null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState(false);
-  const [volume, setVolume] = useState(() => {
-    const saved = localStorage.getItem('radio_volume');
-    return saved ? parseFloat(saved) : 0.7;
-  });
-  const [error, setError] = useState(null);
-  const audioRef = useRef(null);
+function useRadio() {
+  const [, forceUpdate] = useState(0);
 
   useEffect(() => {
-    audioRef.current = new Audio();
-    audioRef.current.volume = volume;
-
-    // Resume playing if there was a station playing before
-    const savedStation = localStorage.getItem('radio_playing');
-    if (savedStation) {
-      try {
-        const stationId = JSON.parse(savedStation);
-        const station = STATIONS.find((s) => s.id === stationId);
-        if (station) {
-          audioRef.current.src = station.url;
-          audioRef.current.play().catch(() => {
-            setError(station.id);
-            setPlaying(null);
-            localStorage.removeItem('radio_playing');
-          });
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    };
+    return radioAudio.subscribe(() => forceUpdate((n) => n + 1));
   }, []);
 
+  return {
+    playing: radioAudio.getStation(),
+    volume: radioAudio.getVolume(),
+    isPlaying: radioAudio.isPlaying(),
+  };
+}
+
+export default function RadioView() {
+  const { playing, volume } = useRadio();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const STATIONS = radioAudio.STATIONS;
+
   const play = (station) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (playing?.id === station.id) {
-      audio.pause();
-      audio.src = '';
-      setPlaying(null);
-      setError(null);
-      localStorage.removeItem('radio_playing');
-      return;
-    }
-
     setLoading(true);
     setError(null);
-    audio.pause();
-    audio.src = station.url;
-    audio.volume = volume;
-    audio.play()
-      .then(() => {
-        setPlaying(station);
-        setLoading(false);
-        localStorage.setItem('radio_playing', JSON.stringify(station.id));
-      })
+
+    radioAudio.play(station)
+      .then(() => setLoading(false))
       .catch(() => {
         setError(station.id);
         setLoading(false);
-        setPlaying(null);
-        localStorage.removeItem('radio_playing');
       });
   };
 
   const changeVolume = (val) => {
-    const v = parseFloat(val);
-    setVolume(v);
-    localStorage.setItem('radio_volume', v);
-    if (audioRef.current) audioRef.current.volume = v;
+    radioAudio.setVolume(val);
   };
 
   const regional = STATIONS.filter((s) => s.region !== 'Internet' && s.genre !== 'Islamic');
@@ -156,7 +84,7 @@ export default function RadioView() {
             onChange={(e) => changeVolume(e.target.value)}
             title={`${Math.round(volume * 100)}%`}
           />
-          <button className="radio-stop-btn" onClick={() => play(playing)}>
+          <button className="radio-stop-btn" onClick={() => radioAudio.stop()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
           </button>
         </div>
