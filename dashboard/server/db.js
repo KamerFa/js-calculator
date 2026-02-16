@@ -50,6 +50,25 @@ db.exec(`
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS project_members (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL DEFAULT 'member',
+    joined_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(project_id, user_id)
+  );
+`);
+
+// Backfill: ensure every existing project owner has a project_members entry
+db.exec(`
+  INSERT OR IGNORE INTO project_members (id, project_id, user_id, role)
+  SELECT lower(hex(randomblob(16))), p.id, p.user_id, 'owner'
+  FROM projects p
+  WHERE NOT EXISTS (
+    SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = p.user_id
+  )
 `);
 
 export const uid = () => randomUUID();

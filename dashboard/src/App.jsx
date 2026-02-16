@@ -12,6 +12,7 @@ import ConfirmModal from './components/ConfirmModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import PerformanceView from './components/PerformanceView';
 import FaceitSettingsModal from './components/FaceitSettingsModal';
+import ShareModal from './components/ShareModal';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -43,6 +44,9 @@ export default function App() {
   const [taskDetailItem, setTaskDetailItem] = useState(null);
 
   const [faceitSettingsOpen, setFaceitSettingsOpen] = useState(false);
+
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalProject, setShareModalProject] = useState(null);
 
   // ── Auth check ──────────────────────────────────────────────
   useEffect(() => {
@@ -156,6 +160,12 @@ export default function App() {
     setConfirmOpen(true);
   };
 
+  // ── Share actions ──────────────────────────────────────────
+  const openShareModal = (project) => {
+    setShareModalProject(project);
+    setShareModalOpen(true);
+  };
+
   // ── Note actions ──────────────────────────────────────────
   const openNoteModal = (note) => {
     setNoteModalItem(note || null);
@@ -229,6 +239,7 @@ export default function App() {
           <ProjectView
             project={currentProject}
             tasks={tasks}
+            user={user}
             onToggle={handleToggleTask}
             onTaskClick={openTaskDetail}
             onEdit={(t) => openTaskModal(t)}
@@ -237,6 +248,7 @@ export default function App() {
             onNewTask={(pid) => openTaskModal(null, pid)}
             onEditProject={(p) => openProjectModal(p)}
             onDeleteProject={handleDeleteProject}
+            onShare={openShareModal}
           />
         )}
 
@@ -301,6 +313,14 @@ export default function App() {
         open={faceitSettingsOpen}
         onClose={() => setFaceitSettingsOpen(false)}
         onSaved={() => {}}
+      />
+
+      <ShareModal
+        open={shareModalOpen}
+        project={shareModalProject}
+        user={user}
+        onClose={() => setShareModalOpen(false)}
+        onChanged={reload}
       />
     </div>
   );

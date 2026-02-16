@@ -1,4 +1,4 @@
-import { IconGrid, IconCheck, IconFile, IconBarChart } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers } from './Icons';
 
 export default function Sidebar({ view, currentProjectId, projects, tasks, user, onNavigate, onNavigateProject, onNewProject, onLogout }) {
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
@@ -56,6 +56,11 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {project.name}
               </span>
+              {project.memberCount > 1 && (
+                <span className="shared-badge" title="Shared project">
+                  <IconUsers />
+                </span>
+              )}
               <span className="project-badge">{openCount(project.id)}</span>
             </button>
           </li>

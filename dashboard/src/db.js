@@ -62,6 +62,21 @@ const DB = {
     });
   },
 
+  async getProjectMembers(projectId) {
+    return api(`/projects/${projectId}/members`);
+  },
+
+  async addProjectMember(projectId, username) {
+    return api(`/projects/${projectId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    });
+  },
+
+  async removeProjectMember(projectId, userId) {
+    return api(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' });
+  },
+
   // No-op — seeding is handled server-side on registration
   async seed() {},
 };

@@ -1,10 +1,20 @@
-import { IconPlus } from './Icons';
+import { useState, useEffect } from 'react';
+import { DB } from '../db';
+import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 const STATUS_LABELS = { todo: 'Todo', 'in-progress': 'In Progress', done: 'Done' };
 
-export default function ProjectView({ project, tasks, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject }) {
+export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onShare }) {
+  const [members, setMembers] = useState([]);
+
+  useEffect(() => {
+    if (project) {
+      DB.getProjectMembers(project.id).then(setMembers).catch(() => setMembers([]));
+    }
+  }, [project, tasks]);
+
   if (!project) return null;
 
   const projectTasks = tasks.filter((t) => t.projectId === project.id);
@@ -18,6 +28,9 @@ export default function ProjectView({ project, tasks, onToggle, onTaskClick, onE
     tasks: projectTasks.filter((t) => t.status === s),
   }));
 
+  const isShared = members.length > 1;
+  const isOwner = project.isOwner;
+
   return (
     <div>
       <div className="project-header">
@@ -30,10 +43,29 @@ export default function ProjectView({ project, tasks, onToggle, onTaskClick, onE
             </div>
           </div>
           <div className="project-header-actions">
-            <button className="btn btn-sm" onClick={() => onEditProject(project)}>Edit</button>
-            <button className="btn btn-sm btn-danger" onClick={() => onDeleteProject(project)}>Delete</button>
+            <button className="btn btn-sm" onClick={() => onShare(project)}>
+              <IconUsers /> {isShared ? `${members.length} Members` : 'Share'}
+            </button>
+            {isOwner && (
+              <>
+                <button className="btn btn-sm" onClick={() => onEditProject(project)}>Edit</button>
+                <button className="btn btn-sm btn-danger" onClick={() => onDeleteProject(project)}>Delete</button>
+              </>
+            )}
           </div>
         </div>
+
+        {isShared && (
+          <div className="project-members-row">
+            {members.map((m) => (
+              <div className="member-chip" key={m.userId} title={`${m.username} — ${m.tasks.done}/${m.tasks.total} done`}>
+                <span className="member-chip-avatar">{m.username.charAt(0).toUpperCase()}</span>
+                <span>{m.username}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="project-stats">
           <span><strong>{projectTasks.length}</strong> total</span>
           <span><strong>{openCount}</strong> open</span>
@@ -66,6 +98,8 @@ export default function ProjectView({ project, tasks, onToggle, onTaskClick, onE
                 task={task}
                 project={null}
                 showProject={false}
+                showCreator={isShared}
+                currentUserId={user?.id}
                 onToggle={onToggle}
                 onClick={onTaskClick}
                 onEdit={onEdit}
