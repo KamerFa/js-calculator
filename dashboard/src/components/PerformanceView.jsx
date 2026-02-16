@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaceitAPI } from '../faceit';
+import MatchDetailModal from './MatchDetailModal';
 
 export default function PerformanceView({ onOpenSettings }) {
   const [config, setConfig] = useState(FaceitAPI.getConfig());
@@ -9,6 +10,7 @@ export default function PerformanceView({ onOpenSettings }) {
   const [matchStats, setMatchStats] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedMatch, setSelectedMatch] = useState(null);
 
   const isConfigured = config.apiKey && config.nickname;
 
@@ -198,6 +200,7 @@ export default function PerformanceView({ onOpenSettings }) {
               key={match.match_id}
               className="task-row"
               style={{ borderLeft: `3px solid ${won ? 'var(--success)' : 'var(--danger)'}` }}
+              onClick={() => setSelectedMatch(match)}
             >
               <span style={{
                 fontSize: 12,
@@ -242,6 +245,12 @@ export default function PerformanceView({ onOpenSettings }) {
           );
         })}
       </div>
+
+      <MatchDetailModal
+        open={!!selectedMatch}
+        match={selectedMatch}
+        onClose={() => setSelectedMatch(null)}
+      />
     </div>
   );
 }

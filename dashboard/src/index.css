@@ -887,6 +887,173 @@ body {
 /* ============================================================
    SCROLLBAR
    ============================================================ */
+/* ============================================================
+   MATCH DETAIL MODAL
+   ============================================================ */
+.match-detail-modal {
+  max-width: 740px;
+}
+
+.match-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.match-summary-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.match-competition {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.match-meta {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.match-summary-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.match-result-badge {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+.match-result-badge.win {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.match-result-badge.loss {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.match-final-score {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--text);
+}
+
+.match-team-section {
+  margin-bottom: 16px;
+}
+
+.match-team-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.match-team-name {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-2);
+}
+
+.match-team-name.winner {
+  color: var(--success);
+}
+
+.match-team-winner-tag {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 500;
+}
+
+.match-scoreboard {
+  display: flex;
+  flex-direction: column;
+}
+
+.match-scoreboard-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-3);
+}
+
+.match-scoreboard-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-2);
+  transition: background 0.1s;
+}
+
+.match-scoreboard-row:hover {
+  background: var(--bg);
+}
+
+.match-scoreboard-row.highlight {
+  background: var(--accent-bg);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.sb-player {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-stat {
+  width: 48px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.sb-kills {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.match-scoreboard-row.highlight .sb-stat {
+  color: var(--text);
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
 .sidebar::-webkit-scrollbar,
 .modal-card::-webkit-scrollbar {
   width: 5px;
