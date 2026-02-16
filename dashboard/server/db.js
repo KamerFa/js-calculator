@@ -179,6 +179,19 @@ async function seedRamadanProject() {
       [uid(), RAMADAN_ID, SYS_USER]
     );
 
+    // Add kamer and admin as owners so they can edit the project
+    for (const username of ['kamer', 'admin']) {
+      const { rows: userRows } = await client.query(
+        'SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [username]
+      );
+      if (userRows.length > 0) {
+        await client.query(
+          `INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, 'owner') ON CONFLICT DO NOTHING`,
+          [uid(), RAMADAN_ID, userRows[0].id]
+        );
+      }
+    }
+
     // Strictly Ramadan-specific tasks only
     // recurrence: 'daily' auto-resets each day, 'none' is a one-off goal
     const tasks = [
