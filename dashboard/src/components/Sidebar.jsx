@@ -4,7 +4,6 @@ import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
-import { DB } from '../db';
 
 function IconCalendar() {
   return (
@@ -21,16 +20,6 @@ function IconCommunity() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function IconDatabase() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="5" rx="9" ry="3" />
-      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
     </svg>
   );
 }
@@ -55,15 +44,6 @@ function IconUpload() {
   );
 }
 
-function IconBell() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
-
 function IconChevron({ open }) {
   return (
     <svg
@@ -74,41 +54,6 @@ function IconChevron({ open }) {
       <polyline points="9 18 15 12 9 6" />
     </svg>
   );
-}
-
-const TYPE_ICONS = {
-  tweet_reaction: '\u2764\uFE0F',
-  tweet_comment: '\uD83D\uDCAC',
-  task_created: '\u2728',
-  task_completed: '\uD83C\uDF1F',
-  task_status: '\uD83C\uDF3F',
-  project_join: '\uD83C\uDF3B',
-  project_leave: '\uD83C\uDF43',
-  project_invite: '\uD83D\uDC8C',
-  project_removed: '\uD83C\uDF42',
-};
-
-const TYPE_LABELS = {
-  tweet_reaction: 'Someone liked your tweet',
-  tweet_comment: 'New comment on your tweet',
-  task_created: 'New task added',
-  task_completed: 'Task completed',
-  task_status: 'Task updated',
-  project_join: 'Someone joined',
-  project_leave: 'Someone left',
-  project_invite: 'You were invited',
-  project_removed: 'Removed from project',
-};
-
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
 }
 
 export default function Sidebar({ projects, tasks, user, onNewProject, onImportProject, onLogout, mobileOpen, onCloseMobile }) {
@@ -128,9 +73,9 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
   const [accordionOpen, setAccordionOpen] = useState(() => {
     try {
       const saved = localStorage.getItem('sidebar_accordions');
-      return saved ? JSON.parse(saved) : { tasks: true, projects: true, notifications: false };
+      return saved ? JSON.parse(saved) : { tasks: true, projects: true };
     } catch {
-      return { tasks: true, projects: true, notifications: false };
+      return { tasks: true, projects: true };
     }
   });
 
@@ -140,63 +85,6 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
       localStorage.setItem('sidebar_accordions', JSON.stringify(next));
       return next;
     });
-  };
-
-  // Notifications state
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const loadNotifications = async () => {
-    try {
-      const data = await DB.getNotifications();
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.isRead).length);
-    } catch {
-      // ignore
-    }
-  };
-
-  const loadUnread = async () => {
-    try {
-      const { count } = await DB.getUnreadCount();
-      setUnreadCount(count);
-    } catch {
-      // ignore
-    }
-  };
-
-  useEffect(() => {
-    loadUnread();
-    const interval = setInterval(loadUnread, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Load full list when accordion opens
-  useEffect(() => {
-    if (accordionOpen.notifications) loadNotifications();
-  }, [accordionOpen.notifications]);
-
-  const handleMarkAllRead = async () => {
-    await DB.markAllNotificationsRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadCount(0);
-  };
-
-  const handleNotificationClick = async (notif) => {
-    if (!notif.isRead) {
-      await DB.markNotificationRead(notif.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((c) => Math.max(0, c - 1));
-    }
-    if (notif.targetType === 'tweet') {
-      nav('/community');
-    } else if (notif.targetType === 'project') {
-      navProject(notif.targetId);
-    } else if (notif.targetType === 'task') {
-      nav('/');
-    }
   };
 
   // PWA install prompt
@@ -353,46 +241,6 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
               </button>
             </div>
           </>
-        )}
-
-        {/* Notifications section - accordion */}
-        <button className="sidebar-accordion-toggle" onClick={() => toggleAccordion('notifications')}>
-          <IconChevron open={accordionOpen.notifications} />
-          <IconBell />
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <span className="sidebar-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
-          )}
-        </button>
-        {accordionOpen.notifications && (
-          <div className="sidebar-notif-list">
-            {unreadCount > 0 && (
-              <button className="sidebar-notif-mark-all" onClick={handleMarkAllRead}>
-                Clear all
-              </button>
-            )}
-            {notifications.length === 0 && (
-              <div className="sidebar-notif-empty">
-                <span className="sidebar-notif-empty-icon">{'\uD83C\uDF3F'}</span>
-                <span>All caught up. Enjoy the calm.</span>
-              </div>
-            )}
-            {notifications.slice(0, 20).map((n) => (
-              <div
-                key={n.id}
-                className={`sidebar-notif-item${n.isRead ? '' : ' unread'}`}
-                onClick={() => handleNotificationClick(n)}
-              >
-                <span className="sidebar-notif-icon">
-                  {TYPE_ICONS[n.type] || '\uD83C\uDF3F'}
-                </span>
-                <div className="sidebar-notif-body">
-                  <span className="sidebar-notif-summary">{n.summary}</span>
-                  <span className="sidebar-notif-time">{timeAgo(n.createdAt)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         )}
 
         {!isInstalled && installPrompt && (
