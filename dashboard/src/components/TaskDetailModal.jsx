@@ -1,6 +1,9 @@
+import { useNavigate } from 'react-router';
 import { IconX } from './Icons';
+import { renderWithMentions } from '../mentions';
 
 export default function TaskDetailModal({ open, task, projects, notes, onClose, onEdit, onProjectClick, onNoteClick }) {
+  const navigate = useNavigate();
   if (!open || !task) return null;
 
   const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
@@ -27,7 +30,7 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
         </div>
         <div className="modal-body">
           <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, fontSize: 18, marginBottom: 12 }}>{task.title}</h3>
-          <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>{task.description || 'No description'}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16, whiteSpace: 'pre-wrap' }}>{task.description ? renderWithMentions(task.description, (u) => { onClose(); navigate(`/profile/${u}`); }) : 'No description'}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
             <span className={`priority-badge ${task.priority}`}>{task.priority}</span>
             <span className="chip active" style={{ cursor: 'default' }}>{task.status}</span>

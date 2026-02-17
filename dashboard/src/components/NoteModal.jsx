@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconX } from './Icons';
+import { useMentions, MentionDropdown } from '../mentions';
+import { DB } from '../db';
 
 export default function NoteModal({ open, note, projects, tasks, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({ title: '', body: '', attachType: '', attachId: '' });
+  const [allUsers, setAllUsers] = useState([]);
+  const bodyRef = useRef(null);
+  const mentions = useMentions(allUsers, null);
 
   useEffect(() => {
     if (!open) return;
@@ -17,6 +22,12 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
       setForm({ title: '', body: '', attachType: '', attachId: '' });
     }
   }, [open, note]);
+
+  useEffect(() => {
+    if (open && allUsers.length === 0) {
+      DB.getUsers().then(setAllUsers).catch(() => {});
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -39,9 +50,23 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
             <label>Title</label>
             <input className="form-input" type="text" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Note title" />
           </div>
-          <div className="form-group">
-            <label>Body</label>
-            <textarea className="form-textarea large" value={form.body} onChange={(e) => set('body', e.target.value)} placeholder="Write your note..." />
+          <div className="form-group" style={{ position: 'relative' }}>
+            <label>Body <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— use @ to mention users</span></label>
+            <textarea
+              ref={bodyRef}
+              className="form-textarea large"
+              value={form.body}
+              onChange={(e) => {
+                set('body', e.target.value);
+                mentions.detectMention(e.target.value, e.target.selectionStart);
+              }}
+              placeholder="Write your note..."
+            />
+            <MentionDropdown mentions={mentions} onSelect={(username) => {
+              const el = bodyRef.current;
+              const newVal = mentions.insertMention(username, form.body, el?.selectionStart || form.body.length);
+              set('body', newVal);
+            }} />
           </div>
           <div className="form-row">
             <div className="form-group">

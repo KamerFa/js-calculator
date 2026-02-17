@@ -173,6 +173,47 @@ async function initDB() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_project_messages_project ON project_messages(project_id, created_at DESC)`);
 
+  // Profile comments
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS profile_comments (
+      id           TEXT PRIMARY KEY,
+      profile_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      author_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body         TEXT NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_profile_comments_profile ON profile_comments(profile_user_id, created_at DESC)`);
+
+  // User nicknames (user sets a nickname for another user, private to the namer)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_nicknames (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      target_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      nickname     TEXT NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, target_user_id)
+    )
+  `);
+
+  // Display nickname (user's own public nickname)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname TEXT`);
+
+  // Friendships (ahbab)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS friendships (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      friend_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status       TEXT NOT NULL DEFAULT 'pending',
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, friend_id)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_friendships_user ON friendships(user_id, status)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_friendships_friend ON friendships(friend_id, status)`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

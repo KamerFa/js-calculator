@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { IconX } from './Icons';
+import { useMentions, MentionDropdown } from '../mentions';
+import { DB } from '../db';
 
 const RECURRENCE_OPTIONS = [
   { value: 'none', label: 'No repeat' },
@@ -12,7 +14,10 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   const [form, setForm] = useState(emptyForm());
   const [screenshotFile, setScreenshotFile] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
   const fileRef = useRef(null);
+  const descRef = useRef(null);
+  const mentions = useMentions(allUsers, null);
 
   function emptyForm() {
     return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', scheduledDate: '', dateType: 'due', recurrence: 'none', taskType: 'shared', customFields: [] };
@@ -43,6 +48,12 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
     }
     setScreenshotFile(null);
   }, [open, task, prefillProjectId]);
+
+  useEffect(() => {
+    if (open && allUsers.length === 0) {
+      DB.getUsers().then(setAllUsers).catch(() => {});
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -91,9 +102,23 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
             <label>Title</label>
             <input className="form-input" type="text" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Task title" />
           </div>
-          <div className="form-group">
-            <label>Description</label>
-            <textarea className="form-textarea" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Optional description" />
+          <div className="form-group" style={{ position: 'relative' }}>
+            <label>Description <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— use @ to mention users</span></label>
+            <textarea
+              ref={descRef}
+              className="form-textarea"
+              value={form.description}
+              onChange={(e) => {
+                set('description', e.target.value);
+                mentions.detectMention(e.target.value, e.target.selectionStart);
+              }}
+              placeholder="Optional description"
+            />
+            <MentionDropdown mentions={mentions} onSelect={(username) => {
+              const el = descRef.current;
+              const newVal = mentions.insertMention(username, form.description, el?.selectionStart || form.description.length);
+              set('description', newVal);
+            }} />
           </div>
           <div className="form-row">
             <div className="form-group">

@@ -130,11 +130,16 @@ router.get('/:id/members', async (req, res) => {
     [req.params.id]
   );
 
-  // Shared task stats (counted per creator)
+  // Shared task stats: count completions per completer (not creator)
+  const totalSharedTasks = await pool.query(
+    `SELECT COUNT(*) as total FROM tasks WHERE project_id = $1 AND task_type = 'shared'`,
+    [req.params.id]
+  );
+  const sharedTotal = parseInt(totalSharedTasks.rows[0]?.total || 0);
   const { rows: sharedStats } = await pool.query(
-    `SELECT user_id, COUNT(*) as total,
-            SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done
-     FROM tasks WHERE project_id = $1 AND task_type = 'shared' GROUP BY user_id`,
+    `SELECT completed_by as user_id, COUNT(*) as done
+     FROM tasks WHERE project_id = $1 AND task_type = 'shared' AND status = 'done' AND completed_by IS NOT NULL
+     GROUP BY completed_by`,
     [req.params.id]
   );
 
@@ -151,7 +156,7 @@ router.get('/:id/members', async (req, res) => {
 
   const statsMap = {};
   for (const s of sharedStats) {
-    statsMap[s.user_id] = { total: parseInt(s.total), done: parseInt(s.done) };
+    statsMap[s.user_id] = { total: sharedTotal, done: parseInt(s.done) };
   }
   for (const s of perMemberStats) {
     if (!statsMap[s.user_id]) statsMap[s.user_id] = { total: 0, done: 0 };

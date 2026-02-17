@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DB } from '../db';
 import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
+import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
 
 const REACTION_EMOJIS = [
   '\u2764\uFE0F', // red heart
@@ -60,61 +61,6 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-// Render text with clickable @mentions
-function renderWithMentions(text, onUserClick) {
-  const parts = text.split(/(@\w+)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('@')) {
-      const username = part.slice(1);
-      return (
-        <span
-          key={i}
-          className="tweet-mention"
-          onClick={(e) => { e.stopPropagation(); onUserClick(username); }}
-        >
-          {part}
-        </span>
-      );
-    }
-    return part;
-  });
-}
-
-// Mention dropdown hook for any text input
-function useMentions(allUsers, currentUser) {
-  const [showMentions, setShowMentions] = useState(false);
-  const [mentionFilter, setMentionFilter] = useState('');
-
-  const filteredUsers = (allUsers || []).filter(
-    (u) => u.username.toLowerCase().includes(mentionFilter) && u.username !== currentUser?.username
-  ).slice(0, 8);
-
-  const detectMention = (value, cursorPos) => {
-    const textUpToCursor = value.slice(0, cursorPos);
-    const match = textUpToCursor.match(/@(\w*)$/);
-    if (match) {
-      setShowMentions(true);
-      setMentionFilter(match[1].toLowerCase());
-    } else {
-      setShowMentions(false);
-    }
-  };
-
-  const insertMention = (username, currentValue, cursorPos) => {
-    const textUpToCursor = currentValue.slice(0, cursorPos);
-    const match = textUpToCursor.match(/@(\w*)$/);
-    if (match) {
-      const before = textUpToCursor.slice(0, match.index);
-      const after = currentValue.slice(cursorPos);
-      setShowMentions(false);
-      return `${before}@${username} ${after}`;
-    }
-    setShowMentions(false);
-    return currentValue;
-  };
-
-  return { showMentions, filteredUsers, detectMention, insertMention, setShowMentions };
-}
 
 function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, onDeleteComment, onVoteComment, onUserClick }) {
   const [showComments, setShowComments] = useState(false);

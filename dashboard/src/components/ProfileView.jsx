@@ -41,12 +41,19 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState('');
+  const [nickname, setNickname] = useState('');
   const [musicService, setMusicService] = useState('');
   const [musicUsername, setMusicUsername] = useState('');
   const [showProjectsOnProfile, setShowProjectsOnProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [userProjects, setUserProjects] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [commentBody, setCommentBody] = useState('');
+  const [friendStatus, setFriendStatus] = useState(null);
+  const [myNickname, setMyNickname] = useState('');
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [friends, setFriends] = useState([]);
   const fileRef = useRef(null);
 
   const isOwn = !profileUsername || profileUsername === user?.username;
@@ -57,15 +64,35 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
         const p = isOwn ? await DB.getProfile() : await DB.getPublicProfile(profileUsername);
         setProfile(p);
         setBio(p.bio || '');
+        setNickname(p.nickname || '');
         setMusicService(p.musicService || '');
         setMusicUsername(p.musicUsername || '');
         setShowProjectsOnProfile(p.showProjectsOnProfile !== false);
+        if (!isOwn) {
+          setFriendStatus(p.friendStatus || null);
+          setMyNickname(p.myNickname || '');
+        }
       } catch {
         setProfile(null);
       }
     };
     load();
   }, [profileUsername, isOwn]);
+
+  // Load profile comments
+  useEffect(() => {
+    const username = isOwn ? user?.username : profileUsername;
+    if (username) {
+      DB.getProfileComments(username).then(setComments).catch(() => setComments([]));
+    }
+  }, [profileUsername, isOwn, user?.username]);
+
+  // Load friends list (own profile)
+  useEffect(() => {
+    if (isOwn) {
+      DB.getFriends().then(setFriends).catch(() => setFriends([]));
+    }
+  }, [isOwn]);
 
   // Load user's public projects
   useEffect(() => {
@@ -88,6 +115,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
     try {
       await DB.updateProfile({
         bio,
+        nickname: nickname || null,
         musicService: musicService || null,
         musicUsername: musicUsername || null,
         showProjectsOnProfile,
@@ -98,6 +126,42 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePostComment = async () => {
+    if (!commentBody.trim()) return;
+    const username = isOwn ? user?.username : profileUsername;
+    const comment = await DB.postProfileComment(username, commentBody.trim());
+    setComments((prev) => [comment, ...prev]);
+    setCommentBody('');
+  };
+
+  const handleDeleteComment = async (id) => {
+    await DB.deleteProfileComment(id);
+    setComments((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleFriendAction = async () => {
+    if (!profile) return;
+    if (friendStatus === 'friends') {
+      await DB.removeFriend(profile.id);
+      setFriendStatus(null);
+    } else if (friendStatus === 'pending_sent') {
+      await DB.removeFriend(profile.id);
+      setFriendStatus(null);
+    } else if (friendStatus === 'pending_received') {
+      await DB.acceptFriendRequest(profile.id);
+      setFriendStatus('friends');
+    } else {
+      const result = await DB.sendFriendRequest(profile.id);
+      setFriendStatus(result.status);
+    }
+  };
+
+  const handleSaveNickname = async () => {
+    if (!profile) return;
+    await DB.setNickname(profile.id, myNickname.trim());
+    setEditingNickname(false);
   };
 
   const handleAvatarUpload = async (e) => {
@@ -170,10 +234,47 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
           </div>
 
           <div className="profile-info">
-            <h2>@{profile.username}</h2>
+            <h2>
+              @{profile.username}
+              {profile.nickname && <span className="profile-nickname"> ({profile.nickname})</span>}
+            </h2>
             <p className="profile-joined">{t('profile.memberSince')} {memberSince}</p>
             {profile.musicService && (
               <MusicBadge service={profile.musicService} username={profile.musicUsername} />
+            )}
+            {!isOwn && (
+              <div className="profile-actions-row">
+                <button
+                  className={`btn btn-sm${friendStatus === 'friends' ? ' btn-friend-active' : friendStatus === 'pending_sent' ? ' btn-friend-pending' : ''}`}
+                  onClick={handleFriendAction}
+                >
+                  {friendStatus === 'friends' ? 'Ahbab \u2665' :
+                   friendStatus === 'pending_sent' ? 'Request Sent' :
+                   friendStatus === 'pending_received' ? 'Accept Request' :
+                   'Add Habib'}
+                </button>
+                {friendStatus === 'pending_received' && (
+                  <button className="btn btn-sm" onClick={() => DB.removeFriend(profile.id).then(() => setFriendStatus(null))}>
+                    Decline
+                  </button>
+                )}
+                <button className="btn btn-sm" onClick={() => setEditingNickname(!editingNickname)}>
+                  {myNickname ? `Nickname: ${myNickname}` : 'Set Nickname'}
+                </button>
+              </div>
+            )}
+            {editingNickname && !isOwn && (
+              <div className="profile-nickname-edit">
+                <input
+                  className="form-input"
+                  type="text"
+                  value={myNickname}
+                  onChange={(e) => setMyNickname(e.target.value.slice(0, 30))}
+                  placeholder="Private nickname for this user"
+                />
+                <button className="btn btn-sm btn-primary" onClick={handleSaveNickname}>Save</button>
+                <button className="btn btn-sm" onClick={() => setEditingNickname(false)}>Cancel</button>
+              </div>
             )}
           </div>
         </div>
@@ -187,6 +288,16 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
           </div>
         ) : (
           <div className="profile-edit-section">
+            <div className="form-group">
+              <label>Nickname</label>
+              <input
+                className="form-input"
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value.slice(0, 30))}
+                placeholder="Display name (optional)"
+              />
+            </div>
             <div className="form-group">
               <label>{t('profile.bio')}</label>
               <textarea
@@ -284,6 +395,90 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
           </div>
         </div>
       )}
+
+      {/* Ahbab (Friends) - own profile */}
+      {isOwn && friends.length > 0 && (
+        <div className="profile-friends-section">
+          <h3 className="profile-section-title">Ahbab ({friends.filter((f) => f.status === 'accepted').length})</h3>
+          {friends.filter((f) => f.status === 'pending' && f.direction === 'received').length > 0 && (
+            <div className="profile-friend-requests">
+              <h4>Pending Requests</h4>
+              {friends.filter((f) => f.status === 'pending' && f.direction === 'received').map((f) => (
+                <div className="profile-friend-row" key={f.id}>
+                  <span className="profile-friend-name">@{f.username}</span>
+                  <button className="btn btn-sm btn-primary" onClick={async () => {
+                    await DB.acceptFriendRequest(f.id);
+                    const updated = await DB.getFriends();
+                    setFriends(updated);
+                  }}>Accept</button>
+                  <button className="btn btn-sm" onClick={async () => {
+                    await DB.removeFriend(f.id);
+                    const updated = await DB.getFriends();
+                    setFriends(updated);
+                  }}>Decline</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="profile-friends-grid">
+            {friends.filter((f) => f.status === 'accepted').map((f) => (
+              <div className="profile-friend-card" key={f.id} onClick={() => onProjectClick && window.location.assign(`/profile/${f.username}`)}>
+                {f.avatarUrl ? (
+                  <img src={resolveAvatarUrl(f.avatarUrl)} alt="" className="profile-friend-avatar" />
+                ) : (
+                  <div className="profile-friend-avatar-placeholder">{f.username.charAt(0).toUpperCase()}</div>
+                )}
+                <span className="profile-friend-name">
+                  {f.nickname || f.username}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Profile Comments */}
+      <div className="profile-comments-section">
+        <h3 className="profile-section-title">Comments ({comments.length})</h3>
+        <div className="profile-comment-form">
+          <textarea
+            className="form-textarea"
+            value={commentBody}
+            onChange={(e) => setCommentBody(e.target.value.slice(0, 500))}
+            placeholder="Leave a comment..."
+            rows={2}
+          />
+          <button className="btn btn-primary btn-sm" onClick={handlePostComment} disabled={!commentBody.trim()}>
+            Post
+          </button>
+        </div>
+        {comments.length === 0 && (
+          <div className="profile-comments-empty">No comments yet. Be the first!</div>
+        )}
+        {comments.map((c) => (
+          <div className="profile-comment" key={c.id}>
+            <div className="profile-comment-header">
+              {c.authorAvatar ? (
+                <img src={resolveAvatarUrl(c.authorAvatar)} alt="" className="profile-comment-avatar" />
+              ) : (
+                <span className="profile-comment-avatar profile-comment-avatar-placeholder">
+                  {c.authorUsername.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="profile-comment-author">@{c.authorUsername}</span>
+              <span className="profile-comment-time">
+                {new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+              {(c.authorId === user?.id || (isOwn && profile)) && (
+                <button className="profile-comment-delete" onClick={() => handleDeleteComment(c.id)}>
+                  &times;
+                </button>
+              )}
+            </div>
+            <p className="profile-comment-body">{c.body}</p>
+          </div>
+        ))}
+      </div>
 
       {showAvatarPicker && (
         <AvatarPicker

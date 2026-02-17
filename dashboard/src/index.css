@@ -4993,3 +4993,276 @@ body {
   min-width: 60px;
   text-align: right;
 }
+
+/* ── Profile Actions & Social Features ─────────────────── */
+.profile-nickname {
+  font-size: 14px;
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+.profile-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-friend-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-friend-pending {
+  opacity: 0.7;
+}
+
+.profile-nickname-edit {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.profile-nickname-edit .form-input {
+  width: 180px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* ── Profile Comments ──────────────────────────────────── */
+.profile-comments-section {
+  margin-top: 24px;
+}
+
+.profile-section-title {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.profile-comment-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: flex-end;
+}
+
+.profile-comment-form .form-textarea {
+  flex: 1;
+  min-height: 48px;
+  resize: none;
+}
+
+.profile-comments-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.profile-comment {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-comment:last-child {
+  border-bottom: none;
+}
+
+.profile-comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.profile-comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-comment-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile-comment-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profile-comment-time {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.profile-comment-delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.profile-comment:hover .profile-comment-delete {
+  opacity: 1;
+}
+
+.profile-comment-delete:hover {
+  color: var(--danger);
+}
+
+.profile-comment-body {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin: 0;
+  padding-left: 32px;
+}
+
+/* ── Ahbab (Friends) Section ────────────────────────────── */
+.profile-friends-section {
+  margin-top: 24px;
+}
+
+.profile-friend-requests {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+
+.profile-friend-requests h4 {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profile-friend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.profile-friend-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.profile-friends-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-friend-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.profile-friend-card:hover {
+  border-color: var(--accent);
+}
+
+.profile-friend-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-friend-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Mention dropdown (shared) ──────────────────────────── */
+.mention-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+
+.mention-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+}
+
+.mention-option:hover {
+  background: var(--bg);
+}
+
+.mention-option-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mention-option-placeholder {
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+}

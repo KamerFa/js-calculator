@@ -7,6 +7,7 @@ import ProjectCompletionSummary from './ProjectCompletionSummary';
 import ProjectChat from './ProjectChat';
 import { useTranslation } from '../i18n';
 import { getProjectStatus, getProjectTimeInfo, getProjectProgress } from '../projectStatus';
+import { renderWithMentions } from '../mentions';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 
@@ -79,7 +80,7 @@ export default function ProjectView({ project, tasks, notes, user, onToggle, onT
                 {project.isPublic && <span className="public-badge">{t('projects.public')}</span>}
                 {statusBadge}
               </h1>
-              <p className="desc">{project.description || t('projects.noDescription')}</p>
+              <p className="desc">{project.description ? renderWithMentions(project.description, onUserClick) : t('projects.noDescription')}</p>
               {(project.startDate || project.endDate) && (
                 <div className="project-dates-row">
                   <p className="project-dates">

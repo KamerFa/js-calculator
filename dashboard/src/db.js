@@ -226,6 +226,49 @@ const DB = {
   async markAllNotificationsRead() {
     return api('/notifications/read-all', { method: 'PUT' });
   },
+
+  // ── Profile Comments ──────────────────────────────────────
+  async getProfileComments(username) {
+    return api(`/profile/user/${username}/comments`);
+  },
+
+  async postProfileComment(username, body) {
+    return api(`/profile/user/${username}/comments`, {
+      method: 'POST', body: JSON.stringify({ body }),
+    });
+  },
+
+  async deleteProfileComment(id) {
+    return api(`/profile/comments/${id}`, { method: 'DELETE' });
+  },
+
+  // ── Nicknames ────────────────────────────────────────────
+  async setNickname(userId, nickname) {
+    return api(`/profile/nickname/${userId}`, {
+      method: 'PUT', body: JSON.stringify({ nickname }),
+    });
+  },
+
+  async getNicknames() {
+    return api('/profile/nicknames');
+  },
+
+  // ── Friends (Ahbab) ──────────────────────────────────────
+  async sendFriendRequest(userId) {
+    return api(`/profile/friend/${userId}`, { method: 'POST' });
+  },
+
+  async acceptFriendRequest(userId) {
+    return api(`/profile/friend/${userId}/accept`, { method: 'PUT' });
+  },
+
+  async removeFriend(userId) {
+    return api(`/profile/friend/${userId}`, { method: 'DELETE' });
+  },
+
+  async getFriends() {
+    return api('/profile/friends');
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────
