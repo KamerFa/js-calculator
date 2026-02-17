@@ -23,12 +23,34 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
   const totalDays = lastDay.getDate();
 
   // Build a map: 'YYYY-MM-DD' -> [tasks]
+  // For recurring tasks, create date-specific copies with correct completion status
   const tasksByDate = useMemo(() => {
     const map = {};
+
+    // Helper: create a date-specific copy of a recurring task
+    const withDateStatus = (task, dateStr) => {
+      const completionDates = task.completionDates || [];
+      const isDoneOnDate = completionDates.includes(dateStr);
+      // For shared recurring tasks, check completedAt date
+      const isSharedDoneOnDate = task.taskType === 'shared' && task.completedAt &&
+        new Date(task.completedAt).toISOString().split('T')[0] === dateStr;
+      const done = isDoneOnDate || isSharedDoneOnDate;
+      return {
+        ...task,
+        status: done ? 'done' : 'todo',
+        _calendarDate: dateStr, // track which date this copy represents
+      };
+    };
+
     for (const t of tasks) {
       if (!t.dueDate) continue;
       if (!map[t.dueDate]) map[t.dueDate] = [];
-      map[t.dueDate].push(t);
+      // For recurring tasks with a due date, also apply per-date status
+      if (t.recurrence && t.recurrence !== 'none') {
+        map[t.dueDate].push(withDateStatus(t, t.dueDate));
+      } else {
+        map[t.dueDate].push(t);
+      }
     }
 
     // Spread recurring tasks (no due date) across the visible month
@@ -43,21 +65,14 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
           if (project?.startDate && ds < project.startDate) continue;
           if (project?.endDate && ds > project.endDate) continue;
 
-          if (t.recurrence === 'daily') {
+          const shouldShow =
+            t.recurrence === 'daily' ||
+            (t.recurrence === 'weekly' && (d === 1 || d % 7 === 1)) ||
+            (t.recurrence === 'monthly' && d === 1);
+
+          if (shouldShow) {
             if (!map[ds]) map[ds] = [];
-            map[ds].push(t);
-          } else if (t.recurrence === 'weekly') {
-            // Show on every same weekday (use the first day of the month's weekday as anchor)
-            if (d === 1 || d % 7 === 1) {
-              if (!map[ds]) map[ds] = [];
-              map[ds].push(t);
-            }
-          } else if (t.recurrence === 'monthly') {
-            // Show on the 1st of the month
-            if (d === 1) {
-              if (!map[ds]) map[ds] = [];
-              map[ds].push(t);
-            }
+            map[ds].push(withDateStatus(t, ds));
           }
         }
       }
@@ -181,10 +196,10 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
               {selectedTasks.map((task) => {
                 const project = getProject(task.projectId);
                 return (
-                  <div className="cal-task-row" key={task.id} onClick={() => onTaskClick(task)}>
+                  <div className="cal-task-row" key={`${task.id}-${selectedDate}`} onClick={() => onTaskClick(task)}>
                     <div
                       className={`task-checkbox${task.status === 'done' ? ' checked' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); onToggle(task); }}
+                      onClick={(e) => { e.stopPropagation(); onToggle(task, task._calendarDate || selectedDate); }}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
                         <polyline points="20 6 9 17 4 12" />

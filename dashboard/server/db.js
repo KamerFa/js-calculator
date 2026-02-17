@@ -116,6 +116,22 @@ async function initDB() {
     )
   `);
 
+  // Add completion_date for per-date tracking of recurring tasks
+  await pool.query(`ALTER TABLE task_completions ADD COLUMN IF NOT EXISTS completion_date TEXT`);
+  // Backfill existing records: set completion_date from completed_at
+  await pool.query(`UPDATE task_completions SET completion_date = completed_at::date::text WHERE completion_date IS NULL`);
+  // Drop old unique constraint and add new one with completion_date
+  await pool.query(`ALTER TABLE task_completions DROP CONSTRAINT IF EXISTS task_completions_task_id_user_id_key`);
+  await pool.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'task_completions_task_user_date_key'
+      ) THEN
+        ALTER TABLE task_completions ADD CONSTRAINT task_completions_task_user_date_key UNIQUE(task_id, user_id, completion_date);
+      END IF;
+    END $$
+  `);
+
   // Notifications
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notifications (

@@ -180,8 +180,12 @@ export default function App() {
     setTaskModalOpen(false);
   };
 
-  const handleToggleTask = async (task) => {
+  const handleToggleTask = async (task, completionDate) => {
     const updated = { ...task, status: task.status === 'done' ? 'todo' : 'done' };
+    // For recurring tasks toggled from calendar, include the specific date
+    if (completionDate) {
+      updated.completionDate = completionDate;
+    }
     await DB.save('tasks', updated);
     await reload();
   };

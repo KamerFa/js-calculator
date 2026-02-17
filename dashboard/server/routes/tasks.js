@@ -4,8 +4,10 @@ import { notify, notifyProjectMembers, getUsername } from '../notify.js';
 
 const router = Router();
 
-function toJSON(row) {
+function toJSON(row, completionDatesMap) {
   const isPerMember = row.task_type === 'per_member';
+  const isRecurring = row.recurrence && row.recurrence !== 'none';
+  const today = new Date().toISOString().split('T')[0];
 
   // For per_member tasks, derive status from user's completion record
   let effectiveStatus = row.status;
@@ -13,12 +15,19 @@ function toJSON(row) {
   let effectiveCompletedBy = row.completer_username || null;
 
   if (isPerMember) {
-    effectiveStatus = row.my_completed_at ? 'done' : 'todo';
-    effectiveCompletedAt = row.my_completed_at || null;
+    if (isRecurring) {
+      // For recurring per_member tasks, check if TODAY has a completion
+      const dates = completionDatesMap?.[row.id] || [];
+      effectiveStatus = dates.includes(today) ? 'done' : 'todo';
+      effectiveCompletedAt = dates.includes(today) ? row.my_completed_at : null;
+    } else {
+      effectiveStatus = row.my_completed_at ? 'done' : 'todo';
+      effectiveCompletedAt = row.my_completed_at || null;
+    }
     effectiveCompletedBy = null; // per-member: you complete it for yourself
   }
 
-  return {
+  const result = {
     id: row.id,
     projectId: row.project_id,
     title: row.title,
@@ -37,6 +46,18 @@ function toJSON(row) {
     createdBy: row.creator_username || null,
     taskType: row.task_type || 'shared',
   };
+
+  // Include completion dates for recurring per_member tasks (for calendar view)
+  if (isPerMember && isRecurring && completionDatesMap?.[row.id]) {
+    result.completionDates = completionDatesMap[row.id];
+  }
+
+  // For shared recurring tasks, include the specific completion date
+  if (!isPerMember && isRecurring && row.completed_at) {
+    result.completionDates = [new Date(row.completed_at).toISOString().split('T')[0]];
+  }
+
+  return result;
 }
 
 // ── Helper: compute next due date from recurrence ─────────
@@ -97,18 +118,29 @@ router.get('/', async (req, res) => {
     [req.userId]
   );
 
-  // Auto-reset recurring tasks
+  // Fetch all completion dates for recurring per_member tasks (for calendar view)
+  const recurringPerMemberIds = rows
+    .filter((r) => r.task_type === 'per_member' && r.recurrence && r.recurrence !== 'none')
+    .map((r) => r.id);
+
+  const completionDatesMap = {};
+  if (recurringPerMemberIds.length > 0) {
+    const { rows: completionRows } = await pool.query(
+      `SELECT task_id, completion_date FROM task_completions
+       WHERE user_id = $1 AND task_id = ANY($2::text[]) AND completion_date IS NOT NULL`,
+      [req.userId, recurringPerMemberIds]
+    );
+    for (const cr of completionRows) {
+      if (!completionDatesMap[cr.task_id]) completionDatesMap[cr.task_id] = [];
+      completionDatesMap[cr.task_id].push(cr.completion_date);
+    }
+  }
+
+  // Auto-reset shared recurring tasks only (per_member now uses date-based tracking)
   const sharedResetIds = [];
-  const perMemberResetIds = [];
 
   for (const row of rows) {
-    if (row.task_type === 'per_member') {
-      // Per-member: check if THIS USER's completion is stale
-      if (row.my_completed_at && isStaleCompletion(row.recurrence, row.my_completed_at)) {
-        perMemberResetIds.push(row.id);
-        row.my_completed_at = null; // clear in-memory for response
-      }
-    } else {
+    if (row.task_type !== 'per_member') {
       // Shared: existing reset logic
       if (shouldReset(row)) {
         sharedResetIds.push(row.id);
@@ -123,14 +155,6 @@ router.get('/', async (req, res) => {
     }
   }
 
-  // Batch reset per-member completions
-  if (perMemberResetIds.length > 0) {
-    await pool.query(
-      `DELETE FROM task_completions WHERE user_id = $1 AND task_id = ANY($2::text[])`,
-      [req.userId, perMemberResetIds]
-    );
-  }
-
   // Batch reset shared tasks
   if (sharedResetIds.length > 0) {
     for (const id of sharedResetIds) {
@@ -142,7 +166,7 @@ router.get('/', async (req, res) => {
     }
   }
 
-  res.json(rows.map(toJSON));
+  res.json(rows.map((r) => toJSON(r, completionDatesMap)));
 });
 
 // ── POST: Create or update task ───────────────────────────
@@ -177,10 +201,15 @@ router.post('/', async (req, res) => {
     // Per-member tasks: toggle via task_completions, not tasks.status
     if (existing.task_type === 'per_member') {
       const newStatus = status || existing.status;
+      const isRecurring = existing.recurrence && existing.recurrence !== 'none';
+      // For recurring tasks, use the provided completionDate; for non-recurring, use today
+      const completionDate = req.body.completionDate || new Date().toISOString().split('T')[0];
+
       if (newStatus === 'done') {
         await pool.query(
-          `INSERT INTO task_completions (id, task_id, user_id) VALUES ($1, $2, $3) ON CONFLICT (task_id, user_id) DO NOTHING`,
-          [uid(), existing.id, req.userId]
+          `INSERT INTO task_completions (id, task_id, user_id, completion_date) VALUES ($1, $2, $3, $4)
+           ON CONFLICT (task_id, user_id, completion_date) DO NOTHING`,
+          [uid(), existing.id, req.userId, completionDate]
         );
         // Notify project members about completion
         if (existing.project_id) {
@@ -189,10 +218,18 @@ router.post('/', async (req, res) => {
             `${actor} completed "${existing.title}"`, 'task', existing.id);
         }
       } else {
-        await pool.query(
-          `DELETE FROM task_completions WHERE task_id = $1 AND user_id = $2`,
-          [existing.id, req.userId]
-        );
+        if (isRecurring) {
+          // For recurring tasks, only delete the specific date's completion
+          await pool.query(
+            `DELETE FROM task_completions WHERE task_id = $1 AND user_id = $2 AND completion_date = $3`,
+            [existing.id, req.userId, completionDate]
+          );
+        } else {
+          await pool.query(
+            `DELETE FROM task_completions WHERE task_id = $1 AND user_id = $2`,
+            [existing.id, req.userId]
+          );
+        }
       }
       // Return the task with this user's completion state
       const { rows } = await pool.query(
@@ -201,11 +238,23 @@ router.post('/', async (req, res) => {
          FROM tasks t
          JOIN users u ON u.id = t.user_id
          LEFT JOIN users cu ON cu.id = t.completed_by
-         LEFT JOIN task_completions tc ON tc.task_id = t.id AND tc.user_id = $1
-         WHERE t.id = $2`,
-        [req.userId, existing.id]
+         LEFT JOIN task_completions tc ON tc.task_id = t.id AND tc.user_id = $1 AND tc.completion_date = $3
+         WHERE t.id = $2
+         LIMIT 1`,
+        [req.userId, existing.id, completionDate]
       );
-      return res.json(toJSON(rows[0]));
+
+      // Also fetch all completion dates for recurring tasks
+      const completionDatesMap = {};
+      if (isRecurring) {
+        const { rows: cdRows } = await pool.query(
+          `SELECT completion_date FROM task_completions WHERE task_id = $1 AND user_id = $2 AND completion_date IS NOT NULL`,
+          [existing.id, req.userId]
+        );
+        completionDatesMap[existing.id] = cdRows.map((r) => r.completion_date);
+      }
+
+      return res.json(toJSON(rows[0], completionDatesMap));
     }
 
     // Shared tasks: existing logic
