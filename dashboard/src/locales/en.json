@@ -21,7 +21,6 @@
     "notes": "Notes",
     "calendar": "Calendar",
     "community": "Community",
-    "performance": "Performance",
     "profile": "Profile",
     "settings": "Settings",
     "notifications": "Notifications"
@@ -161,9 +160,6 @@
     "confirmDelete": "Delete this post?",
     "templates": "Template messages",
     "charCount": "{count}/280"
-  },
-  "performance": {
-    "title": "Performance"
   },
   "radio": {
     "title": "Radio"

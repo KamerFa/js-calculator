@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers, IconRadio } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
@@ -290,28 +290,6 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
           </ul>
         )}
 
-        {user?.username?.toLowerCase() === 'kamer' && (
-          <>
-            <button className="sidebar-accordion-toggle" onClick={() => toggleAccordion('custom')}>
-              <IconChevron open={accordionOpen.custom} />
-              <span>Custom Data</span>
-            </button>
-            {accordionOpen.custom && (
-              <ul className="sidebar-nav">
-                <li>
-                  <a
-                    href="#"
-                    className={view === 'performance' ? 'active' : ''}
-                    onClick={(e) => { e.preventDefault(); nav('performance'); }}
-                  >
-                    <IconBarChart />
-                    {t('sidebar.performance')}
-                  </a>
-                </li>
-              </ul>
-            )}
-          </>
-        )}
 
         {/* Projects section - accordion */}
         <button className="sidebar-accordion-toggle" onClick={() => toggleAccordion('projects')}>

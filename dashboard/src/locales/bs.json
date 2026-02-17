@@ -21,7 +21,6 @@
     "notes": "Bilješke",
     "calendar": "Kalendar",
     "community": "Zajednica",
-    "performance": "Performanse",
     "profile": "Profil",
     "settings": "Postavke",
     "notifications": "Obavještenja"
@@ -161,9 +160,6 @@
     "confirmDelete": "Obriši ovu objavu?",
     "templates": "Šablonske poruke",
     "charCount": "{count}/280"
-  },
-  "performance": {
-    "title": "Performanse"
   },
   "radio": {
     "title": "Radio"
