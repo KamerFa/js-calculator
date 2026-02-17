@@ -158,6 +158,7 @@ export default function SettingsView({ user }) {
         <h3 className="settings-section-title">Keyboard Shortcuts</h3>
         <div className="settings-card">
           <div className="settings-shortcuts">
+            <p className="settings-shortcut-note">Press <kbd>Ctrl</kbd>+<kbd>R</kbd> first to activate radio mode, then:</p>
             <div className="settings-shortcut-row">
               <span className="settings-shortcut-keys"><kbd>Space</kbd></span>
               <span>Play / pause radio</span>
@@ -169,6 +170,10 @@ export default function SettingsView({ user }) {
             <div className="settings-shortcut-row">
               <span className="settings-shortcut-keys"><kbd>M</kbd></span>
               <span>Mute / unmute radio</span>
+            </div>
+            <div className="settings-shortcut-row">
+              <span className="settings-shortcut-keys"><kbd>S</kbd></span>
+              <span>Stop radio</span>
             </div>
           </div>
         </div>

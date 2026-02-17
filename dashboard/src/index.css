@@ -5734,6 +5734,22 @@ body {
   padding: 4px 0;
 }
 
+.settings-shortcut-note {
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 6px 20px 4px;
+  margin: 0;
+}
+
+.settings-shortcut-note kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: var(--font-body);
+}
+
 .settings-shortcut-row {
   display: flex;
   align-items: center;

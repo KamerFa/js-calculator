@@ -111,47 +111,61 @@ export default function RadioView() {
     return () => clearInterval(interval);
   }, []);
 
-  // Keyboard shortcuts: Ctrl/Cmd + R + key (chord-style via Ctrl/Cmd+key)
+  // Keyboard shortcuts: Ctrl/Cmd+R then key (chord-style)
+  // Press Ctrl+R to arm, then press the action key within 1.5s
   useEffect(() => {
+    let armed = false;
+    let armTimer = null;
+
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       const mod = isMac ? e.metaKey : e.ctrlKey;
-      if (!mod) return;
 
-      // Ctrl/Cmd + R — toggle play/pause
-      if (e.key === 'r' || e.key === 'R') {
+      // Step 1: Ctrl/Cmd + R arms the chord
+      if (mod && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        armed = true;
+        clearTimeout(armTimer);
+        armTimer = setTimeout(() => { armed = false; }, 1500);
+        return;
+      }
+
+      // Step 2: if armed, handle action keys (no modifier needed)
+      if (!armed) return;
+      armed = false;
+      clearTimeout(armTimer);
+
+      // Space — toggle play/pause
+      if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         if (playing) {
           if (isPaused) radioAudio.resume();
           else radioAudio.pause();
         }
       }
-      // Ctrl/Cmd + ArrowUp — volume up
+      // ArrowUp — volume up
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         radioAudio.setVolume(Math.min(1, radioAudio.getVolume() + 0.05));
       }
-      // Ctrl/Cmd + ArrowDown — volume down
+      // ArrowDown — volume down
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         radioAudio.setVolume(Math.max(0, radioAudio.getVolume() - 0.05));
       }
-      // Ctrl/Cmd + M — mute/unmute
+      // M — mute/unmute
       if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         radioAudio.setVolume(radioAudio.getVolume() > 0 ? 0 : 0.7);
       }
-      // Ctrl/Cmd + S — stop
+      // S — stop
       if (e.key === 's' || e.key === 'S') {
-        // Only handle if there's a station (don't steal save shortcut otherwise)
-        if (playing) {
-          e.preventDefault();
-          radioAudio.stop();
-        }
+        e.preventDefault();
+        if (playing) radioAudio.stop();
       }
     };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    return () => { window.removeEventListener('keydown', handler); clearTimeout(armTimer); };
   }, [playing, isPaused]);
 
   const reportStation = async (stationId) => {
@@ -289,7 +303,7 @@ export default function RadioView() {
               )}
             </div>
             <div className="radio-shortcuts-hint">
-              {modKey}+R: play/pause &middot; {modKey}+&uarr;&darr;: volume &middot; {modKey}+M: mute
+              {modKey}+R then Space: play/pause &middot; &uarr;&darr;: volume &middot; M: mute &middot; S: stop
             </div>
           </div>
         </div>
