@@ -4,7 +4,7 @@ import { notify, getUsername } from '../notify.js';
 
 const router = Router();
 
-// ── Helper: enrich tweets with reactions, comments, avatar ──
+// ── Helper: enrich tweets with reactions, comments, avatar, votes ──
 async function enrichTweets(rows) {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
@@ -28,6 +28,20 @@ async function enrichTweets(rows) {
     [ids]
   );
 
+  // Comment votes
+  const commentIds = commentRows.map((c) => c.id);
+  let voteMap = {};
+  if (commentIds.length > 0) {
+    const { rows: voteRows } = await pool.query(
+      `SELECT comment_id, vote, user_id FROM comment_votes WHERE comment_id = ANY($1)`,
+      [commentIds]
+    );
+    for (const v of voteRows) {
+      if (!voteMap[v.comment_id]) voteMap[v.comment_id] = [];
+      voteMap[v.comment_id].push({ userId: v.user_id, vote: v.vote });
+    }
+  }
+
   // Build per-tweet maps
   const reactMap = {};
   for (const r of reactionRows) {
@@ -39,10 +53,17 @@ async function enrichTweets(rows) {
   const commentMap = {};
   for (const c of commentRows) {
     if (!commentMap[c.tweet_id]) commentMap[c.tweet_id] = [];
+    const votes = voteMap[c.id] || [];
+    const upvotes = votes.filter((v) => v.vote === 1).length;
+    const downvotes = votes.filter((v) => v.vote === -1).length;
     commentMap[c.tweet_id].push({
       id: c.id, body: c.body, userId: c.user_id,
       username: c.username, avatarUrl: c.avatar_url,
       createdAt: c.created_at,
+      upvotes,
+      downvotes,
+      score: upvotes - downvotes,
+      votes: votes.map((v) => ({ userId: v.userId, vote: v.vote })),
     });
   }
 
@@ -183,6 +204,41 @@ router.post('/:id/comments', async (req, res) => {
 router.delete('/comments/:id', async (req, res) => {
   await pool.query('DELETE FROM tweet_comments WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
   res.json({ ok: true });
+});
+
+// ── POST vote on comment (upvote/downvote) ───────────────
+router.post('/comments/:id/vote', async (req, res) => {
+  const { vote } = req.body; // 1 or -1
+  if (vote !== 1 && vote !== -1) return res.status(400).json({ error: 'Vote must be 1 or -1' });
+
+  // Toggle: if same vote exists, remove it; otherwise upsert
+  const { rows: existing } = await pool.query(
+    'SELECT id, vote FROM comment_votes WHERE comment_id = $1 AND user_id = $2',
+    [req.params.id, req.userId]
+  );
+
+  if (existing.length > 0 && existing[0].vote === vote) {
+    // Same vote = remove (toggle off)
+    await pool.query('DELETE FROM comment_votes WHERE id = $1', [existing[0].id]);
+  } else if (existing.length > 0) {
+    // Different vote = update
+    await pool.query('UPDATE comment_votes SET vote = $1 WHERE id = $2', [vote, existing[0].id]);
+  } else {
+    // New vote
+    await pool.query(
+      'INSERT INTO comment_votes (id, comment_id, user_id, vote) VALUES ($1, $2, $3, $4)',
+      [uid(), req.params.id, req.userId, vote]
+    );
+  }
+
+  // Return updated vote counts
+  const { rows: votes } = await pool.query(
+    'SELECT vote, COUNT(*) as count FROM comment_votes WHERE comment_id = $1 GROUP BY vote',
+    [req.params.id]
+  );
+  const upvotes = parseInt(votes.find((v) => v.vote === 1)?.count || 0);
+  const downvotes = parseInt(votes.find((v) => v.vote === -1)?.count || 0);
+  res.json({ upvotes, downvotes, score: upvotes - downvotes });
 });
 
 export default router;

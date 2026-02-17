@@ -79,7 +79,7 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
               ))}
             </div>
           </div>
-          <div className="form-group">
+          <div className="form-group" style={{ position: 'relative', overflow: 'visible' }}>
             <label className="toggle-row" onClick={() => set('isPublic', !form.isPublic)}>
               <span className={`toggle-switch${form.isPublic ? ' on' : ''}`}>
                 <span className="toggle-knob" />

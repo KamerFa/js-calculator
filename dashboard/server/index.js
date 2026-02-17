@@ -14,6 +14,7 @@ import communityRoutes from './routes/community.js';
 import profileRoutes from './routes/profile.js';
 import usersRoutes from './routes/users.js';
 import notificationRoutes from './routes/notifications.js';
+import messageRoutes from './routes/messages.js';
 import pool from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,6 +40,7 @@ app.use('/api/community', authMiddleware, communityRoutes);
 app.use('/api/profile', authMiddleware, profileRoutes);
 app.use('/api/users', authMiddleware, usersRoutes);
 app.use('/api/notifications', authMiddleware, notificationRoutes);
+app.use('/api/messages', authMiddleware, messageRoutes);
 
 // ── File uploads (screenshots + avatars) ──────────────────────
 const upload = multer({

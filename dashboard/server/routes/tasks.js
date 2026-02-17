@@ -30,6 +30,7 @@ function toJSON(row) {
     completedAt: effectiveCompletedAt,
     completedBy: effectiveCompletedBy,
     screenshotUrl: row.screenshot_url || null,
+    scheduledDate: row.scheduled_date || null,
     customFields: JSON.parse(row.custom_fields || '[]'),
     createdAt: row.created_at,
     userId: row.user_id,
@@ -146,7 +147,7 @@ router.get('/', async (req, res) => {
 
 // ── POST: Create or update task ───────────────────────────
 router.post('/', async (req, res) => {
-  const { title, description, projectId, status, priority, dueDate, customFields, recurrence, taskType } = req.body;
+  const { title, description, projectId, status, priority, dueDate, scheduledDate, customFields, recurrence, taskType } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
 
   const id = req.body.id || uid();
@@ -232,10 +233,11 @@ router.post('/', async (req, res) => {
                           (status !== 'done' ? null : existing.completed_by);
       await pool.query(
         `UPDATE tasks SET project_id = $1, title = $2, description = $3, status = $4,
-         priority = $5, due_date = $6, custom_fields = $7, recurrence = $8, completed_at = $9, completed_by = $10
+         priority = $5, due_date = $6, custom_fields = $7, recurrence = $8, completed_at = $9, completed_by = $10,
+         scheduled_date = $13, task_type = $14
          WHERE id = $11 AND user_id = $12`,
         [projectId || null, title.trim(), description || '', status || 'todo',
-         priority || 'medium', dueDate || null, cf, rec, completedAt, completedBy, id, req.userId]
+         priority || 'medium', dueDate || null, cf, rec, completedAt, completedBy, id, req.userId, scheduledDate || null, taskType || existing.task_type || 'shared']
       );
       // Notify on status change by owner
       if (status && status !== existing.status && existing.project_id) {
@@ -256,10 +258,10 @@ router.post('/', async (req, res) => {
       if (access.length === 0) return res.status(403).json({ error: 'No access to this project' });
     }
     await pool.query(
-      `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, custom_fields, recurrence, task_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, custom_fields, recurrence, task_type, scheduled_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [id, req.userId, projectId || null, title.trim(), description || '',
-       status || 'todo', priority || 'medium', dueDate || null, cf, rec, taskType || 'shared']
+       status || 'todo', priority || 'medium', dueDate || null, cf, rec, taskType || 'shared', scheduledDate || null]
     );
 
     // Notify project members about new task

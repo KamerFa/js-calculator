@@ -2,22 +2,34 @@
 // This ensures radio keeps playing when switching views
 
 const STATIONS = [
-  // Regional
-  { id: 'naxi', name: 'Naxi Radio', genre: 'Pop', region: 'Beograd', url: 'http://naxi128.streaming.rs:9150/;' },
-  { id: 'naxi-house', name: 'Naxi House', genre: 'House', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8000/;' },
-  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8110/;' },
-  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club', region: 'Beograd', url: 'http://naxidigital-128.streaming.rs:8090/;' },
+  // Chill / Lounge
+  { id: 'groovesalad', name: 'Groove Salad', genre: 'Chill', url: 'https://ice5.somafm.com/groovesalad-128-aac' },
+  { id: 'lush', name: 'Lush', genre: 'Chill', url: 'https://ice4.somafm.com/lush-128-aac' },
+  { id: 'secretagent', name: 'Secret Agent', genre: 'Lounge', url: 'https://ice4.somafm.com/secretagent-128-aac' },
 
-  // Islamic Radio
-  { id: 'islamic1', name: 'Radio El-Kelimeh', genre: 'Islamic', region: 'Sarajevo', url: 'http://185.47.65.85:8002/;' },
-  { id: 'islamic2', name: 'Quran Radio', genre: 'Islamic', region: 'Internet', url: 'http://quraan.us:9996/;' },
-  { id: 'islamic3', name: 'Radio Nur', genre: 'Islamic', region: 'BiH', url: 'http://stream.radionur.ba:8000/radionur' },
+  // Electronic / Dance
+  { id: 'beatblender', name: 'Beat Blender', genre: 'Deep House', url: 'https://ice4.somafm.com/beatblender-128-aac' },
+  { id: 'defcon', name: 'DEF CON Radio', genre: 'Electronic', url: 'https://ice5.somafm.com/defcon-128-aac' },
+  { id: 'thetrip', name: 'The Trip', genre: 'Progressive', url: 'https://ice4.somafm.com/thetrip-128-aac' },
 
-  // House / Electronic
-  { id: 'beatblender', name: 'SomaFM - Beat Blender', genre: 'Deep House', region: 'Internet', url: 'https://ice4.somafm.com/beatblender-128-aac' },
-  { id: 'groovesalad', name: 'SomaFM - Groove Salad', genre: 'Downtempo', region: 'Internet', url: 'https://ice5.somafm.com/groovesalad-128-aac' },
-  { id: 'spacestation', name: 'SomaFM - Space Station', genre: 'Ambient', region: 'Internet', url: 'https://ice5.somafm.com/spacestation-128-aac' },
-  { id: 'defcon', name: 'SomaFM - DEF CON', genre: 'Electronic', region: 'Internet', url: 'https://ice5.somafm.com/defcon-128-aac' },
+  // Ambient / Atmospheric
+  { id: 'spacestation', name: 'Space Station Soma', genre: 'Ambient', url: 'https://ice5.somafm.com/spacestation-128-aac' },
+  { id: 'dronezone', name: 'Drone Zone', genre: 'Ambient', url: 'https://ice4.somafm.com/dronezone-128-aac' },
+
+  // Hip Hop / Soul / R&B
+  { id: 'fluid', name: 'Fluid', genre: 'Hip Hop', url: 'https://ice4.somafm.com/fluid-128-aac' },
+  { id: '7soul', name: 'Seven Inch Soul', genre: 'Soul', url: 'https://ice4.somafm.com/7soul-128-aac' },
+
+  // Rock / Indie / Retro
+  { id: 'indiepop', name: 'Indie Pop Rocks!', genre: 'Indie', url: 'https://ice4.somafm.com/indiepop-128-aac' },
+  { id: 'u80s', name: 'Underground 80s', genre: '80s', url: 'https://ice4.somafm.com/u80s-128-aac' },
+  { id: 'seventies', name: 'Left Coast 70s', genre: 'Classic Rock', url: 'https://ice4.somafm.com/seventies-128-aac' },
+
+  // Country / Folk
+  { id: 'bootliquor', name: 'Boot Liquor', genre: 'Americana', url: 'https://ice4.somafm.com/bootliquor-128-aac' },
+
+  // Metal
+  { id: 'metal', name: 'Metal Detector', genre: 'Metal', url: 'https://ice4.somafm.com/metal-128-aac' },
 ];
 
 const audio = new Audio();

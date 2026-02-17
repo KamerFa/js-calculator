@@ -74,6 +74,7 @@ async function initDB() {
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by TEXT REFERENCES users(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS screenshot_url TEXT`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scheduled_date TEXT`);
 
   // User profile columns
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`);
@@ -131,6 +132,31 @@ async function initDB() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC)`);
 
+  // Comment votes (upvote/downvote)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comment_votes (
+      id           TEXT PRIMARY KEY,
+      comment_id   TEXT NOT NULL REFERENCES tweet_comments(id) ON DELETE CASCADE,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      vote         INTEGER NOT NULL CHECK (vote IN (-1, 1)),
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(comment_id, user_id)
+    )
+  `);
+
+  // Project chat messages
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_messages (
+      id           TEXT PRIMARY KEY,
+      project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body         TEXT NOT NULL,
+      mentions     TEXT[] NOT NULL DEFAULT '{}',
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_project_messages_project ON project_messages(project_id, created_at DESC)`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);
@@ -163,6 +189,7 @@ async function initDB() {
 
   // ── Seed global projects if they don't exist ─────────────
   await seedBugListProject();
+  await seedDhikrProject();
 }
 
 async function seedBugListProject() {
@@ -194,6 +221,87 @@ async function seedBugListProject() {
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Insider List seed error (may already exist):', e.message);
+  } finally {
+    client.release();
+  }
+}
+
+async function seedDhikrProject() {
+  const DHIKR_ID = 'global-dhikr-duas';
+  const SYS_USER = 'system-global';
+
+  const { rows } = await pool.query('SELECT id FROM projects WHERE id = $1', [DHIKR_ID]);
+  if (rows.length > 0) return;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO projects (id, user_id, name, description, color, is_public, is_global)
+       VALUES ($1, $2, $3, $4, $5, true, true)`,
+      [DHIKR_ID, SYS_USER, 'Dhikr & Duas', 'Daily, weekly, and monthly dhikr and duas. Track your spiritual practice together.', '#1B5E20']
+    );
+    await client.query(
+      `INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, 'owner')`,
+      [uid(), DHIKR_ID, SYS_USER]
+    );
+
+    // Daily dhikr tasks
+    const dailyTasks = [
+      'Morning Adhkar (Sabah)',
+      'Evening Adhkar (Masa)',
+      'SubhanAllah x33, Alhamdulillah x33, Allahu Akbar x34',
+      'Ayatul Kursi after each salah',
+      'Dua before sleeping',
+      'Dua upon waking up',
+      'Bismillah before eating',
+      'Istighfar x100 (Astaghfirullah)',
+      'Salawat upon the Prophet x10',
+    ];
+    for (const title of dailyTasks) {
+      await client.query(
+        `INSERT INTO tasks (id, user_id, project_id, title, status, priority, recurrence, task_type)
+         VALUES ($1, $2, $3, $4, 'todo', 'high', 'daily', 'per_member')`,
+        [uid(), SYS_USER, DHIKR_ID, title]
+      );
+    }
+
+    // Weekly tasks
+    const weeklyTasks = [
+      'Read Surah Al-Kahf (Friday)',
+      'Salawat upon the Prophet (Friday, abundantly)',
+      'Make dua on Friday before Maghrib',
+      'Fast Monday or Thursday (Sunnah)',
+    ];
+    for (const title of weeklyTasks) {
+      await client.query(
+        `INSERT INTO tasks (id, user_id, project_id, title, status, priority, recurrence, task_type)
+         VALUES ($1, $2, $3, $4, 'todo', 'medium', 'weekly', 'per_member')`,
+        [uid(), SYS_USER, DHIKR_ID, title]
+      );
+    }
+
+    // Monthly tasks
+    const monthlyTasks = [
+      'Complete reading one Juz of Quran',
+      'Give Sadaqah (charity)',
+      'Fast 3 days (13th, 14th, 15th - Ayyamul Bid)',
+      'Visit or call a family member / friend for Allah\'s sake',
+      'Make tawbah and reflect on the past month',
+    ];
+    for (const title of monthlyTasks) {
+      await client.query(
+        `INSERT INTO tasks (id, user_id, project_id, title, status, priority, recurrence, task_type)
+         VALUES ($1, $2, $3, $4, 'todo', 'medium', 'monthly', 'per_member')`,
+        [uid(), SYS_USER, DHIKR_ID, title]
+      );
+    }
+
+    await client.query('COMMIT');
+    console.log('Dhikr & Duas project seeded successfully');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('Dhikr & Duas seed error (may already exist):', e.message);
   } finally {
     client.release();
   }

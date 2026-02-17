@@ -4,6 +4,7 @@ import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
 import ProjectStatsGraph from './ProjectStatsGraph';
 import ProjectCompletionSummary from './ProjectCompletionSummary';
+import ProjectChat from './ProjectChat';
 import { useTranslation } from '../i18n';
 import { getProjectStatus, getProjectTimeInfo, getProjectProgress } from '../projectStatus';
 
@@ -175,6 +176,16 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
       )}
 
       {projectTasks.length === 0 && <div className="empty-state">{t('tasks.noTasks')}</div>}
+
+      {/* Project Chat / Discussion Board */}
+      {isShared && (
+        <ProjectChat
+          projectId={project.id}
+          members={members}
+          user={user}
+          onUserClick={onUserClick}
+        />
+      )}
     </div>
   );
 }

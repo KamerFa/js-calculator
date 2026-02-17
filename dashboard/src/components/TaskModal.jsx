@@ -15,7 +15,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   const fileRef = useRef(null);
 
   function emptyForm() {
-    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', recurrence: 'none', taskType: 'shared', customFields: [] };
+    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', scheduledDate: '', recurrence: 'none', taskType: 'shared', customFields: [] };
   }
 
   useEffect(() => {
@@ -28,6 +28,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         status: task.status,
         priority: task.priority,
         dueDate: task.dueDate || '',
+        scheduledDate: task.scheduledDate || '',
         recurrence: task.recurrence || 'none',
         taskType: task.taskType || 'shared',
         customFields: task.customFields ? task.customFields.map((f) => ({ ...f })) : [],
@@ -124,6 +125,12 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
             <div className="form-group">
               <label>Due Date</label>
               <input className="form-input" type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Scheduled For</label>
+              <input className="form-input" type="date" value={form.scheduledDate} onChange={(e) => set('scheduledDate', e.target.value)} />
             </div>
           </div>
           <div className="form-row">

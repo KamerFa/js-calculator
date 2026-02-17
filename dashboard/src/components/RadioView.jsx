@@ -1,16 +1,20 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import radioAudio from '../radioAudio';
 
 const GENRE_COLORS = {
-  'Pop': '#7c3aed',
-  'House': '#db2777',
-  'Dance': '#b45309',
-  'Club': '#0891b2',
-  'Islamic': '#16a34a',
-  'Deep House': '#6366f1',
-  'Downtempo': '#8b5cf6',
-  'Ambient': '#0ea5e9',
+  'Chill': '#8b5cf6',
+  'Lounge': '#7c3aed',
+  'Deep House': '#db2777',
   'Electronic': '#f59e0b',
+  'Progressive': '#b45309',
+  'Ambient': '#0ea5e9',
+  'Hip Hop': '#6366f1',
+  'Soul': '#e11d48',
+  'Indie': '#16a34a',
+  '80s': '#d946ef',
+  'Classic Rock': '#ea580c',
+  'Americana': '#a16207',
+  'Metal': '#dc2626',
 };
 
 function useRadio() {
@@ -50,17 +54,13 @@ export default function RadioView() {
     radioAudio.setVolume(val);
   };
 
-  const regional = STATIONS.filter((s) => s.region !== 'Internet' && s.genre !== 'Islamic');
-  const islamic = STATIONS.filter((s) => s.genre === 'Islamic');
-  const electronic = STATIONS.filter((s) => s.region === 'Internet' && s.genre !== 'Islamic');
-
   return (
     <div>
       <div className="page-header">
         <div className="page-header-row">
           <div>
             <h1>Radio</h1>
-            <p className="subtitle">{STATIONS.length} stanica</p>
+            <p className="subtitle">{STATIONS.length} stations across all genres</p>
           </div>
         </div>
       </div>
@@ -90,9 +90,8 @@ export default function RadioView() {
         </div>
       )}
 
-      <div className="radio-section-label">Regionalne stanice</div>
       <div className="radio-grid">
-        {regional.map((s) => (
+        {STATIONS.map((s) => (
           <button
             key={s.id}
             className={`radio-card${playing?.id === s.id ? ' radio-card-active' : ''}`}
@@ -102,7 +101,7 @@ export default function RadioView() {
             <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || '#2a5caa' }} />
             <div className="radio-card-body">
               <span className="radio-card-name">{s.name}</span>
-              <span className="radio-card-meta">{s.genre} &middot; {s.region}</span>
+              <span className="radio-card-meta">{s.genre}</span>
             </div>
             <div className="radio-card-action">
               {playing?.id === s.id ? (
@@ -111,63 +110,7 @@ export default function RadioView() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
               )}
             </div>
-            {error === s.id && <span className="radio-card-error">Greska</span>}
-          </button>
-        ))}
-      </div>
-
-      {islamic.length > 0 && (
-        <>
-          <div className="radio-section-label">Islamske stanice</div>
-          <div className="radio-grid">
-            {islamic.map((s) => (
-              <button
-                key={s.id}
-                className={`radio-card${playing?.id === s.id ? ' radio-card-active' : ''}`}
-                onClick={() => play(s)}
-                disabled={loading}
-              >
-                <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || '#16a34a' }} />
-                <div className="radio-card-body">
-                  <span className="radio-card-name">{s.name}</span>
-                  <span className="radio-card-meta">{s.genre} &middot; {s.region}</span>
-                </div>
-                <div className="radio-card-action">
-                  {playing?.id === s.id ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                  )}
-                </div>
-                {error === s.id && <span className="radio-card-error">Greska</span>}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="radio-section-label">Electronic</div>
-      <div className="radio-grid">
-        {electronic.map((s) => (
-          <button
-            key={s.id}
-            className={`radio-card${playing?.id === s.id ? ' radio-card-active' : ''}`}
-            onClick={() => play(s)}
-            disabled={loading}
-          >
-            <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || '#6366f1' }} />
-            <div className="radio-card-body">
-              <span className="radio-card-name">{s.name}</span>
-              <span className="radio-card-meta">{s.genre} &middot; {s.region}</span>
-            </div>
-            <div className="radio-card-action">
-              {playing?.id === s.id ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-              )}
-            </div>
-            {error === s.id && <span className="radio-card-error">Greska</span>}
+            {error === s.id && <span className="radio-card-error">Failed</span>}
           </button>
         ))}
       </div>

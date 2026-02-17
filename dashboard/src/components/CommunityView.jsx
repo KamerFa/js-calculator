@@ -42,12 +42,13 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteComment, onUserClick }) {
+function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteComment, onVoteComment, onUserClick }) {
   const [showComments, setShowComments] = useState(false);
   const [commentBody, setCommentBody] = useState('');
   const [showReactPicker, setShowReactPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editBody, setEditBody] = useState(tw.body);
+  const [reactorsPopup, setReactorsPopup] = useState(null);
 
   const handleComment = async () => {
     if (!commentBody.trim()) return;
@@ -109,14 +110,26 @@ function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteCom
           {reactionEntries.map(([emoji, users]) => {
             const isMine = users.some((u) => u.userId === user?.id);
             return (
-              <button
-                key={emoji}
-                className={`reaction-chip${isMine ? ' mine' : ''}`}
-                onClick={() => onReact(tw.id, emoji)}
-                title={users.map((u) => u.username).join(', ')}
-              >
-                {emoji} {users.length}
-              </button>
+              <div key={emoji} className="reaction-chip-wrapper">
+                <button
+                  className={`reaction-chip${isMine ? ' mine' : ''}`}
+                  onClick={() => onReact(tw.id, emoji)}
+                  onMouseEnter={() => setReactorsPopup({ emoji, users })}
+                  onMouseLeave={() => setReactorsPopup(null)}
+                >
+                  {emoji} {users.length}
+                </button>
+                {reactorsPopup?.emoji === emoji && (
+                  <div className="reactors-popup">
+                    <div className="reactors-popup-title">{emoji} Reacted by</div>
+                    {users.map((u) => (
+                      <div key={u.userId} className="reactors-popup-user" onClick={() => onUserClick(u.username)}>
+                        @{u.username}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })}
 
@@ -150,26 +163,48 @@ function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteCom
 
         {showComments && (
           <div className="tweet-comments">
-            {tw.comments?.map((c) => (
-              <div className="comment-row" key={c.id}>
-                <div className="comment-avatar" onClick={() => onUserClick(c.username)} style={{ cursor: 'pointer' }}>
-                  {resolveAvatarUrl(c.avatarUrl)
-                    ? <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="comment-avatar-img" />
-                    : c.username.charAt(0).toUpperCase()
-                  }
+            {tw.comments?.map((c) => {
+              const myVote = c.votes?.find((v) => v.userId === user?.id)?.vote || 0;
+              return (
+                <div className="comment-row" key={c.id}>
+                  <div className="comment-vote-col">
+                    <button
+                      className={`vote-btn vote-up${myVote === 1 ? ' active' : ''}`}
+                      onClick={() => onVoteComment(c.id, 1)}
+                      title="Upvote"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+                    </button>
+                    <span className={`vote-score${(c.score || 0) > 0 ? ' positive' : (c.score || 0) < 0 ? ' negative' : ''}`}>
+                      {c.score || 0}
+                    </span>
+                    <button
+                      className={`vote-btn vote-down${myVote === -1 ? ' active' : ''}`}
+                      onClick={() => onVoteComment(c.id, -1)}
+                      title="Downvote"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l8-8h-5V4H9v8H4z"/></svg>
+                    </button>
+                  </div>
+                  <div className="comment-avatar" onClick={() => onUserClick(c.username)} style={{ cursor: 'pointer' }}>
+                    {resolveAvatarUrl(c.avatarUrl)
+                      ? <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="comment-avatar-img" />
+                      : c.username.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <div className="comment-body">
+                    <span className="comment-username" onClick={() => onUserClick(c.username)} style={{ cursor: 'pointer' }}>
+                      @{c.username}
+                    </span>
+                    <span className="comment-time">{timeAgo(c.createdAt)}</span>
+                    {c.userId === user?.id && (
+                      <button className="tweet-delete" onClick={() => onDeleteComment(c.id)}>&times;</button>
+                    )}
+                    <p className="comment-text">{c.body}</p>
+                  </div>
                 </div>
-                <div className="comment-body">
-                  <span className="comment-username" onClick={() => onUserClick(c.username)} style={{ cursor: 'pointer' }}>
-                    @{c.username}
-                  </span>
-                  <span className="comment-time">{timeAgo(c.createdAt)}</span>
-                  {c.userId === user?.id && (
-                    <button className="tweet-delete" onClick={() => onDeleteComment(c.id)}>&times;</button>
-                  )}
-                  <p className="comment-text">{c.body}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <div className="comment-compose">
               <input
                 className="form-input comment-input"
@@ -246,6 +281,11 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     await loadData();
   };
 
+  const handleVoteComment = async (commentId, vote) => {
+    await DB.voteComment(commentId, vote);
+    await loadData();
+  };
+
   const handleJoin = async (projectId) => {
     await DB.joinCommunityProject(projectId);
     await loadData();
@@ -258,11 +298,21 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     if (onReload) onReload();
   };
 
-  const ramadanProject = projects.find((p) => p.isGlobal);
+  const ramadanProject = projects.find((p) => p.isGlobal && p.id !== 'global-dhikr-duas');
+  const dhikrProject = projects.find((p) => p.id === 'global-dhikr-duas');
+
+  const [dismissedDhikr, setDismissedDhikr] = useState(() =>
+    localStorage.getItem('dhikr_banner_dismissed') === '1'
+  );
 
   const dismissBanner = () => {
     setDismissedBanner(true);
     localStorage.setItem('ramadan_banner_dismissed', '1');
+  };
+
+  const dismissDhikrBanner = () => {
+    setDismissedDhikr(true);
+    localStorage.setItem('dhikr_banner_dismissed', '1');
   };
 
   return (
@@ -297,6 +347,28 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
             ) : (
               <span className="ramadan-joined-tag">You're in! MashAllah</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Dhikr & Duas Banner */}
+      {dhikrProject && !dismissedDhikr && !dhikrProject.isMember && (
+        <div className="ramadan-banner" style={{ borderLeft: '4px solid #1B5E20' }}>
+          <button className="ramadan-banner-close" onClick={dismissDhikrBanner}>&times;</button>
+          <div className="ramadan-banner-icon">&#128988;</div>
+          <div className="ramadan-banner-content">
+            <h3>Dhikr &amp; Duas &mdash; Daily remembrance for your soul</h3>
+            <p className="ramadan-subtitle">
+              Track your daily, weekly &amp; monthly adhkar and duas. Join {dhikrProject.memberCount || ''} others on this journey.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary btn-sm" onClick={() => handleJoin(dhikrProject.id)}>
+                Join
+              </button>
+              <button className="btn btn-sm" style={{ background: '#1B5E20', color: '#fff' }} onClick={() => { handleJoin(dhikrProject.id); localStorage.setItem('dhikr_toast_enabled', '1'); dismissDhikrBanner(); }}>
+                Join &amp; Enable Reminders
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -379,6 +451,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                 onReact={handleReact}
                 onComment={handleComment}
                 onDeleteComment={handleDeleteComment}
+                onVoteComment={handleVoteComment}
                 onUserClick={onUserClick || (() => {})}
               />
             ))}

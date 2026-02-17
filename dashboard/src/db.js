@@ -180,6 +180,31 @@ const DB = {
     return api('/projects/import', { method: 'POST', body: JSON.stringify(data) });
   },
 
+  // ── Comment voting ────────────────────────────────────────
+  async voteComment(commentId, vote) {
+    return api(`/tweets/comments/${commentId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ vote }),
+    });
+  },
+
+  // ── Project messages (chat) ──────────────────────────────
+  async getProjectMessages(projectId, before) {
+    const qs = before ? `?before=${encodeURIComponent(before)}` : '';
+    return api(`/messages/${projectId}${qs}`);
+  },
+
+  async postProjectMessage(projectId, body) {
+    return api(`/messages/${projectId}`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  async deleteProjectMessage(projectId, messageId) {
+    return api(`/messages/${projectId}/${messageId}`, { method: 'DELETE' });
+  },
+
   // ── Notifications ──────────────────────────────────────────
   async getNotifications() {
     return api('/notifications');
