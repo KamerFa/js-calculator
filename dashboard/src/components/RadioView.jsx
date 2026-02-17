@@ -15,6 +15,29 @@ const GENRE_COLORS = {
   'Classic Rock': '#ea580c',
   'Americana': '#a16207',
   'Metal': '#dc2626',
+  // Naxi genres
+  'Pop': '#e84393',
+  'Dance': '#e17055',
+  'House': '#00b894',
+  'Club': '#fd79a8',
+  'Cafe': '#a0522d',
+  'Love Songs': '#e84393',
+  'Rock': '#d63031',
+  'Jazz': '#0984e3',
+  'Classical': '#6c5ce7',
+  'Evergreen': '#00b894',
+  'Gold Hits': '#d4a017',
+  'Ex-YU': '#2d3436',
+  'Boem': '#b33939',
+  'R&B': '#6366f1',
+  'Fresh': '#00cec9',
+  'Latino': '#f39c12',
+  'Kids': '#fdcb6e',
+};
+
+const NETWORK_COLORS = {
+  'SomaFM': '#2a5caa',
+  'Naxi': '#e74c3c',
 };
 
 const SLEEP_OPTIONS = [
@@ -24,6 +47,9 @@ const SLEEP_OPTIONS = [
   { label: '1 hour', value: 60 },
   { label: '2 hours', value: 120 },
 ];
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+const modKey = isMac ? '\u2318' : 'Ctrl';
 
 function useRadio() {
   const [, forceUpdate] = useState(0);
@@ -36,6 +62,7 @@ function useRadio() {
     playing: radioAudio.getStation(),
     volume: radioAudio.getVolume(),
     isPlaying: radioAudio.isPlaying(),
+    isPaused: radioAudio.isPaused(),
   };
 }
 
@@ -49,7 +76,7 @@ function formatTime(seconds) {
 }
 
 export default function RadioView() {
-  const { playing, volume } = useRadio();
+  const { playing, volume, isPaused } = useRadio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -58,7 +85,7 @@ export default function RadioView() {
   const [sleepRemaining, setSleepRemaining] = useState(null);
 
   const STATIONS = radioAudio.STATIONS;
-  const genres = ['all', ...new Set(STATIONS.map((s) => s.genre))];
+  const networks = ['all', ...new Set(STATIONS.map((s) => s.network))];
   const favorites = radioAudio.getFavorites();
   const recentStations = radioAudio.getRecentStations();
   const hasFavorites = favorites.length > 0;
@@ -73,51 +100,71 @@ export default function RadioView() {
     return () => clearInterval(interval);
   }, []);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts: Ctrl/Cmd + R + key (chord-style via Ctrl/Cmd+key)
   useEffect(() => {
     const handler = (e) => {
-      // Don't capture if user is typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (!mod) return;
 
-      if (e.code === 'Space' && playing) {
+      // Ctrl/Cmd + R — toggle play/pause
+      if (e.key === 'r' || e.key === 'R') {
         e.preventDefault();
-        radioAudio.play(playing); // toggle
+        if (playing) {
+          if (isPaused) radioAudio.resume();
+          else radioAudio.pause();
+        }
       }
+      // Ctrl/Cmd + ArrowUp — volume up
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        const v = Math.min(1, radioAudio.getVolume() + 0.05);
-        radioAudio.setVolume(v);
+        radioAudio.setVolume(Math.min(1, radioAudio.getVolume() + 0.05));
       }
+      // Ctrl/Cmd + ArrowDown — volume down
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        const v = Math.max(0, radioAudio.getVolume() - 0.05);
-        radioAudio.setVolume(v);
+        radioAudio.setVolume(Math.max(0, radioAudio.getVolume() - 0.05));
       }
+      // Ctrl/Cmd + M — mute/unmute
       if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
         radioAudio.setVolume(radioAudio.getVolume() > 0 ? 0 : 0.7);
+      }
+      // Ctrl/Cmd + S — stop
+      if (e.key === 's' || e.key === 'S') {
+        // Only handle if there's a station (don't steal save shortcut otherwise)
+        if (playing) {
+          e.preventDefault();
+          radioAudio.stop();
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [playing]);
+  }, [playing, isPaused]);
 
   const play = (station) => {
     setLoading(true);
     setError(null);
-    radioAudio.play(station)
-      .then(() => setLoading(false))
-      .catch(() => {
-        setError(station.id);
-        setLoading(false);
-      });
+    const result = radioAudio.play(station);
+    if (result && result.then) {
+      result
+        .then(() => setLoading(false))
+        .catch(() => {
+          setError(station.id);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
   };
 
   const filteredStations = STATIONS.filter((s) => {
     if (filter === 'favorites') return favorites.includes(s.id);
-    if (filter !== 'all' && s.genre !== filter) return false;
+    if (filter !== 'all' && s.network !== filter) return false;
     if (search) {
       const q = search.toLowerCase();
-      return s.name.toLowerCase().includes(q) || s.genre.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q);
+      return s.name.toLowerCase().includes(q) || s.genre.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q) || (s.network && s.network.toLowerCase().includes(q));
     }
     return true;
   });
@@ -125,13 +172,14 @@ export default function RadioView() {
   const StationCard = useCallback(({ s }) => {
     const isFav = radioAudio.isFavorite(s.id);
     const isActive = playing?.id === s.id;
+    const isActiveAndPaused = isActive && isPaused;
     return (
       <button
-        className={`radio-card${isActive ? ' radio-card-active' : ''}`}
+        className={`radio-card${isActive ? ' radio-card-active' : ''}${isActiveAndPaused ? ' radio-card-paused' : ''}`}
         onClick={() => play(s)}
         disabled={loading}
       >
-        <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || '#2a5caa' }} />
+        <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] || '#2a5caa' }} />
         <div className="radio-card-body">
           <div className="radio-card-top">
             <span className="radio-card-name">{s.name}</span>
@@ -143,11 +191,14 @@ export default function RadioView() {
               {isFav ? '\u2605' : '\u2606'}
             </button>
           </div>
-          <span className="radio-card-genre-tag" style={{ color: GENRE_COLORS[s.genre] || '#2a5caa' }}>{s.genre}</span>
+          <div className="radio-card-meta">
+            {s.network && <span className="radio-card-network" style={{ color: NETWORK_COLORS[s.network] || 'var(--text-3)' }}>{s.network}</span>}
+            <span className="radio-card-genre-tag" style={{ color: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] || '#2a5caa' }}>{s.genre}</span>
+          </div>
           <span className="radio-card-desc">{s.desc}</span>
         </div>
         <div className="radio-card-action">
-          {isActive ? (
+          {isActive && !isActiveAndPaused ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
           ) : (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -156,7 +207,7 @@ export default function RadioView() {
         {error === s.id && <span className="radio-card-error">Failed</span>}
       </button>
     );
-  }, [playing, loading, error, favorites]);
+  }, [playing, loading, error, favorites, isPaused]);
 
   return (
     <div>
@@ -202,7 +253,7 @@ export default function RadioView() {
               )}
             </div>
             <div className="radio-shortcuts-hint">
-              Space: play/pause &middot; Arrows: volume &middot; M: mute
+              {modKey}+R: play/pause &middot; {modKey}+&uarr;&darr;: volume &middot; {modKey}+M: mute
             </div>
           </div>
         </div>
@@ -210,13 +261,20 @@ export default function RadioView() {
 
       {/* Now Playing */}
       {playing && (
-        <div className="radio-now-playing">
-          <div className="radio-now-eq">
-            <span /><span /><span /><span />
-          </div>
+        <div className={`radio-now-playing${isPaused ? ' radio-now-paused' : ''}`}>
+          {!isPaused && (
+            <div className="radio-now-eq">
+              <span /><span /><span /><span />
+            </div>
+          )}
+          {isPaused && (
+            <button className="radio-resume-btn" onClick={() => radioAudio.resume()} title="Resume">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            </button>
+          )}
           <div className="radio-now-info">
-            <span className="radio-now-name">{playing.name}</span>
-            <span className="radio-now-genre">{playing.genre} &middot; {playing.desc}</span>
+            <span className="radio-now-name">{playing.name} {isPaused && <span style={{ opacity: 0.5, fontWeight: 400 }}>(paused)</span>}</span>
+            <span className="radio-now-genre">{playing.network && `${playing.network} \u00b7 `}{playing.genre} &middot; {playing.desc}</span>
           </div>
           <div className="radio-volume-group">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.7, flexShrink: 0 }}>
@@ -237,7 +295,12 @@ export default function RadioView() {
             />
             <span className="radio-volume-pct">{Math.round(volume * 100)}%</span>
           </div>
-          <button className="radio-stop-btn" onClick={() => radioAudio.stop()}>
+          {!isPaused && (
+            <button className="radio-pause-btn" onClick={() => radioAudio.pause()} title="Pause">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+            </button>
+          )}
+          <button className="radio-stop-btn" onClick={() => radioAudio.stop()} title="Stop">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
           </button>
         </div>
@@ -262,7 +325,7 @@ export default function RadioView() {
         </div>
       </div>
 
-      {/* Genre Filter Tabs */}
+      {/* Network Filter Tabs */}
       <div className="radio-genre-tabs">
         {hasFavorites && (
           <button
@@ -273,14 +336,14 @@ export default function RadioView() {
             Favorites
           </button>
         )}
-        {genres.map((g) => (
+        {networks.map((n) => (
           <button
-            key={g}
-            className={`radio-genre-tab${filter === g ? ' radio-genre-tab-active' : ''}`}
-            onClick={() => setFilter(g)}
-            style={filter === g && g !== 'all' ? { background: GENRE_COLORS[g] || 'var(--accent)', color: '#fff' } : {}}
+            key={n}
+            className={`radio-genre-tab${filter === n ? ' radio-genre-tab-active' : ''}`}
+            onClick={() => setFilter(n)}
+            style={filter === n && n !== 'all' ? { background: NETWORK_COLORS[n] || 'var(--accent)', color: '#fff' } : {}}
           >
-            {g === 'all' ? 'All' : g}
+            {n === 'all' ? 'All' : n}
           </button>
         ))}
       </div>
@@ -295,9 +358,9 @@ export default function RadioView() {
                 key={s.id}
                 className={`radio-recent-chip${playing?.id === s.id ? ' radio-recent-active' : ''}`}
                 onClick={() => play(s)}
-                style={{ borderColor: GENRE_COLORS[s.genre] || 'var(--border)' }}
+                style={{ borderColor: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] || 'var(--border)' }}
               >
-                <span className="radio-recent-dot" style={{ background: GENRE_COLORS[s.genre] }} />
+                <span className="radio-recent-dot" style={{ background: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] }} />
                 {s.name}
               </button>
             ))}

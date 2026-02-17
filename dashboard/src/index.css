@@ -2607,6 +2607,88 @@ body {
   background: rgba(255,255,255,0.35);
 }
 
+.radio-pause-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.radio-pause-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.radio-resume-btn {
+  background: rgba(255,255,255,0.25);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.radio-resume-btn:hover {
+  background: rgba(255,255,255,0.4);
+}
+
+.radio-now-paused {
+  opacity: 0.75;
+}
+
+.radio-card-paused {
+  opacity: 0.7;
+}
+
+.radio-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.radio-card-network {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.radio-mini-paused {
+  opacity: 0.7;
+}
+
+.radio-mini-play-btn,
+.radio-mini-pause-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.radio-mini-play-btn:hover,
+.radio-mini-pause-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
 /* ── Equalizer Animation ─────────────────────────────────── */
 .radio-now-eq {
   display: flex;

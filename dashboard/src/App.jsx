@@ -35,16 +35,24 @@ function useRadioState() {
 function RadioMiniPlayer() {
   const { playing, volume } = useRadioState();
   const navigate = useNavigate();
+  const isPaused = radioAudio.isPaused();
   if (!playing) return null;
 
   return (
-    <div className="radio-mini-player" onClick={() => navigate('/radio')}>
-      <div className="radio-now-eq">
-        <span /><span /><span /><span />
-      </div>
+    <div className={`radio-mini-player${isPaused ? ' radio-mini-paused' : ''}`} onClick={() => navigate('/radio')}>
+      {!isPaused && (
+        <div className="radio-now-eq">
+          <span /><span /><span /><span />
+        </div>
+      )}
+      {isPaused && (
+        <button className="radio-mini-play-btn" onClick={(e) => { e.stopPropagation(); radioAudio.resume(); }} title="Resume">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        </button>
+      )}
       <div className="radio-mini-info">
         <span className="radio-mini-name">{playing.name}</span>
-        <span className="radio-mini-genre">{playing.genre}</span>
+        <span className="radio-mini-genre">{isPaused ? 'Paused' : playing.genre}</span>
       </div>
       <input
         type="range"
@@ -57,7 +65,12 @@ function RadioMiniPlayer() {
         onChange={(e) => { e.stopPropagation(); radioAudio.setVolume(e.target.value); }}
         title={`${Math.round(volume * 100)}%`}
       />
-      <button className="radio-stop-btn" onClick={(e) => { e.stopPropagation(); radioAudio.stop(); }}>
+      {!isPaused && (
+        <button className="radio-mini-pause-btn" onClick={(e) => { e.stopPropagation(); radioAudio.pause(); }} title="Pause">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+        </button>
+      )}
+      <button className="radio-stop-btn" onClick={(e) => { e.stopPropagation(); radioAudio.stop(); }} title="Stop">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
       </button>
     </div>
