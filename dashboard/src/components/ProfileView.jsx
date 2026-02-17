@@ -108,7 +108,8 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
   };
 
   const handleAvatarSelect = async (url, index) => {
-    const avatarRef = `avatar:${index}`;
+    // index = -1 means external URL, otherwise preset avatar
+    const avatarRef = index >= 0 ? `avatar:${index}` : url;
     await DB.updateProfile({
       bio: profile.bio,
       musicService: profile.musicService || null,
@@ -288,6 +289,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
         <AvatarPicker
           selected={avatarSrc}
           onSelect={handleAvatarSelect}
+          onUpload={() => { setShowAvatarPicker(false); fileRef.current?.click(); }}
           onClose={() => setShowAvatarPicker(false)}
         />
       )}

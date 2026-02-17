@@ -1,6 +1,6 @@
 import { IconX } from './Icons';
 
-export default function TaskDetailModal({ open, task, projects, onClose, onEdit, onProjectClick }) {
+export default function TaskDetailModal({ open, task, projects, notes, onClose, onEdit, onProjectClick, onNoteClick }) {
   if (!open || !task) return null;
 
   const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
@@ -10,6 +10,11 @@ export default function TaskDetailModal({ open, task, projects, onClose, onEdit,
     if (!iso) return '';
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  // Notes attached to this task
+  const taskNotes = (notes || []).filter(
+    (n) => n.attachedTo?.type === 'task' && n.attachedTo?.id === task.id
+  );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -67,6 +72,25 @@ export default function TaskDetailModal({ open, task, projects, onClose, onEdit,
                   <span style={{ color: 'var(--text-2)' }}>{cf.value}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Notes attached to this task */}
+          {taskNotes.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 8 }}>Notes ({taskNotes.length}):</span>
+              <div className="project-notes-list" style={{ gridTemplateColumns: '1fr' }}>
+                {taskNotes.map((note) => (
+                  <div
+                    className="project-note-card"
+                    key={note.id}
+                    onClick={() => onNoteClick && onNoteClick(note)}
+                  >
+                    <div className="project-note-title">{note.title || 'Untitled'}</div>
+                    <div className="project-note-body">{note.body}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

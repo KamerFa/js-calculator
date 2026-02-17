@@ -10,7 +10,7 @@ import { getProjectStatus, getProjectTimeInfo, getProjectProgress } from '../pro
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 
-export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare, onUserClick }) {
+export default function ProjectView({ project, tasks, notes, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare, onUserClick, onNoteClick, onNewNote }) {
   const { t } = useTranslation();
   const STATUS_LABELS = { todo: t('tasks.todo'), 'in-progress': t('tasks.inProgress'), done: t('tasks.done') };
   const [members, setMembers] = useState([]);
@@ -57,6 +57,15 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
       ? t('projectStatus.endsToday')
       : t('projectStatus.endedAgo', { days: timeInfo.days })
     : null;
+
+  // Notes attached to this project
+  const projectNotes = (notes || []).filter(
+    (n) => n.attachedTo?.type === 'project' && n.attachedTo?.id === project.id
+  );
+
+  // Completion leaderboard — sort members by tasks done
+  const sortedMembers = [...members].sort((a, b) => (b.tasks?.done || 0) - (a.tasks?.done || 0));
+  const maxDone = sortedMembers.length > 0 ? (sortedMembers[0].tasks?.done || 0) : 0;
 
   return (
     <div>
@@ -140,6 +149,33 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
 
       <ProjectStatsGraph projectId={project.id} />
 
+      {/* Completion Leaderboard */}
+      {isShared && sortedMembers.length > 0 && maxDone > 0 && (
+        <div className="completion-history">
+          <h3>Completion History</h3>
+          <div className="completion-leaderboard">
+            {sortedMembers.map((m, i) => {
+              const done = m.tasks?.done || 0;
+              const total = m.tasks?.total || 0;
+              const pct = maxDone > 0 ? Math.round((done / maxDone) * 100) : 0;
+              const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+              return (
+                <div className="completion-row" key={m.userId} onClick={() => onUserClick && onUserClick(m.username)} style={{ cursor: 'pointer' }}>
+                  <span className={`completion-rank ${rankClass}`}>#{i + 1}</span>
+                  <span className="completion-user">@{m.username}</span>
+                  <div className="completion-bar-wrapper">
+                    <div className="completion-bar">
+                      <div className="completion-bar-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="completion-count">{done}/{total} done</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div className="page-header-row">
           <div><h1 style={{ fontSize: 20 }}>{t('tasks.title')}</h1></div>
@@ -176,6 +212,32 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
       )}
 
       {projectTasks.length === 0 && <div className="empty-state">{t('tasks.noTasks')}</div>}
+
+      {/* Notes attached to this project */}
+      {(projectNotes.length > 0 || isOwner) && (
+        <div className="project-notes-section">
+          <div className="project-notes-header">
+            <h3>Notes ({projectNotes.length})</h3>
+            {onNewNote && (
+              <button className="btn btn-sm" onClick={onNewNote}>
+                <IconPlus /> Add Note
+              </button>
+            )}
+          </div>
+          {projectNotes.length > 0 ? (
+            <div className="project-notes-list">
+              {projectNotes.map((note) => (
+                <div className="project-note-card" key={note.id} onClick={() => onNoteClick && onNoteClick(note)}>
+                  <div className="project-note-title">{note.title || 'Untitled'}</div>
+                  <div className="project-note-body">{note.body}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: '16px 0', fontSize: 13 }}>No notes for this project yet.</div>
+          )}
+        </div>
+      )}
 
       {/* Project Chat / Discussion Board */}
       {isShared && (

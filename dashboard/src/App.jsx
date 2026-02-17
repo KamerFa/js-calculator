@@ -345,6 +345,7 @@ export default function App() {
           <ProjectView
             project={currentProject}
             tasks={tasks}
+            notes={notes}
             user={user}
             onToggle={handleToggleTask}
             onTaskClick={openTaskDetail}
@@ -357,6 +358,8 @@ export default function App() {
             onLeaveProject={handleLeaveProject}
             onShare={openShareModal}
             onUserClick={navigateProfile}
+            onNoteClick={(n) => openNoteModal(n)}
+            onNewNote={() => openNoteModal()}
           />
         )}
 
@@ -446,8 +449,10 @@ export default function App() {
         open={taskDetailOpen}
         task={taskDetailItem}
         projects={projects}
+        notes={notes}
         onClose={() => setTaskDetailOpen(false)}
         onEdit={(t) => openTaskModal(t)}
+        onNoteClick={(n) => { setTaskDetailOpen(false); openNoteModal(n); }}
         onProjectClick={navigateProject}
       />
 

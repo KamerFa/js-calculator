@@ -4,31 +4,49 @@ import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
 
 const REACTION_EMOJIS = [
-  '\u2764\uFE0F', // ❤️ red heart
-  '\uD83D\uDE02', // 😂 laugh
-  '\uD83D\uDE4F', // 🙏 pray
-  '\uD83D\uDD25', // 🔥 fire
-  '\uD83D\uDC4D', // 👍 thumbs up
-  '\uD83D\uDE22', // 😢 sad
-  '\uD83D\uDC4F', // 👏 clap
-  '\uD83D\uDE0D', // 😍 heart eyes
-  '\uD83E\uDD2F', // 🤯 exploding head
-  '\uD83D\uDE80', // 🚀 rocket
-  '\uD83C\uDF89', // 🎉 party
-  '\uD83E\uDD14', // 🤔 thinking
-  '\u2705', // ✅ checkmark
-  '\uD83D\uDCAF', // 💯 hundred
-  '\uD83D\uDC40', // 👀 eyes
-  '\uD83E\uDD21', // 🤡 clown
-  '\uD83D\uDCA9', // 💩 poop
-  '\u2615', // ☕ coffee
+  '\u2764\uFE0F', // red heart
+  '\uD83D\uDE02', // laugh
+  '\uD83D\uDE4F', // pray
+  '\uD83D\uDD25', // fire
+  '\uD83D\uDC4D', // thumbs up
+  '\uD83D\uDE22', // sad
+  '\uD83D\uDC4F', // clap
+  '\uD83D\uDE0D', // heart eyes
+  '\uD83E\uDD2F', // exploding head
+  '\uD83D\uDE80', // rocket
+  '\uD83C\uDF89', // party
+  '\uD83E\uDD14', // thinking
+  '\u2705', // checkmark
+  '\uD83D\uDCAF', // hundred
+  '\uD83D\uDC40', // eyes
+  '\uD83E\uDD21', // clown
+  '\uD83D\uDCA9', // poop
+  '\u2615', // coffee
 ];
 
 const TWEET_TEMPLATES = [
-  "Danas radim na... 💪",
-  "Uspjesno zavrsio/la... 🎉",
-  "Trebam pomoc oko... 🤔",
-  "Pozdrav svima! 👋",
+  "Danas radim na... \uD83D\uDCAA",
+  "Uspjesno zavrsio/la... \uD83C\uDF89",
+  "Trebam pomoc oko... \uD83E\uDD14",
+  "Pozdrav svima! \uD83D\uDC4B",
+];
+
+const MUSLIM_QUOTES = [
+  { text: "One day our suffering will turn into the strength of those who do not forget.", author: "Alija Izetbegovic" },
+  { text: "I'm for truth, no matter who tells it. I'm for justice, no matter who it is for or against.", author: "Malcolm X" },
+  { text: "The man who views the world at 50 the same as he did at 20 has wasted 30 years of his life.", author: "Muhammad Ali" },
+  { text: "Do not let your difficulties fill you with anxiety; after all, it is only in the darkest nights that stars shine more brightly.", author: "Imam Ali ibn Abi Talib" },
+  { text: "The strongest among you is the one who controls his anger.", author: "Prophet Muhammad (PBUH)" },
+  { text: "If justice is done to others, even against your own interests, it will bring you eternal glory.", author: "Omar ibn al-Khattab" },
+  { text: "Raise your words, not your voice. It is rain that grows flowers, not thunder.", author: "Rumi" },
+  { text: "People who are really strong lift others up. People who are really powerful bring others together.", author: "Malcolm X" },
+  { text: "Nations are not defeated by invasion; they are defeated by the loss of their inner self.", author: "Muhammad Iqbal" },
+  { text: "When you see oppression, you are no longer a bystander \u2014 you are a participant.", author: "Alija Izetbegovic" },
+  { text: "Help your brother, whether he is an oppressor or he is oppressed. If he is the oppressor, prevent him from oppressing; that is your help to him.", author: "Prophet Muhammad (PBUH)" },
+  { text: "Silence in the face of injustice is a silent agreement to the injustice.", author: "Imam Ali ibn Abi Talib" },
+  { text: "The wound is the place where the Light enters you.", author: "Rumi" },
+  { text: "A people without the knowledge of their past history, origin, and culture is like a tree without roots.", author: "Malcolm X" },
+  { text: "Do not be people without minds of your own, saying that if others treat you well you will treat them well. Instead, accustom yourselves to do good if people do good and not to do wrong if they do evil.", author: "Prophet Muhammad (PBUH)" },
 ];
 
 function timeAgo(iso) {
@@ -83,7 +101,7 @@ function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteCom
           <span className="tweet-time">{timeAgo(tw.createdAt)}</span>
           {tw.userId === user?.id && (
             <>
-              <button className="tweet-edit" onClick={() => setIsEditing(!isEditing)} title="Edit">✏️</button>
+              <button className="tweet-edit" onClick={() => setIsEditing(!isEditing)} title="Edit">&#9999;&#65039;</button>
               <button className="tweet-delete" onClick={() => onDelete(tw.id)}>&times;</button>
             </>
           )}
@@ -228,6 +246,7 @@ function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteCom
 export default function CommunityView({ user, onProjectClick, onReload, onUserClick }) {
   const [tweets, setTweets] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [tweetBody, setTweetBody] = useState('');
   const [posting, setPosting] = useState(false);
   const [tab, setTab] = useState('feed');
@@ -235,11 +254,22 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
   const [dismissedBanner, setDismissedBanner] = useState(() =>
     localStorage.getItem('ramadan_banner_dismissed') === '1'
   );
+  const [dismissedQuotes, setDismissedQuotes] = useState(() =>
+    localStorage.getItem('quotes_banner_dismissed') === '1'
+  );
+  const [quoteIndex, setQuoteIndex] = useState(() => {
+    const day = Math.floor(Date.now() / 86400000);
+    return day % MUSLIM_QUOTES.length;
+  });
 
   const loadData = async () => {
-    const [tw, cp] = await Promise.all([DB.getTweets(), DB.getCommunityProjects()]);
-    setTweets(tw);
-    setProjects(cp);
+    try {
+      const [tw, cp] = await Promise.all([DB.getTweets(), DB.getCommunityProjects()]);
+      setTweets(tw);
+      setProjects(cp);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadData(); }, []);
@@ -315,6 +345,13 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     localStorage.setItem('dhikr_banner_dismissed', '1');
   };
 
+  const dismissQuotesBanner = () => {
+    setDismissedQuotes(true);
+    localStorage.setItem('quotes_banner_dismissed', '1');
+  };
+
+  const quote = MUSLIM_QUOTES[quoteIndex];
+
   return (
     <div>
       <div className="page-header">
@@ -325,6 +362,20 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           </div>
         </div>
       </div>
+
+      {/* Quotes Banner */}
+      {!dismissedQuotes && (
+        <div className="quotes-banner">
+          <button className="quotes-banner-close" onClick={dismissQuotesBanner}>&times;</button>
+          <div className="quotes-banner-label">Words of Wisdom</div>
+          <p className="quotes-banner-text">&ldquo;{quote.text}&rdquo;</p>
+          <span className="quotes-banner-author">&mdash; {quote.author}</span>
+          <div className="quotes-banner-nav">
+            <button onClick={() => setQuoteIndex((i) => (i - 1 + MUSLIM_QUOTES.length) % MUSLIM_QUOTES.length)}>&larr; Prev</button>
+            <button onClick={() => setQuoteIndex((i) => (i + 1) % MUSLIM_QUOTES.length)}>Next &rarr;</button>
+          </div>
+        </div>
+      )}
 
       {/* Ramadan Banner */}
       {ramadanProject && !dismissedBanner && (
@@ -383,7 +434,14 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
         </button>
       </div>
 
-      {tab === 'feed' && (
+      {loading && (
+        <div className="loading-spinner-wrapper">
+          <div className="loading-spinner" />
+          <span>Loading...</span>
+        </div>
+      )}
+
+      {!loading && tab === 'feed' && (
         <div>
           {/* Compose tweet */}
           <div className="tweet-compose">
@@ -408,7 +466,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                     onClick={() => setShowTemplates(!showTemplates)}
                     title="Template poruke"
                   >
-                    📝
+                    &#128221;
                   </button>
                   <span className="tweet-char-count">{tweetBody.length}/280</span>
                 </div>
@@ -459,7 +517,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
         </div>
       )}
 
-      {tab === 'projects' && (
+      {!loading && tab === 'projects' && (
         <div className="community-projects-grid">
           {projects.length === 0 && (
             <div className="empty-state">No public projects yet.</div>
