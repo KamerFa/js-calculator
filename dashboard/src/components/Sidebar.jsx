@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio } from './Icons';
 import { useTranslation } from '../i18n';
@@ -56,10 +56,40 @@ function IconChevron({ open }) {
   );
 }
 
+function IconSettings() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function IconLogout() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
 export default function Sidebar({ projects, tasks, user, onNewProject, onImportProject, onLogout, mobileOpen, onCloseMobile }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 
   // Derive current view and project id from URL
@@ -111,6 +141,18 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
       if (result.outcome === 'accepted') setIsInstalled(true);
     }
   };
+
+  // Close user menu on outside click
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [userMenuOpen]);
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
@@ -260,8 +302,8 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
         )}
 
         {user && (
-          <div className="user-menu">
-            <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => nav('/profile')}>
+          <div className="user-menu" ref={userMenuRef}>
+            <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => setUserMenuOpen(!userMenuOpen)}>
               {resolveAvatarUrl(user.avatarUrl) ? (
                 <img src={resolveAvatarUrl(user.avatarUrl)} alt="" className="user-menu-avatar" />
               ) : (
@@ -269,7 +311,20 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
               )}
               <span className="user-menu-name">{user.username}</span>
             </div>
-            <button className="user-menu-logout" onClick={onLogout}>{t('auth.logout')}</button>
+            {userMenuOpen && (
+              <div className="user-menu-popup">
+                <button className="user-menu-popup-item" onClick={() => { nav('/profile'); setUserMenuOpen(false); }}>
+                  <IconUser /> {t('profile.title')}
+                </button>
+                <button className="user-menu-popup-item" onClick={() => { nav('/settings'); setUserMenuOpen(false); }}>
+                  <IconSettings /> {t('settings.title') || 'Settings'}
+                </button>
+                <div className="user-menu-popup-divider" />
+                <button className="user-menu-popup-item user-menu-popup-danger" onClick={onLogout}>
+                  <IconLogout /> {t('auth.logout')}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </aside>

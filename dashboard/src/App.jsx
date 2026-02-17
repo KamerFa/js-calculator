@@ -18,6 +18,7 @@ import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import UsersPage from './pages/UsersPage';
 import RadioPage from './pages/RadioPage';
+import SettingsPage from './pages/SettingsPage';
 
 // ── Radio mini player ────────────────────────────────────
 function useRadioState() {
@@ -266,6 +267,7 @@ export default function App() {
           <Route path="radio" element={<RadioPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:username" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="project/:id" element={<ProjectPage />} />
         </Routes>
 
