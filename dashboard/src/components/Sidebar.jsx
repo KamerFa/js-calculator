@@ -112,6 +112,16 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     }
   };
 
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   const nav = (path) => {
     navigate(path);
     if (onCloseMobile) onCloseMobile();

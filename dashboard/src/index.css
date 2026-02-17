@@ -4693,6 +4693,178 @@ body {
   color: var(--accent);
 }
 
+/* ── Item Comments (tasks, projects, notes) ──────── */
+
+.item-comments {
+  margin-top: 20px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.item-comments-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.item-comments-title {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.item-comments-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.item-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.item-comment {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.item-comment-avatar-col {
+  flex-shrink: 0;
+}
+
+.item-comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.item-comment-avatar-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.item-comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.item-comment-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.item-comment-author:hover {
+  text-decoration: underline;
+}
+
+.item-comment-time {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.item-comment-del {
+  border: none;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.item-comment:hover .item-comment-del {
+  opacity: 1;
+}
+
+.item-comment-del:hover {
+  color: var(--danger);
+}
+
+.item-comment-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.item-comment-compose {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.item-comment-input {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+
+.item-comment-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.item-comment-input::placeholder {
+  color: var(--text-3);
+}
+
+.item-comment-send {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.item-comment-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.item-comment-send:not(:disabled):hover {
+  opacity: 0.85;
+}
+
 /* ── Mobile responsive tweaks ─────────────────────── */
 
 @media (max-width: 600px) {

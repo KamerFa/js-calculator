@@ -214,6 +214,19 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_friendships_user ON friendships(user_id, status)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_friendships_friend ON friendships(friend_id, status)`);
 
+  // Item comments (generic: tasks, projects, notes)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS item_comments (
+      id           TEXT PRIMARY KEY,
+      target_type  TEXT NOT NULL,
+      target_id    TEXT NOT NULL,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body         TEXT NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_item_comments_target ON item_comments(target_type, target_id, created_at DESC)`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

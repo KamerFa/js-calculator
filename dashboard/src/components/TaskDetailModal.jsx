@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import { IconX } from './Icons';
 import { renderWithMentions } from '../mentions';
+import ItemComments from './ItemComments';
 
 export default function TaskDetailModal({ open, task, projects, notes, onClose, onEdit, onProjectClick, onNoteClick }) {
   const navigate = useNavigate();
@@ -100,6 +101,8 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
               </div>
             </div>
           )}
+
+          <ItemComments targetType="task" targetId={task.id} />
         </div>
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>Close</button>

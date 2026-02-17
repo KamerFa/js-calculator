@@ -51,7 +51,9 @@ if (savedStation) {
     if (station) {
       currentStation = station;
       audio.src = station.url;
-      audio.play().catch(() => {
+      audio.play().then(() => {
+        updateMediaSession(station);
+      }).catch(() => {
         currentStation = null;
         localStorage.removeItem('radio_playing');
         notifyListeners();
@@ -64,6 +66,32 @@ if (savedStation) {
 
 function notifyListeners() {
   listeners.forEach((fn) => fn());
+}
+
+// Media Session API — show station name in OS media controls
+function updateMediaSession(station) {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: station.name,
+      artist: station.genre,
+      album: station.desc,
+    });
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (currentStation) audio.play();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause();
+    });
+    navigator.mediaSession.setActionHandler('stop', () => {
+      radioAudio.stop();
+    });
+  }
+}
+
+function clearMediaSession() {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = null;
+  }
 }
 
 // Favorites management
@@ -116,6 +144,7 @@ const radioAudio = {
       audio.src = '';
       currentStation = null;
       localStorage.removeItem('radio_playing');
+      clearMediaSession();
       notifyListeners();
       return Promise.resolve();
     }
@@ -129,6 +158,7 @@ const radioAudio = {
         currentStation = station;
         localStorage.setItem('radio_playing', JSON.stringify(station.id));
         addToRecent(station.id);
+        updateMediaSession(station);
         notifyListeners();
       })
       .catch(() => {
@@ -144,6 +174,7 @@ const radioAudio = {
     audio.src = '';
     currentStation = null;
     localStorage.removeItem('radio_playing');
+    clearMediaSession();
     this.clearSleepTimer();
     notifyListeners();
   },

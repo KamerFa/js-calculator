@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { IconX } from './Icons';
 import { useMentions, MentionDropdown } from '../mentions';
 import { DB } from '../db';
+import ItemComments from './ItemComments';
 
 export default function NoteModal({ open, note, projects, tasks, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({ title: '', body: '', attachType: '', attachId: '' });
@@ -101,6 +102,9 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
             )}
           </div>
         </div>
+        {note && (
+          <ItemComments targetType="note" targetId={note.id} />
+        )}
         <div className="modal-footer">
           {note && (
             <button className="btn btn-danger" onClick={() => onDelete(note.id)} style={{ marginRight: 'auto' }}>Delete</button>

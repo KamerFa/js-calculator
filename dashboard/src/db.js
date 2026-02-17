@@ -269,6 +269,21 @@ const DB = {
   async getFriends() {
     return api('/profile/friends');
   },
+
+  // ── Item Comments (tasks, projects, notes) ────────────────
+  async getComments(targetType, targetId) {
+    return api(`/comments/${targetType}/${targetId}`);
+  },
+
+  async postComment(targetType, targetId, body) {
+    return api(`/comments/${targetType}/${targetId}`, {
+      method: 'POST', body: JSON.stringify({ body }),
+    });
+  },
+
+  async deleteItemComment(commentId) {
+    return api(`/comments/${commentId}`, { method: 'DELETE' });
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

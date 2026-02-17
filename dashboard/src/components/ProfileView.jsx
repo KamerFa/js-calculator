@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
+import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
 import { IconUsers, IconPlus } from './Icons';
 import AvatarPicker from './AvatarPicker';
 
@@ -54,7 +56,11 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
   const [myNickname, setMyNickname] = useState('');
   const [editingNickname, setEditingNickname] = useState(false);
   const [friends, setFriends] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const fileRef = useRef(null);
+  const commentRef = useRef(null);
+  const navigate = useNavigate();
+  const mentions = useMentions(allUsers, user);
 
   const isOwn = !profileUsername || profileUsername === user?.username;
 
@@ -93,6 +99,13 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
       DB.getFriends().then(setFriends).catch(() => setFriends([]));
     }
   }, [isOwn]);
+
+  // Load users for mentions
+  useEffect(() => {
+    if (allUsers.length === 0) {
+      DB.getUsers().then(setAllUsers).catch(() => {});
+    }
+  }, []);
 
   // Load user's public projects
   useEffect(() => {
@@ -397,7 +410,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
       )}
 
       {/* Ahbab (Friends) - own profile */}
-      {isOwn && friends.length > 0 && (
+      {isOwn && (friends.length > 0 || friends.some((f) => f.status === 'pending' && f.direction === 'received')) && (
         <div className="profile-friends-section">
           <h3 className="profile-section-title">Ahbab ({friends.filter((f) => f.status === 'accepted').length})</h3>
           {friends.filter((f) => f.status === 'pending' && f.direction === 'received').length > 0 && (
@@ -440,14 +453,23 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
       {/* Profile Comments */}
       <div className="profile-comments-section">
         <h3 className="profile-section-title">Comments ({comments.length})</h3>
-        <div className="profile-comment-form">
+        <div className="profile-comment-form" style={{ position: 'relative' }}>
           <textarea
+            ref={commentRef}
             className="form-textarea"
             value={commentBody}
-            onChange={(e) => setCommentBody(e.target.value.slice(0, 500))}
-            placeholder="Leave a comment..."
+            onChange={(e) => {
+              setCommentBody(e.target.value.slice(0, 500));
+              mentions.detectMention(e.target.value, e.target.selectionStart);
+            }}
+            placeholder="Leave a comment... (@ to mention)"
             rows={2}
           />
+          <MentionDropdown mentions={mentions} onSelect={(username) => {
+            const el = commentRef.current;
+            const newVal = mentions.insertMention(username, commentBody, el?.selectionStart || commentBody.length);
+            setCommentBody(newVal);
+          }} />
           <button className="btn btn-primary btn-sm" onClick={handlePostComment} disabled={!commentBody.trim()}>
             Post
           </button>
@@ -475,7 +497,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
                 </button>
               )}
             </div>
-            <p className="profile-comment-body">{c.body}</p>
+            <p className="profile-comment-body">{renderWithMentions(c.body, (u) => navigate(`/profile/${u}`))}</p>
           </div>
         ))}
       </div>

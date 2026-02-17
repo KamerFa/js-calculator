@@ -152,6 +152,11 @@ function NotificationBell() {
     setOpen(false);
     if (notif.targetType === 'tweet') navigate('/community');
     else if (notif.targetType === 'project') navigate(`/project/${notif.targetId}`);
+    else if (notif.targetType === 'profile') {
+      // For friend requests, navigate to the actor's profile; for profile comments, navigate to own profile
+      if (notif.type === 'profile_comment') navigate('/profile');
+      else navigate(`/profile/${notif.actorName}`);
+    }
     else if (notif.targetType === 'task') navigate('/');
   };
 

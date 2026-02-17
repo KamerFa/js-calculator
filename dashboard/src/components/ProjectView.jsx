@@ -249,6 +249,7 @@ export default function ProjectView({ project, tasks, notes, user, onToggle, onT
           onUserClick={onUserClick}
         />
       )}
+
     </div>
   );
 }
