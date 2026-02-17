@@ -181,8 +181,6 @@ export default function RadioView() {
   };
 
   const filteredStations = STATIONS.filter((s) => {
-    // Hide stations with 2+ broken reports
-    if ((reportCounts[s.id] || 0) >= 2) return false;
     if (filter === 'favorites') return favorites.includes(s.id);
     if (filter !== 'all' && s.network !== filter) return false;
     if (search) {
@@ -305,11 +303,12 @@ export default function RadioView() {
               <span /><span /><span /><span />
             </div>
           )}
-          {isPaused && (
-            <button className="radio-resume-btn" onClick={() => radioAudio.resume()} title="Resume">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-            </button>
-          )}
+          <button className="radio-playpause-btn" onClick={() => isPaused ? radioAudio.resume() : radioAudio.pause()} title={isPaused ? 'Resume' : 'Pause'}>
+            {isPaused
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+            }
+          </button>
           <div className="radio-now-info">
             <span className="radio-now-name">{playing.name} {isPaused && <span style={{ opacity: 0.5, fontWeight: 400 }}>(paused)</span>}</span>
             <span className="radio-now-genre">{playing.network && `${playing.network} \u00b7 `}{playing.genre} &middot; {playing.desc}</span>
@@ -333,11 +332,6 @@ export default function RadioView() {
             />
             <span className="radio-volume-pct">{Math.round(volume * 100)}%</span>
           </div>
-          {!isPaused && (
-            <button className="radio-pause-btn" onClick={() => radioAudio.pause()} title="Pause">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-            </button>
-          )}
           <button className="radio-stop-btn" onClick={() => radioAudio.stop()} title="Stop">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
           </button>

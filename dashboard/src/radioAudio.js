@@ -161,6 +161,11 @@ function addToRecent(stationId) {
   localStorage.setItem('radio_recent', JSON.stringify(recent.slice(0, 5)));
 }
 
+// Player position: 'bottom-right' (default) or 'top-bar'
+function getPlayerPosition() {
+  return localStorage.getItem('radio_player_position') || 'bottom-right';
+}
+
 const radioAudio = {
   STATIONS,
 
@@ -310,6 +315,13 @@ const radioAudio = {
 
   hasSleepTimer() {
     return sleepEndTime !== null && sleepEndTime > Date.now();
+  },
+
+  // Player position
+  getPlayerPosition,
+  setPlayerPosition(pos) {
+    localStorage.setItem('radio_player_position', pos);
+    notifyListeners();
   },
 
   subscribe(fn) {

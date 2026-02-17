@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from '../i18n';
 import { DB } from '../db';
+import radioAudio from '../radioAudio';
+
+const PLAYER_POSITION_OPTIONS = [
+  { value: 'bottom-right', label: 'Cozy Corner', desc: 'Floating snugly in the bottom-right' },
+  { value: 'top-bar', label: 'Main Stage', desc: 'Pinned proudly across the top' },
+];
 
 const THEME_OPTIONS = [
   { value: 'light', label: 'Light', icon: '\u2600' },
@@ -19,6 +25,7 @@ export default function SettingsView({ user }) {
   const { language, setLanguage, t } = useTranslation();
   const [showProjectsOnProfile, setShowProjectsOnProfile] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [playerPosition, setPlayerPosition] = useState(radioAudio.getPlayerPosition());
 
   useEffect(() => {
     DB.getProfile().then((p) => {
@@ -59,6 +66,30 @@ export default function SettingsView({ user }) {
                   onClick={() => setMode(opt.value)}
                 >
                   <span className="theme-toggle-icon">{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3 className="settings-section-title">Radio Vibes</h3>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-info">
+              <span className="settings-row-label">Player Hangout Spot</span>
+              <span className="settings-row-desc">Where should the mini player chill when you're not on the radio page?</span>
+            </div>
+            <div className="theme-toggle-group">
+              {PLAYER_POSITION_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`theme-toggle-btn${playerPosition === opt.value ? ' theme-toggle-active' : ''}`}
+                  onClick={() => { setPlayerPosition(opt.value); radioAudio.setPlayerPosition(opt.value); }}
+                  title={opt.desc}
+                >
                   <span>{opt.label}</span>
                 </button>
               ))}
