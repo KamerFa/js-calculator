@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import radioAudio from '../radioAudio';
+import { DB } from '../db';
 
 const GENRE_COLORS = {
   'Chill': '#8b5cf6',
@@ -83,6 +84,8 @@ export default function RadioView() {
   const [search, setSearch] = useState('');
   const [showSleepMenu, setShowSleepMenu] = useState(false);
   const [sleepRemaining, setSleepRemaining] = useState(null);
+  const [reportCounts, setReportCounts] = useState({});
+  const [myReports, setMyReports] = useState([]);
 
   const STATIONS = radioAudio.STATIONS;
   const networks = ['all', ...new Set(STATIONS.map((s) => s.network))];
@@ -90,6 +93,14 @@ export default function RadioView() {
   const recentStations = radioAudio.getRecentStations();
   const hasFavorites = favorites.length > 0;
   const hasRecent = recentStations.length > 0;
+
+  // Load station reports
+  useEffect(() => {
+    DB.getStationReports().then((data) => {
+      setReportCounts(data.counts || {});
+      setMyReports(data.myReports || []);
+    }).catch(() => {});
+  }, []);
 
   // Update sleep timer countdown
   useEffect(() => {
@@ -143,6 +154,16 @@ export default function RadioView() {
     return () => window.removeEventListener('keydown', handler);
   }, [playing, isPaused]);
 
+  const reportStation = async (stationId) => {
+    try {
+      const data = await DB.reportStation(stationId);
+      setReportCounts((prev) => ({ ...prev, [stationId]: data.count }));
+      setMyReports((prev) =>
+        data.reported ? [...prev, stationId] : prev.filter((id) => id !== stationId)
+      );
+    } catch { /* ignore */ }
+  };
+
   const play = (station) => {
     setLoading(true);
     setError(null);
@@ -160,6 +181,8 @@ export default function RadioView() {
   };
 
   const filteredStations = STATIONS.filter((s) => {
+    // Hide stations with 2+ broken reports
+    if ((reportCounts[s.id] || 0) >= 2) return false;
     if (filter === 'favorites') return favorites.includes(s.id);
     if (filter !== 'all' && s.network !== filter) return false;
     if (search) {
@@ -173,6 +196,8 @@ export default function RadioView() {
     const isFav = radioAudio.isFavorite(s.id);
     const isActive = playing?.id === s.id;
     const isActiveAndPaused = isActive && isPaused;
+    const isReported = myReports.includes(s.id);
+    const reports = reportCounts[s.id] || 0;
     return (
       <button
         className={`radio-card${isActive ? ' radio-card-active' : ''}${isActiveAndPaused ? ' radio-card-paused' : ''}`}
@@ -183,13 +208,26 @@ export default function RadioView() {
         <div className="radio-card-body">
           <div className="radio-card-top">
             <span className="radio-card-name">{s.name}</span>
-            <button
-              className={`radio-fav-btn${isFav ? ' radio-fav-active' : ''}`}
-              onClick={(e) => { e.stopPropagation(); radioAudio.toggleFavorite(s.id); }}
-              title={isFav ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              {isFav ? '\u2605' : '\u2606'}
-            </button>
+            <span className="radio-card-actions">
+              <button
+                className={`radio-report-btn${isReported ? ' radio-report-active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); reportStation(s.id); }}
+                title={isReported ? `You reported this as broken (${reports} report${reports !== 1 ? 's' : ''})` : 'Report as broken'}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                  <line x1="4" y1="22" x2="4" y2="15" />
+                </svg>
+                {reports > 0 && <span className="radio-report-count">{reports}</span>}
+              </button>
+              <button
+                className={`radio-fav-btn${isFav ? ' radio-fav-active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); radioAudio.toggleFavorite(s.id); }}
+                title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {isFav ? '\u2605' : '\u2606'}
+              </button>
+            </span>
           </div>
           <div className="radio-card-meta">
             {s.network && <span className="radio-card-network" style={{ color: NETWORK_COLORS[s.network] || 'var(--text-3)' }}>{s.network}</span>}
@@ -207,7 +245,7 @@ export default function RadioView() {
         {error === s.id && <span className="radio-card-error">Failed</span>}
       </button>
     );
-  }, [playing, loading, error, favorites, isPaused]);
+  }, [playing, loading, error, favorites, isPaused, myReports, reportCounts]);
 
   return (
     <div>

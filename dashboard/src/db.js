@@ -284,6 +284,15 @@ const DB = {
   async deleteItemComment(commentId) {
     return api(`/comments/${commentId}`, { method: 'DELETE' });
   },
+
+  // ── Radio station reports ──────────────────────────────────
+  async getStationReports() {
+    return api('/radio/reports');
+  },
+
+  async reportStation(stationId) {
+    return api(`/radio/report/${stationId}`, { method: 'POST' });
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

@@ -2518,11 +2518,6 @@ body {
   text-overflow: ellipsis;
 }
 
-.radio-card-meta {
-  font-size: 11px;
-  color: var(--text-3);
-}
-
 .radio-card-action {
   padding: 0 14px;
   color: var(--text-3);
@@ -2897,6 +2892,52 @@ body {
 
 .radio-fav-active {
   color: #f59e0b;
+}
+
+.radio-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.radio-report-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-3);
+  padding: 2px;
+  transition: color 0.2s, transform 0.2s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-family: var(--font-body);
+  opacity: 0;
+}
+
+.radio-card:hover .radio-report-btn {
+  opacity: 1;
+}
+
+.radio-report-btn:hover {
+  color: var(--danger);
+  transform: scale(1.15);
+}
+
+.radio-report-active {
+  color: var(--danger);
+  opacity: 1 !important;
+}
+
+.radio-report-active svg {
+  fill: var(--danger);
+}
+
+.radio-report-count {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--danger);
 }
 
 .radio-card-genre-tag {

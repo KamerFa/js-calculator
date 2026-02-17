@@ -227,6 +227,17 @@ async function initDB() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_item_comments_target ON item_comments(target_type, target_id, created_at DESC)`);
 
+  // Radio station broken reports (2 unique reports = auto-hide)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS station_reports (
+      id           TEXT PRIMARY KEY,
+      station_id   TEXT NOT NULL,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(station_id, user_id)
+    )
+  `);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

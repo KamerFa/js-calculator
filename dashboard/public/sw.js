@@ -19,9 +19,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  const url = request.url;
 
-  // Skip non-GET and API requests
-  if (request.method !== 'GET' || request.url.includes('/api/')) return;
+  // Skip non-GET, API requests, audio streams, and external URLs
+  if (request.method !== 'GET') return;
+  if (url.includes('/api/')) return;
+  if (!url.startsWith(self.location.origin)) return;
 
   event.respondWith(
     fetch(request)

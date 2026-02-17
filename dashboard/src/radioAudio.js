@@ -34,40 +34,40 @@ const STATIONS = [
 
   // ── Naxi Radio (Serbia) ───────────────────────────────
   // Main
-  { id: 'naxi-main', name: 'Naxi Radio', genre: 'Pop', network: 'Naxi', url: 'http://naxi128.streaming.rs:9150/', desc: 'Belgrade 96.9 FM — Serbia\'s most popular radio station' },
+  { id: 'naxi-main', name: 'Naxi Radio', genre: 'Pop', network: 'Naxi', url: 'https://naxi128.streaming.rs:9152/', desc: 'Belgrade 96.9 FM — Serbia\'s most popular radio station' },
 
   // Dance / Electronic
-  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', network: 'Naxi', url: 'http://naxidigital-dance128.streaming.rs:8110/', desc: 'Non-stop dance music from Belgrade' },
-  { id: 'naxi-house', name: 'Naxi House', genre: 'House', network: 'Naxi', url: 'http://naxidigital128.kbcnet.rs:8000/', desc: 'Deep house and electronic grooves' },
-  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club', network: 'Naxi', url: 'http://naxidigital128.kbcnet.rs:8090/', desc: 'Club hits and party anthems all night long' },
+  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', network: 'Naxi', url: 'https://naxidigital-dance128.streaming.rs:8112/', desc: 'Non-stop dance music from Belgrade' },
+  { id: 'naxi-house', name: 'Naxi House', genre: 'House', network: 'Naxi', url: 'https://naxidigital-house128.streaming.rs:8002/', desc: 'Deep house and electronic grooves' },
+  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club', network: 'Naxi', url: 'https://naxidigital-clubbing128.streaming.rs:8092/', desc: 'Club hits and party anthems all night long' },
 
   // Chill / Lounge / Cafe
-  { id: 'naxi-cafe', name: 'Naxi Cafe', genre: 'Cafe', network: 'Naxi', url: 'http://naxidigital-cafe128.streaming.rs:8020/', desc: 'Smooth cafe vibes, perfect for relaxing or working' },
-  { id: 'naxi-love', name: 'Naxi Love', genre: 'Love Songs', network: 'Naxi', url: 'http://naxidigital-love128.streaming.rs:8100/', desc: 'The best love songs and romantic ballads' },
+  { id: 'naxi-cafe', name: 'Naxi Cafe', genre: 'Cafe', network: 'Naxi', url: 'https://naxidigital-cafe128.streaming.rs:8022/', desc: 'Smooth cafe vibes, perfect for relaxing or working' },
+  { id: 'naxi-love', name: 'Naxi Love', genre: 'Love Songs', network: 'Naxi', url: 'https://naxidigital-love128.streaming.rs:8102/', desc: 'The best love songs and romantic ballads' },
 
   // Rock / Blues
-  { id: 'naxi-rock', name: 'Naxi Rock', genre: 'Rock', network: 'Naxi', url: 'http://naxidigital-rock128.streaming.rs:8180/', desc: 'Rock classics and new rock from around the world' },
+  { id: 'naxi-rock', name: 'Naxi Rock', genre: 'Rock', network: 'Naxi', url: 'https://naxidigital-rock128.streaming.rs:8182/', desc: 'Rock classics and new rock from around the world' },
 
   // Jazz / Classic
-  { id: 'naxi-jazz', name: 'Naxi Jazz', genre: 'Jazz', network: 'Naxi', url: 'http://naxidigital-jazz128.streaming.rs:8170/', desc: 'Smooth jazz, classic standards, and modern jazz' },
-  { id: 'naxi-classic', name: 'Naxi Classic', genre: 'Classical', network: 'Naxi', url: 'http://naxidigital128.kbcnet.rs:8030/', desc: 'Classical music masterpieces from all eras' },
+  { id: 'naxi-jazz', name: 'Naxi Jazz', genre: 'Jazz', network: 'Naxi', url: 'https://naxidigital-jazz128.streaming.rs:8172/', desc: 'Smooth jazz, classic standards, and modern jazz' },
+  { id: 'naxi-classic', name: 'Naxi Classic', genre: 'Classical', network: 'Naxi', url: 'https://naxidigital-classic128.streaming.rs:8032/', desc: 'Classical music masterpieces from all eras' },
 
   // Retro / Decades
-  { id: 'naxi-80s', name: 'Naxi 80e', genre: '80s', network: 'Naxi', url: 'http://naxidigital-80s128.streaming.rs:8040/', desc: 'The greatest hits of the 1980s' },
-  { id: 'naxi-evergreen', name: 'Naxi Evergreen', genre: 'Evergreen', network: 'Naxi', url: 'http://naxidigital-evergreen128.streaming.rs:8010/', desc: 'Timeless classics and unforgettable melodies' },
-  { id: 'naxi-gold', name: 'Naxi Gold', genre: 'Gold Hits', network: 'Naxi', url: 'http://109.206.96.18:8060/', desc: 'Golden oldies and all-time favorites' },
+  { id: 'naxi-80s', name: 'Naxi 80e', genre: '80s', network: 'Naxi', url: 'https://naxidigital-80s128.streaming.rs:8042/', desc: 'The greatest hits of the 1980s' },
+  { id: 'naxi-evergreen', name: 'Naxi Evergreen', genre: 'Evergreen', network: 'Naxi', url: 'https://naxidigital-evergreen128.streaming.rs:8012/', desc: 'Timeless classics and unforgettable melodies' },
+  { id: 'naxi-gold', name: 'Naxi Gold', genre: 'Gold Hits', network: 'Naxi', url: 'https://naxidigital-gold128.streaming.rs:8062/', desc: 'Golden oldies and all-time favorites' },
 
   // Serbian / Ex-YU
-  { id: 'naxi-exyu', name: 'Naxi EX YU', genre: 'Ex-YU', network: 'Naxi', url: 'http://naxidigital-exyu128.streaming.rs:8240/', desc: 'Best music from the former Yugoslavia' },
-  { id: 'naxi-boem', name: 'Naxi Boem', genre: 'Boem', network: 'Naxi', url: 'http://109.206.96.18:8050/', desc: 'Traditional bohemian and folk music' },
+  { id: 'naxi-exyu', name: 'Naxi EX YU', genre: 'Ex-YU', network: 'Naxi', url: 'https://naxidigital-exyu128.streaming.rs:8242/', desc: 'Best music from the former Yugoslavia' },
+  { id: 'naxi-boem', name: 'Naxi Boem', genre: 'Boem', network: 'Naxi', url: 'https://naxidigital-boem128.streaming.rs:8052/', desc: 'Traditional bohemian and folk music' },
 
   // Urban / Fresh
-  { id: 'naxi-rnb', name: 'Naxi R\'n\'B', genre: 'R&B', network: 'Naxi', url: 'http://naxidigital-rnb128.streaming.rs:8120/', desc: 'R&B, soul, and hip-hop flavors' },
-  { id: 'naxi-fresh', name: 'Naxi Fresh', genre: 'Fresh', network: 'Naxi', url: 'http://naxidigital-fresh128.streaming.rs:8210/', desc: 'Freshest new music and trending hits' },
-  { id: 'naxi-latino', name: 'Naxi Latino', genre: 'Latino', network: 'Naxi', url: 'http://naxidigital-latino128.streaming.rs:8230/', desc: 'Latin rhythms, reggaeton, and salsa beats' },
+  { id: 'naxi-rnb', name: 'Naxi R\'n\'B', genre: 'R&B', network: 'Naxi', url: 'https://naxidigital-rnb128.streaming.rs:8122/', desc: 'R&B, soul, and hip-hop flavors' },
+  { id: 'naxi-fresh', name: 'Naxi Fresh', genre: 'Fresh', network: 'Naxi', url: 'https://naxidigital-fresh128.streaming.rs:8212/', desc: 'Freshest new music and trending hits' },
+  { id: 'naxi-latino', name: 'Naxi Latino', genre: 'Latino', network: 'Naxi', url: 'https://naxidigital-latino128.streaming.rs:8232/', desc: 'Latin rhythms, reggaeton, and salsa beats' },
 
   // Special
-  { id: 'naxi-kids', name: 'Naxi Kids', genre: 'Kids', network: 'Naxi', url: 'http://naxidigital128.kbcnet.rs:8050/', desc: 'Music and fun for the little ones' },
+  { id: 'naxi-kids', name: 'Naxi Kids', genre: 'Kids', network: 'Naxi', url: 'https://naxidigital-kids128.streaming.rs:8052/', desc: 'Music and fun for the little ones' },
 ];
 
 const audio = new Audio();
