@@ -3,6 +3,8 @@ import { IconCheckSmall, IconEdit, IconTrash } from './Icons';
 const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
 export default function TaskRow({ task, project, showProject, showCreator, currentUserId, onToggle, onClick, onEdit, onDelete, onProjectClick }) {
+  const effectiveDate = task.dueDate || task.scheduledDate;
+  const isScheduled = !task.dueDate && !!task.scheduledDate;
   const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
   const isOwnTask = !currentUserId || task.userId === currentUserId;
 
@@ -41,8 +43,10 @@ export default function TaskRow({ task, project, showProject, showCreator, curre
         </span>
       )}
       <span className={`priority-badge ${task.priority}`}>{task.priority}</span>
-      {task.dueDate && (
-        <span className={`task-due${isOverdue ? ' overdue' : ''}`}>{formatDate(task.dueDate)}</span>
+      {effectiveDate && (
+        <span className={`task-due${isOverdue ? ' overdue' : ''}${isScheduled ? ' scheduled' : ''}`}>
+          {isScheduled ? '\u{1F4C5} ' : ''}{formatDate(effectiveDate)}
+        </span>
       )}
       <div className="task-actions">
         {isOwnTask && (

@@ -15,7 +15,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   const fileRef = useRef(null);
 
   function emptyForm() {
-    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', scheduledDate: '', recurrence: 'none', taskType: 'shared', customFields: [] };
+    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', scheduledDate: '', dateType: 'due', recurrence: 'none', taskType: 'shared', customFields: [] };
   }
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         priority: task.priority,
         dueDate: task.dueDate || '',
         scheduledDate: task.scheduledDate || '',
+        dateType: task.scheduledDate ? 'scheduled' : 'due',
         recurrence: task.recurrence || 'none',
         taskType: task.taskType || 'shared',
         customFields: task.customFields ? task.customFields.map((f) => ({ ...f })) : [],
@@ -123,14 +124,41 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
               </select>
             </div>
             <div className="form-group">
-              <label>Due Date</label>
-              <input className="form-input" type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Scheduled For</label>
-              <input className="form-input" type="date" value={form.scheduledDate} onChange={(e) => set('scheduledDate', e.target.value)} />
+              <label>Date</label>
+              <div className="date-type-toggle">
+                <button
+                  type="button"
+                  className={`date-type-btn${form.dateType === 'due' ? ' active' : ''}`}
+                  onClick={() => {
+                    const val = form.scheduledDate || form.dueDate;
+                    setForm((prev) => ({ ...prev, dateType: 'due', dueDate: val, scheduledDate: '' }));
+                  }}
+                >
+                  Due Date
+                </button>
+                <button
+                  type="button"
+                  className={`date-type-btn${form.dateType === 'scheduled' ? ' active' : ''}`}
+                  onClick={() => {
+                    const val = form.dueDate || form.scheduledDate;
+                    setForm((prev) => ({ ...prev, dateType: 'scheduled', scheduledDate: val, dueDate: '' }));
+                  }}
+                >
+                  Scheduled For
+                </button>
+              </div>
+              <input
+                className="form-input"
+                type="date"
+                value={form.dateType === 'due' ? form.dueDate : form.scheduledDate}
+                onChange={(e) => {
+                  if (form.dateType === 'due') {
+                    setForm((prev) => ({ ...prev, dueDate: e.target.value, scheduledDate: '' }));
+                  } else {
+                    setForm((prev) => ({ ...prev, scheduledDate: e.target.value, dueDate: '' }));
+                  }
+                }}
+              />
             </div>
           </div>
           <div className="form-row">

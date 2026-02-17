@@ -4,6 +4,8 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
   if (!open || !task) return null;
 
   const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
+  const effectiveDate = task.dueDate || task.scheduledDate;
+  const isScheduled = !task.dueDate && !!task.scheduledDate;
   const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
 
   const formatDate = (iso) => {
@@ -29,8 +31,10 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
             <span className={`priority-badge ${task.priority}`}>{task.priority}</span>
             <span className="chip active" style={{ cursor: 'default' }}>{task.status}</span>
-            {task.dueDate && (
-              <span className={`task-due${isOverdue ? ' overdue' : ''}`}>Due: {formatDate(task.dueDate)}</span>
+            {effectiveDate && (
+              <span className={`task-due${isOverdue ? ' overdue' : ''}${isScheduled ? ' scheduled' : ''}`}>
+                {isScheduled ? 'Scheduled: ' : 'Due: '}{formatDate(effectiveDate)}
+              </span>
             )}
           </div>
           {project && (

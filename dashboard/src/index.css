@@ -488,6 +488,10 @@ body {
   font-weight: 500;
 }
 
+.task-due.scheduled {
+  color: var(--accent);
+}
+
 .task-actions {
   display: flex;
   gap: 4px;
@@ -950,6 +954,39 @@ body {
 
 .form-row .form-group {
   flex: 1;
+}
+
+.date-type-toggle {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 6px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+
+.date-type-btn {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.date-type-btn:hover {
+  color: var(--text-2);
+}
+
+.date-type-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .color-swatches {

@@ -16,10 +16,13 @@ function isToday(dateStr) {
 
 function isDueToday(task) {
   if (task.status === 'done') return false;
-  if (!task.dueDate) return false;
-  const due = String(task.dueDate).slice(0, 10);
+  const date = task.dueDate || task.scheduledDate;
+  if (!date) return false;
+  const d = String(date).slice(0, 10);
   const today = getToday();
-  return due <= today;
+  // Due dates: show if overdue or today. Scheduled dates: show only if today.
+  if (task.dueDate) return d <= today;
+  return d === today;
 }
 
 export default function TaskList({ tasks, projects, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask }) {

@@ -43,18 +43,24 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
     };
 
     for (const t of tasks) {
-      if (!t.dueDate) continue;
-      if (!map[t.dueDate]) map[t.dueDate] = [];
-      // For recurring tasks with a due date, also apply per-date status
-      if (t.recurrence && t.recurrence !== 'none') {
-        map[t.dueDate].push(withDateStatus(t, t.dueDate));
-      } else {
-        map[t.dueDate].push(t);
+      const date = t.dueDate || t.scheduledDate;
+      if (!date) {
+        // Only fall through for recurring tasks (handled below)
+        if (!t.recurrence || t.recurrence === 'none') continue;
+      }
+      if (date) {
+        if (!map[date]) map[date] = [];
+        if (t.recurrence && t.recurrence !== 'none') {
+          map[date].push(withDateStatus(t, date));
+        } else {
+          map[date].push(t);
+        }
+        continue;
       }
     }
 
-    // Spread recurring tasks (no due date) across the visible month
-    const recurringTasks = tasks.filter((t) => !t.dueDate && t.recurrence && t.recurrence !== 'none');
+    // Spread recurring tasks (no date at all) across the visible month
+    const recurringTasks = tasks.filter((t) => !t.dueDate && !t.scheduledDate && t.recurrence && t.recurrence !== 'none');
     if (recurringTasks.length > 0) {
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       for (let d = 1; d <= daysInMonth; d++) {
@@ -126,7 +132,7 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
         <div className="page-header-row">
           <div>
             <h1>Calendar</h1>
-            <p className="subtitle">Tasks by due date</p>
+            <p className="subtitle">Tasks by date</p>
           </div>
           <button className="btn btn-primary" onClick={() => onNewTask()}>
             <IconPlus /> New Task
