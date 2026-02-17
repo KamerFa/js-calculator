@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
+import { IconUsers, IconPlus } from './Icons';
 import AvatarPicker from './AvatarPicker';
 
 const MUSIC_SERVICES = [
@@ -35,15 +36,17 @@ function MusicBadge({ service, username }) {
   );
 }
 
-export default function ProfileView({ user, profileUsername }) {
+export default function ProfileView({ user, profileUsername, onProjectClick, onReload }) {
   const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState('');
   const [musicService, setMusicService] = useState('');
   const [musicUsername, setMusicUsername] = useState('');
+  const [showProjectsOnProfile, setShowProjectsOnProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [userProjects, setUserProjects] = useState([]);
   const fileRef = useRef(null);
 
   const isOwn = !profileUsername || profileUsername === user?.username;
@@ -56,6 +59,7 @@ export default function ProfileView({ user, profileUsername }) {
         setBio(p.bio || '');
         setMusicService(p.musicService || '');
         setMusicUsername(p.musicUsername || '');
+        setShowProjectsOnProfile(p.showProjectsOnProfile !== false);
       } catch {
         setProfile(null);
       }
@@ -63,10 +67,31 @@ export default function ProfileView({ user, profileUsername }) {
     load();
   }, [profileUsername, isOwn]);
 
+  // Load user's public projects
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const username = isOwn ? user?.username : profileUsername;
+        if (username) {
+          const projects = await DB.getUserProjects(username);
+          setUserProjects(projects);
+        }
+      } catch {
+        setUserProjects([]);
+      }
+    };
+    loadProjects();
+  }, [profileUsername, isOwn, user?.username]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await DB.updateProfile({ bio, musicService: musicService || null, musicUsername: musicUsername || null });
+      await DB.updateProfile({
+        bio,
+        musicService: musicService || null,
+        musicUsername: musicUsername || null,
+        showProjectsOnProfile,
+      });
       const p = await DB.getProfile();
       setProfile(p);
       setEditing(false);
@@ -91,6 +116,21 @@ export default function ProfileView({ user, profileUsername }) {
       avatarUrl: avatarRef,
     });
     setProfile((prev) => ({ ...prev, avatarUrl: avatarRef }));
+  };
+
+  const handleJoinProject = async (projectId) => {
+    try {
+      await DB.joinCommunityProject(projectId);
+      // Refresh the projects list
+      const username = isOwn ? user?.username : profileUsername;
+      if (username) {
+        const projects = await DB.getUserProjects(username);
+        setUserProjects(projects);
+      }
+      if (onReload) onReload();
+    } catch {
+      // ignore
+    }
   };
 
   if (!profile) {
@@ -180,6 +220,22 @@ export default function ProfileView({ user, profileUsername }) {
               </div>
             </div>
 
+            <div className="form-group">
+              <label className="toggle-row" onClick={() => setShowProjectsOnProfile(!showProjectsOnProfile)}>
+                <span className={`toggle-switch${showProjectsOnProfile ? ' on' : ''}`}>
+                  <span className="toggle-knob" />
+                </span>
+                <span className="toggle-label">
+                  <span>Show projects on profile</span>
+                  <span className="toggle-hint">
+                    {showProjectsOnProfile
+                      ? 'Your public projects are visible on your profile'
+                      : 'Your projects are hidden from your profile'}
+                  </span>
+                </span>
+              </label>
+            </div>
+
             <div className="profile-edit-actions">
               <button className="btn" onClick={() => setEditing(false)}>{t('modal.cancel')}</button>
               <button className="btn btn-primary" disabled={saving} onClick={handleSave}>
@@ -189,6 +245,44 @@ export default function ProfileView({ user, profileUsername }) {
           </div>
         )}
       </div>
+
+      {/* Public Projects Section */}
+      {userProjects.length > 0 && (
+        <div className="profile-projects-section">
+          <h3 className="profile-projects-title">
+            {isOwn ? 'My Public Projects' : `@${profile.username}'s Projects`}
+          </h3>
+          <div className="profile-projects-grid">
+            {userProjects.map((p) => (
+              <div className="profile-project-card" key={p.id}>
+                <div className="profile-project-header">
+                  <span className="project-dot" style={{ background: p.color }} />
+                  <span className="profile-project-name">{p.name}</span>
+                  {p.isGlobal && <span className="community-global-tag">Global</span>}
+                </div>
+                {p.description && (
+                  <p className="profile-project-desc">{p.description}</p>
+                )}
+                <div className="profile-project-stats">
+                  <span><IconUsers /> {p.memberCount} members</span>
+                  <span>{p.doneCount}/{p.taskCount} tasks done</span>
+                </div>
+                <div className="profile-project-footer">
+                  {p.isMember ? (
+                    <button className="btn btn-sm" onClick={() => onProjectClick && onProjectClick(p.id)}>
+                      View Project
+                    </button>
+                  ) : (
+                    <button className="btn btn-primary btn-sm" onClick={() => handleJoinProject(p.id)}>
+                      <IconPlus size={12} /> Join
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showAvatarPicker && (
         <AvatarPicker

@@ -346,6 +346,7 @@ export default function App() {
             onDeleteProject={handleDeleteProject}
             onLeaveProject={handleLeaveProject}
             onShare={openShareModal}
+            onUserClick={navigateProfile}
           />
         )}
 
@@ -373,7 +374,7 @@ export default function App() {
         )}
 
         {view === 'profile' && (
-          <ProfileView user={user} profileUsername={profileUsername} />
+          <ProfileView user={user} profileUsername={profileUsername} onProjectClick={navigateProject} onReload={reload} />
         )}
 
         {view === 'users' && (

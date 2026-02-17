@@ -9,7 +9,7 @@ import { getProjectStatus, getProjectTimeInfo, getProjectProgress } from '../pro
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 
-export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare }) {
+export default function ProjectView({ project, tasks, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare, onUserClick }) {
   const { t } = useTranslation();
   const STATUS_LABELS = { todo: t('tasks.todo'), 'in-progress': t('tasks.inProgress'), done: t('tasks.done') };
   const [members, setMembers] = useState([]);
@@ -109,7 +109,12 @@ export default function ProjectView({ project, tasks, user, onToggle, onTaskClic
         {isShared && (
           <div className="project-members-row">
             {members.map((m) => (
-              <div className="member-chip" key={m.userId} title={`${m.username} — ${m.tasks.done}/${m.tasks.total} ${t('tasks.completed')}`}>
+              <div
+                className="member-chip member-chip-clickable"
+                key={m.userId}
+                title={`${m.username} — ${m.tasks.done}/${m.tasks.total} ${t('tasks.completed')}`}
+                onClick={() => onUserClick && onUserClick(m.username)}
+              >
                 <span className="member-chip-avatar">{m.username.charAt(0).toUpperCase()}</span>
                 <span>{m.username}</span>
               </div>

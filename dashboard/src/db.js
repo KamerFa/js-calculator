@@ -139,6 +139,10 @@ const DB = {
     return api(`/profile/user/${username}`);
   },
 
+  async getUserProjects(username) {
+    return api(`/profile/user/${username}/projects`);
+  },
+
   async updateProfile(data) {
     return api('/profile/me', { method: 'PUT', body: JSON.stringify(data) });
   },

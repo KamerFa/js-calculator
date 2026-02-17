@@ -80,6 +80,7 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS music_service TEXT`);  // spotify, youtube, tidal
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS music_username TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS show_projects_on_profile BOOLEAN NOT NULL DEFAULT true`);
 
   // Tweet reactions & comments
   await pool.query(`
