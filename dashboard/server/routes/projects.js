@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
+import { notify, getUsername } from '../notify.js';
 
 const router = Router();
 
@@ -198,6 +199,13 @@ router.post('/:id/members', async (req, res) => {
     'INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, $4)',
     [uid(), req.params.id, targetUser.id, 'member']
   );
+
+  // Notify the invited user
+  const actor = await getUsername(req.userId);
+  const project = projectRows[0];
+  await notify(targetUser.id, req.userId, 'project_invite',
+    `${actor} added you to "${project.name}"`, 'project', req.params.id);
+
   res.json({ ok: true, username: targetUser.username, userId: targetUser.id });
 });
 
@@ -218,6 +226,13 @@ router.delete('/:id/members/:userId', async (req, res) => {
     'DELETE FROM project_members WHERE project_id = $1 AND user_id = $2',
     [req.params.id, req.params.userId]
   );
+
+  // Notify the removed user (if removed by owner, not self-removal)
+  if (req.params.userId !== req.userId) {
+    await notify(req.params.userId, req.userId, 'project_removed',
+      `You were removed from "${project.name}"`, 'project', req.params.id);
+  }
+
   res.json({ ok: true });
 });
 

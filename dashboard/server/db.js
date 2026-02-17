@@ -115,6 +115,22 @@ async function initDB() {
     )
   `);
 
+  // Notifications
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      actor_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
+      type         TEXT NOT NULL,
+      summary      TEXT NOT NULL,
+      target_type  TEXT,
+      target_id    TEXT,
+      is_read      BOOLEAN NOT NULL DEFAULT false,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC)`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

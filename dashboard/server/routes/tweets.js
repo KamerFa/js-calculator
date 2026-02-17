@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
+import { notify, getUsername } from '../notify.js';
 
 const router = Router();
 
@@ -132,6 +133,14 @@ router.post('/:id/react', async (req, res) => {
       'INSERT INTO tweet_reactions (id, tweet_id, user_id, emoji) VALUES ($1, $2, $3, $4)',
       [uid(), req.params.id, req.userId, emoji]
     );
+
+    // Notify tweet owner
+    const { rows: tweet } = await pool.query('SELECT user_id FROM tweets WHERE id = $1', [req.params.id]);
+    if (tweet[0]) {
+      const actor = await getUsername(req.userId);
+      await notify(tweet[0].user_id, req.userId, 'tweet_reaction',
+        `${actor} reacted ${emoji} to your tweet`, 'tweet', req.params.id);
+    }
   }
   res.json({ ok: true });
 });
@@ -147,6 +156,16 @@ router.post('/:id/comments', async (req, res) => {
     'INSERT INTO tweet_comments (id, tweet_id, user_id, body) VALUES ($1, $2, $3, $4)',
     [id, req.params.id, req.userId, body.trim()]
   );
+
+  // Notify tweet owner
+  const { rows: tweet } = await pool.query('SELECT user_id FROM tweets WHERE id = $1', [req.params.id]);
+  if (tweet[0]) {
+    const actor = await getUsername(req.userId);
+    const preview = body.trim().slice(0, 60) + (body.trim().length > 60 ? '...' : '');
+    await notify(tweet[0].user_id, req.userId, 'tweet_comment',
+      `${actor} commented: "${preview}"`, 'tweet', req.params.id);
+  }
+
   const { rows } = await pool.query(
     `SELECT tc.*, u.username, u.avatar_url FROM tweet_comments tc
      JOIN users u ON u.id = tc.user_id WHERE tc.id = $1`,

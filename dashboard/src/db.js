@@ -179,6 +179,23 @@ const DB = {
   async importProject(data) {
     return api('/projects/import', { method: 'POST', body: JSON.stringify(data) });
   },
+
+  // ── Notifications ──────────────────────────────────────────
+  async getNotifications() {
+    return api('/notifications');
+  },
+
+  async getUnreadCount() {
+    return api('/notifications/unread-count');
+  },
+
+  async markNotificationRead(id) {
+    return api(`/notifications/${id}/read`, { method: 'PUT' });
+  },
+
+  async markAllNotificationsRead() {
+    return api('/notifications/read-all', { method: 'PUT' });
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

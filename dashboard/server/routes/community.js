@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
+import { notify, getUsername } from '../notify.js';
 
 const router = Router();
 
@@ -66,6 +67,13 @@ router.post('/projects/:id/join', async (req, res) => {
     'INSERT INTO project_members (id, project_id, user_id, role) VALUES ($1, $2, $3, $4)',
     [uid(), req.params.id, req.userId, 'member']
   );
+
+  // Notify project owner
+  const project = projectRows[0];
+  const actor = await getUsername(req.userId);
+  await notify(project.user_id, req.userId, 'project_join',
+    `${actor} joined "${project.name}"`, 'project', req.params.id);
+
   res.json({ ok: true });
 });
 
@@ -82,6 +90,12 @@ router.post('/projects/:id/leave', async (req, res) => {
     'DELETE FROM project_members WHERE project_id = $1 AND user_id = $2',
     [req.params.id, req.userId]
   );
+
+  // Notify project owner
+  const actor = await getUsername(req.userId);
+  await notify(projectRows[0].user_id, req.userId, 'project_leave',
+    `${actor} left "${projectRows[0].name}"`, 'project', req.params.id);
+
   res.json({ ok: true });
 });
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
+import { notify, notifyProjectMembers, getUsername } from '../notify.js';
 
 const router = Router();
 
@@ -180,6 +181,12 @@ router.post('/', async (req, res) => {
           `INSERT INTO task_completions (id, task_id, user_id) VALUES ($1, $2, $3) ON CONFLICT (task_id, user_id) DO NOTHING`,
           [uid(), existing.id, req.userId]
         );
+        // Notify project members about completion
+        if (existing.project_id) {
+          const actor = await getUsername(req.userId);
+          await notifyProjectMembers(existing.project_id, req.userId, 'task_completed',
+            `${actor} completed "${existing.title}"`, 'task', existing.id);
+        }
       } else {
         await pool.query(
           `DELETE FROM task_completions WHERE task_id = $1 AND user_id = $2`,
@@ -210,6 +217,13 @@ router.post('/', async (req, res) => {
         `UPDATE tasks SET status = $1, completed_at = $2, completed_by = $3 WHERE id = $4`,
         [newStatus, completedAt, completedBy, id]
       );
+      // Notify on status change
+      if (newStatus !== existing.status && existing.project_id) {
+        const actor = await getUsername(req.userId);
+        const verb = newStatus === 'done' ? 'completed' : `moved to ${newStatus}`;
+        await notifyProjectMembers(existing.project_id, req.userId, 'task_status',
+          `${actor} ${verb} "${existing.title}"`, 'task', id);
+      }
     } else {
       // Full edit by owner
       const completedAt = (status === 'done' && existing.status !== 'done') ? new Date().toISOString() :
@@ -223,6 +237,13 @@ router.post('/', async (req, res) => {
         [projectId || null, title.trim(), description || '', status || 'todo',
          priority || 'medium', dueDate || null, cf, rec, completedAt, completedBy, id, req.userId]
       );
+      // Notify on status change by owner
+      if (status && status !== existing.status && existing.project_id) {
+        const actor = await getUsername(req.userId);
+        const verb = status === 'done' ? 'completed' : `moved to ${status}`;
+        await notifyProjectMembers(existing.project_id, req.userId, 'task_status',
+          `${actor} ${verb} "${existing.title}"`, 'task', id);
+      }
     }
   } else {
     if (projectId) {
@@ -240,6 +261,13 @@ router.post('/', async (req, res) => {
       [id, req.userId, projectId || null, title.trim(), description || '',
        status || 'todo', priority || 'medium', dueDate || null, cf, rec, taskType || 'shared']
     );
+
+    // Notify project members about new task
+    if (projectId) {
+      const actor = await getUsername(req.userId);
+      await notifyProjectMembers(projectId, req.userId, 'task_created',
+        `${actor} created task "${title.trim()}"`, 'task', id);
+    }
   }
 
   const { rows } = await pool.query(

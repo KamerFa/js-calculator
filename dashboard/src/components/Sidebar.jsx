@@ -3,6 +3,7 @@ import { IconGrid, IconCheck, IconFile, IconBarChart, IconUsers, IconRadio } fro
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
+import NotificationPanel from './NotificationPanel';
 
 function IconCalendar() {
   return (
@@ -231,6 +232,13 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
               )}
               <span className="user-menu-name">{user.username}</span>
             </div>
+            <NotificationPanel onNavigate={(view, targetId) => {
+              if (view === 'project' && targetId) {
+                navProject(targetId);
+              } else {
+                nav(view);
+              }
+            }} />
             <button className="user-menu-logout" onClick={onLogout}>{t('auth.logout')}</button>
           </div>
         )}
