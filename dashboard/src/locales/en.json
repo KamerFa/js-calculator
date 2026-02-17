@@ -34,6 +34,8 @@
     "noTasks": "No tasks yet.",
     "allTasks": "All Tasks",
     "myTasks": "My Tasks",
+    "today": "Today",
+    "later": "Later",
     "todo": "Todo",
     "inProgress": "In Progress",
     "done": "Done",
@@ -41,8 +43,10 @@
     "high": "High",
     "medium": "Medium",
     "low": "Low",
+    "anyPriority": "Any Priority",
     "dueDate": "Due Date",
     "noDueDate": "No due date",
+    "scheduledFor": "Scheduled For",
     "description": "Description",
     "project": "Project",
     "noProject": "No project",
@@ -57,7 +61,11 @@
     "viewScreenshot": "View Screenshot",
     "total": "total",
     "open": "open",
-    "completed": "done"
+    "completed": "done",
+    "customFields": "Custom Fields",
+    "label": "Label",
+    "tracking": "Tracking",
+    "noMatches": "No tasks match your filters."
   },
   "projects": {
     "title": "Projects",
@@ -116,34 +124,49 @@
     "content": "Content",
     "attachTo": "Attach to",
     "task": "Task",
-    "attachedTo": "Attached to"
+    "attachedTo": "Attached to",
+    "untitled": "Untitled",
+    "standalone": "Standalone",
+    "addNote": "Add Note"
   },
   "calendar": {
     "title": "Calendar",
     "today": "Today",
     "thisWeek": "This Week",
     "thisMonth": "This Month",
-    "noEvents": "No events for this day."
+    "noEvents": "No events for this day.",
+    "tasksByDueDate": "Tasks by due date"
   },
   "community": {
     "title": "Community",
+    "subtitle": "See what everyone is up to",
     "feed": "Feed",
     "projects": "Public Projects",
     "users": "Users",
     "newPost": "New Post",
-    "writePost": "Write something...",
-    "post": "Post",
-    "noPosts": "No posts yet.",
+    "writePost": "What's on your mind? (280 chars max)",
+    "post": "Tweet",
+    "noPosts": "No posts yet. Be the first to post!",
     "noProjects": "No public projects yet.",
     "noUsers": "No users yet.",
     "join": "Join",
-    "joined": "Joined",
+    "joined": "You're in! MashAllah",
     "leave": "Leave",
     "comment": "Comment",
     "comments": "comments",
+    "reply": "Reply",
     "react": "React",
     "delete": "Delete",
-    "confirmDelete": "Delete this post?"
+    "edit": "Edit",
+    "confirmDelete": "Delete this post?",
+    "templates": "Template messages",
+    "charCount": "{count}/280"
+  },
+  "performance": {
+    "title": "Performance"
+  },
+  "radio": {
+    "title": "Radio"
   },
   "profile": {
     "title": "Profile",
@@ -168,7 +191,9 @@
     "tasksCompleted": "Tasks Completed",
     "projectsOwned": "Projects Owned",
     "saveProfile": "Save Profile",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "myPublicProjects": "My Public Projects",
+    "publicProjects": "{name}'s Projects"
   },
   "settings": {
     "title": "Settings",
@@ -196,7 +221,8 @@
     "memberLeft": "Member left the project",
     "taskAssigned": "You were assigned a task",
     "tweetReaction": "Reacted to your post",
-    "tweetComment": "Commented on your post"
+    "tweetComment": "Commented on your post",
+    "commentUpvote": "upvoted your comment"
   },
   "modal": {
     "save": "Save",

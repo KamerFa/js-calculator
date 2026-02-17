@@ -34,6 +34,8 @@
     "noTasks": "Nema zadataka još.",
     "allTasks": "Svi zadaci",
     "myTasks": "Moji zadaci",
+    "today": "Danas",
+    "later": "Poslije",
     "todo": "Za uraditi",
     "inProgress": "U toku",
     "done": "Završeno",
@@ -41,8 +43,10 @@
     "high": "Visok",
     "medium": "Srednji",
     "low": "Nizak",
+    "anyPriority": "Bilo koji prioritet",
     "dueDate": "Rok",
     "noDueDate": "Nema roka",
+    "scheduledFor": "Planirano za",
     "description": "Opis",
     "project": "Projekt",
     "noProject": "Bez projekta",
@@ -57,7 +61,11 @@
     "viewScreenshot": "Prikaži snimak",
     "total": "ukupno",
     "open": "otvoreno",
-    "completed": "završeno"
+    "completed": "završeno",
+    "customFields": "Prilagođena polja",
+    "label": "Oznaka",
+    "tracking": "Praćenje",
+    "noMatches": "Nema zadataka koji odgovaraju filtrima."
   },
   "projects": {
     "title": "Projekti",
@@ -116,34 +124,49 @@
     "content": "Sadržaj",
     "attachTo": "Priloži uz",
     "task": "Zadatak",
-    "attachedTo": "Priloženo uz"
+    "attachedTo": "Priloženo uz",
+    "untitled": "Bez naslova",
+    "standalone": "Samostalna",
+    "addNote": "Dodaj bilješku"
   },
   "calendar": {
     "title": "Kalendar",
     "today": "Danas",
     "thisWeek": "Ova sedmica",
     "thisMonth": "Ovaj mjesec",
-    "noEvents": "Nema događaja za ovaj dan."
+    "noEvents": "Nema događaja za ovaj dan.",
+    "tasksByDueDate": "Zadaci po roku"
   },
   "community": {
     "title": "Zajednica",
+    "subtitle": "Vidi šta svi rade",
     "feed": "Objave",
     "projects": "Javni projekti",
     "users": "Korisnici",
     "newPost": "Nova objava",
-    "writePost": "Napiši nešto...",
+    "writePost": "Šta ti pada na pamet? (max 280 znakova)",
     "post": "Objavi",
-    "noPosts": "Nema objava još.",
+    "noPosts": "Nema objava još. Budi prvi/ta koji/a će objaviti!",
     "noProjects": "Nema javnih projekata još.",
     "noUsers": "Nema korisnika još.",
     "join": "Pridruži se",
-    "joined": "Pridružen",
+    "joined": "Primljen/na! MashAllah",
     "leave": "Napusti",
     "comment": "Komentiraj",
     "comments": "komentara",
+    "reply": "Odgovori",
     "react": "Reaguj",
     "delete": "Obriši",
-    "confirmDelete": "Obriši ovu objavu?"
+    "edit": "Uredi",
+    "confirmDelete": "Obriši ovu objavu?",
+    "templates": "Šablonske poruke",
+    "charCount": "{count}/280"
+  },
+  "performance": {
+    "title": "Performanse"
+  },
+  "radio": {
+    "title": "Radio"
   },
   "profile": {
     "title": "Profil",
@@ -168,7 +191,9 @@
     "tasksCompleted": "Završeno zadataka",
     "projectsOwned": "Svojih projekata",
     "saveProfile": "Sačuvaj profil",
-    "cancel": "Otkaži"
+    "cancel": "Otkaži",
+    "myPublicProjects": "Moji javni projekti",
+    "publicProjects": "Projekti od {name}"
   },
   "settings": {
     "title": "Postavke",
@@ -196,7 +221,8 @@
     "memberLeft": "Član je napustio projekt",
     "taskAssigned": "Dodijeljen ti je zadatak",
     "tweetReaction": "Reagovao je na tvoju objavu",
-    "tweetComment": "Komentarisao je tvoju objavu"
+    "tweetComment": "Komentarisao je tvoju objavu",
+    "commentUpvote": "dao je +1 tvom komentaru"
   },
   "modal": {
     "save": "Sačuvaj",
