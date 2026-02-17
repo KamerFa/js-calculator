@@ -1,0 +1,26 @@
+# Shopify App Configuration
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "Bike Reservations"
+client_id = "YOUR_CLIENT_ID_HERE"
+application_url = "https://your-app-url.fly.dev"
+
+[access_scopes]
+scopes = "read_products,write_products,read_orders,write_orders,read_draft_orders,write_draft_orders"
+
+[auth]
+redirect_urls = [
+  "https://your-app-url.fly.dev/auth/callback",
+  "https://your-app-url.fly.dev/auth/shopify/callback",
+  "https://your-app-url.fly.dev/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-04"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "your-dev-store.myshopify.com"

@@ -1,0 +1,43 @@
+{% comment %}
+  Bike Reservation Page - Full-page booking experience
+  Use this as a dedicated /pages/book section
+{% endcomment %}
+
+<div id="bike-reservation-inline" class="bike-reservation-inline">
+  <div class="bike-res-page-loading">
+    <p>Loading reservation system...</p>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{{ 'reservation-modal.css' | asset_url }}">
+<script src="{{ 'reservation-modal.js' | asset_url }}" defer></script>
+<script>
+  window.BikeReservationConfig = {
+    shop: "{{ shop.permanent_domain }}",
+    appUrl: "{{ block.settings.app_url }}",
+    currency: "{{ block.settings.currency | default: 'BAM' }}",
+    locale: "{{ request.locale.iso_code | default: 'en' }}",
+    inline: true,
+  };
+</script>
+
+{% schema %}
+{
+  "name": "Reservation Page",
+  "target": "section",
+  "settings": [
+    {
+      "type": "url",
+      "id": "app_url",
+      "label": "App URL",
+      "info": "Your Shopify app URL (e.g. https://your-app.fly.dev)"
+    },
+    {
+      "type": "text",
+      "id": "currency",
+      "label": "Currency Code",
+      "default": "BAM"
+    }
+  ]
+}
+{% endschema %}

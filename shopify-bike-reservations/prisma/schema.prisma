@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Shop Session (Shopify auth) ────────────────────────────────────────────
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+}
+
+// ─── Motorbike Fleet ────────────────────────────────────────────────────────
+
+model Bike {
+  id          String   @id @default(cuid())
+  shop        String
+  name        String
+  description String?
+  category    String?
+  imageUrl    String?
+  engineSize  String?
+  year        Int?
+  plateNumber String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pricingTiers PricingTier[]
+  reservations Reservation[]
+
+  @@index([shop])
+}
+
+// ─── Pricing ────────────────────────────────────────────────────────────────
+
+model PricingTier {
+  id            String  @id @default(cuid())
+  shop          String
+  bikeId        String?
+  name          String    // e.g. "Half Day", "1.5 Days", "4 Days"
+  durationHours Float     // duration in hours: 4 = half day, 36 = 1.5 days, 96 = 4 days
+  price         Float     // price in default currency (BAM)
+  isDefault     Boolean @default(false) // default tiers apply to all bikes without custom pricing
+  sortOrder     Int     @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bike Bike? @relation(fields: [bikeId], references: [id], onDelete: Cascade)
+
+  @@index([shop])
+  @@index([bikeId])
+}
+
+model SeasonalPricing {
+  id         String   @id @default(cuid())
+  shop       String
+  name       String     // e.g. "Summer Peak", "Winter Low"
+  startDate  DateTime
+  endDate    DateTime
+  multiplier Float       // e.g. 1.5 = 50% more, 0.8 = 20% discount
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([shop])
+}
+
+// ─── Add-ons ────────────────────────────────────────────────────────────────
+
+model Addon {
+  id          String  @id @default(cuid())
+  shop        String
+  name        String    // e.g. "Helmet", "GPS", "Insurance"
+  description String?
+  price       Float     // price per rental
+  priceType   String  @default("per_rental") // "per_rental" or "per_day"
+  imageUrl    String?
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reservationAddons ReservationAddon[]
+
+  @@index([shop])
+}
+
+// ─── Reservations ───────────────────────────────────────────────────────────
+
+model Reservation {
+  id              String   @id @default(cuid())
+  shop            String
+  bikeId          String
+  confirmationCode String  @unique
+  status          String   @default("confirmed") // confirmed, cancelled, completed, no_show
+  startDate       DateTime
+  endDate         DateTime
+  pricingTierName String?
+  subtotal        Float
+  addonTotal      Float    @default(0)
+  seasonalMultiplier Float @default(1.0)
+  totalPrice      Float
+  depositAmount   Float
+  depositPaid     Boolean  @default(false)
+  remainderPaid   Boolean  @default(false)
+  shopifyOrderId  String?
+  shopifyDraftOrderId String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bike            Bike     @relation(fields: [bikeId], references: [id])
+  customerInfo    CustomerInfo?
+  addons          ReservationAddon[]
+
+  @@index([shop])
+  @@index([bikeId])
+  @@index([startDate, endDate])
+  @@index([confirmationCode])
+}
+
+model CustomerInfo {
+  id            String @id @default(cuid())
+  reservationId String @unique
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  licenseNumber String?
+  idNumber      String?
+  nationality   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+}
+
+model ReservationAddon {
+  id            String @id @default(cuid())
+  reservationId String
+  addonId       String
+  quantity      Int    @default(1)
+  priceCharged  Float
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  addon       Addon       @relation(fields: [addonId], references: [id])
+
+  @@index([reservationId])
+}
+
+// ─── App Settings ───────────────────────────────────────────────────────────
+
+model AppSettings {
+  id                 String  @id @default(cuid())
+  shop               String  @unique
+  businessName       String  @default("Bike Rentals")
+  currency           String  @default("BAM")
+  timezone           String  @default("Europe/Sarajevo")
+  depositPercentage  Float   @default(30)  // 30% deposit
+  minBookingHours    Float   @default(4)   // minimum half day
+  ownerEmail         String?
+  ownerWhatsApp      String?
+  emailNotifications Boolean @default(true)
+  whatsAppNotifications Boolean @default(false)
+  pickupLocation     String?
+  pickupInstructions String?
+  cancellationPolicy String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ─── Blocked Dates (maintenance, holidays, etc.) ────────────────────────────
+
+model BlockedDate {
+  id        String   @id @default(cuid())
+  shop      String
+  bikeId    String?  // null = applies to all bikes
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([shop])
+  @@index([bikeId])
+}
