@@ -217,18 +217,64 @@ router.post('/comments/:id/vote', async (req, res) => {
     [req.params.id, req.userId]
   );
 
+  let isNewUpvote = false;
   if (existing.length > 0 && existing[0].vote === vote) {
     // Same vote = remove (toggle off)
     await pool.query('DELETE FROM comment_votes WHERE id = $1', [existing[0].id]);
   } else if (existing.length > 0) {
     // Different vote = update
     await pool.query('UPDATE comment_votes SET vote = $1 WHERE id = $2', [vote, existing[0].id]);
+    // Check if changing to upvote
+    if (vote === 1 && existing[0].vote === -1) {
+      isNewUpvote = true;
+    }
   } else {
     // New vote
     await pool.query(
       'INSERT INTO comment_votes (id, comment_id, user_id, vote) VALUES ($1, $2, $3, $4)',
       [uid(), req.params.id, req.userId, vote]
     );
+    // Mark as new if it's an upvote
+    if (vote === 1) {
+      isNewUpvote = true;
+    }
+  }
+
+  // Send notification for new upvotes at milestones (1st and 5th)
+  if (isNewUpvote && vote === 1) {
+    try {
+      // Get comment author
+      const { rows: commentData } = await pool.query(
+        'SELECT user_id FROM tweet_comments WHERE id = $1',
+        [req.params.id]
+      );
+
+      if (commentData[0] && commentData[0].user_id !== req.userId) {
+        // Get total upvote count for this comment
+        const { rows: upvoteCounts } = await pool.query(
+          'SELECT COUNT(*) as upvotes FROM comment_votes WHERE comment_id = $1 AND vote = 1',
+          [req.params.id]
+        );
+        const upvoteCount = parseInt(upvoteCounts[0]?.upvotes || 0);
+
+        // Notify only on milestones: 1st and 5th upvote
+        if (upvoteCount === 1 || upvoteCount === 5) {
+          const actor = await getUsername(req.userId);
+          const milestone = upvoteCount === 1 ? '1st' : '5th';
+          await notify(
+            commentData[0].user_id,  // recipient (comment author)
+            req.userId,              // actor (upvoter)
+            'comment_upvote',        // notification type
+            `${actor} upvoted your comment (${milestone} upvote)`,
+            'comment',               // target type
+            req.params.id            // target ID (comment)
+          );
+        }
+      }
+    } catch (err) {
+      // Log but don't fail the request if notification fails
+      console.error('Error sending upvote notification:', err);
+    }
   }
 
   // Return updated vote counts
