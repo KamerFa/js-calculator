@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DB } from '../db';
 import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
@@ -60,18 +60,90 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteComment, onVoteComment, onUserClick }) {
+// Render text with clickable @mentions
+function renderWithMentions(text, onUserClick) {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('@')) {
+      const username = part.slice(1);
+      return (
+        <span
+          key={i}
+          className="tweet-mention"
+          onClick={(e) => { e.stopPropagation(); onUserClick(username); }}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
+// Mention dropdown hook for any text input
+function useMentions(allUsers, currentUser) {
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+
+  const filteredUsers = (allUsers || []).filter(
+    (u) => u.username.toLowerCase().includes(mentionFilter) && u.username !== currentUser?.username
+  ).slice(0, 8);
+
+  const detectMention = (value, cursorPos) => {
+    const textUpToCursor = value.slice(0, cursorPos);
+    const match = textUpToCursor.match(/@(\w*)$/);
+    if (match) {
+      setShowMentions(true);
+      setMentionFilter(match[1].toLowerCase());
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const insertMention = (username, currentValue, cursorPos) => {
+    const textUpToCursor = currentValue.slice(0, cursorPos);
+    const match = textUpToCursor.match(/@(\w*)$/);
+    if (match) {
+      const before = textUpToCursor.slice(0, match.index);
+      const after = currentValue.slice(cursorPos);
+      setShowMentions(false);
+      return `${before}@${username} ${after}`;
+    }
+    setShowMentions(false);
+    return currentValue;
+  };
+
+  return { showMentions, filteredUsers, detectMention, insertMention, setShowMentions };
+}
+
+function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, onDeleteComment, onVoteComment, onUserClick }) {
   const [showComments, setShowComments] = useState(false);
   const [commentBody, setCommentBody] = useState('');
   const [showReactPicker, setShowReactPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editBody, setEditBody] = useState(tw.body);
   const [reactorsPopup, setReactorsPopup] = useState(null);
+  const commentRef = useRef(null);
+  const mentions = useMentions(allUsers, user);
 
   const handleComment = async () => {
     if (!commentBody.trim()) return;
     await onComment(tw.id, commentBody.trim());
     setCommentBody('');
+    mentions.setShowMentions(false);
+  };
+
+  const handleCommentChange = (e) => {
+    const val = e.target.value.slice(0, 500);
+    setCommentBody(val);
+    mentions.detectMention(val, e.target.selectionStart);
+  };
+
+  const handleCommentMentionSelect = (username) => {
+    const cursor = commentRef.current?.selectionStart || commentBody.length;
+    const newVal = mentions.insertMention(username, commentBody, cursor);
+    setCommentBody(newVal.slice(0, 500));
+    commentRef.current?.focus();
   };
 
   const handleEdit = async () => {
@@ -120,7 +192,7 @@ function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteCom
             </div>
           </div>
         ) : (
-          <p className="tweet-body">{tw.body}</p>
+          <p className="tweet-body">{renderWithMentions(tw.body, onUserClick)}</p>
         )}
 
         {/* Reactions display */}
@@ -218,23 +290,41 @@ function TweetCard({ tw, user, onDelete, onEdit, onReact, onComment, onDeleteCom
                     {c.userId === user?.id && (
                       <button className="tweet-delete" onClick={() => onDeleteComment(c.id)}>&times;</button>
                     )}
-                    <p className="comment-text">{c.body}</p>
+                    <p className="comment-text">{renderWithMentions(c.body, onUserClick)}</p>
                   </div>
                 </div>
               );
             })}
-            <div className="comment-compose">
+            <div className="comment-compose" style={{ position: 'relative' }}>
               <input
+                ref={commentRef}
                 className="form-input comment-input"
                 type="text"
-                placeholder="Write a comment..."
+                placeholder="Write a comment... (type @ to mention)"
                 value={commentBody}
-                onChange={(e) => setCommentBody(e.target.value.slice(0, 500))}
-                onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                onChange={handleCommentChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !mentions.showMentions) handleComment();
+                }}
               />
               <button className="btn btn-primary btn-sm" disabled={!commentBody.trim()} onClick={handleComment}>
                 Reply
               </button>
+              {mentions.showMentions && mentions.filteredUsers.length > 0 && (
+                <div className="mention-dropdown" style={{ bottom: '100%', left: 0, right: 0 }}>
+                  {mentions.filteredUsers.map((u) => (
+                    <button key={u.id} className="mention-option" onClick={() => handleCommentMentionSelect(u.username)}>
+                      <span className="mention-option-avatar">
+                        {resolveAvatarUrl(u.avatarUrl)
+                          ? <img src={resolveAvatarUrl(u.avatarUrl)} alt="" />
+                          : u.username.charAt(0).toUpperCase()
+                        }
+                      </span>
+                      @{u.username}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -251,6 +341,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
   const [posting, setPosting] = useState(false);
   const [tab, setTab] = useState('feed');
   const [showTemplates, setShowTemplates] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
   const [dismissedBanner, setDismissedBanner] = useState(() =>
     localStorage.getItem('ramadan_banner_dismissed') === '1'
   );
@@ -262,6 +353,9 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     return day % MUSLIM_QUOTES.length;
   });
 
+  const tweetRef = useRef(null);
+  const mentions = useMentions(allUsers, user);
+
   const loadData = async () => {
     try {
       const [tw, cp] = await Promise.all([DB.getTweets(), DB.getCommunityProjects()]);
@@ -272,11 +366,28 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+    DB.getUsers().then(setAllUsers).catch(() => {});
+  }, []);
+
+  const handleTweetChange = (e) => {
+    const val = e.target.value.slice(0, 280);
+    setTweetBody(val);
+    mentions.detectMention(val, e.target.selectionStart);
+  };
+
+  const handleMentionSelect = (username) => {
+    const cursor = tweetRef.current?.selectionStart || tweetBody.length;
+    const newVal = mentions.insertMention(username, tweetBody, cursor);
+    setTweetBody(newVal.slice(0, 280));
+    tweetRef.current?.focus();
+  };
 
   const handlePost = async () => {
     if (!tweetBody.trim() || posting) return;
     setPosting(true);
+    mentions.setShowMentions(false);
     try {
       await DB.postTweet(tweetBody.trim());
       setTweetBody('');
@@ -451,14 +562,33 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                 : user?.username?.charAt(0).toUpperCase()
               }
             </div>
-            <div className="tweet-compose-body">
+            <div className="tweet-compose-body" style={{ position: 'relative' }}>
               <textarea
+                ref={tweetRef}
                 className="form-textarea tweet-textarea"
-                placeholder="What's on your mind? (280 chars max)"
+                placeholder="What's on your mind? Type @ to tag someone (280 chars max)"
                 value={tweetBody}
-                onChange={(e) => setTweetBody(e.target.value.slice(0, 280))}
+                onChange={handleTweetChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey && !mentions.showMentions) handlePost();
+                }}
                 rows={2}
               />
+              {mentions.showMentions && mentions.filteredUsers.length > 0 && (
+                <div className="mention-dropdown">
+                  {mentions.filteredUsers.map((u) => (
+                    <button key={u.id} className="mention-option" onClick={() => handleMentionSelect(u.username)}>
+                      <span className="mention-option-avatar">
+                        {resolveAvatarUrl(u.avatarUrl)
+                          ? <img src={resolveAvatarUrl(u.avatarUrl)} alt="" />
+                          : u.username.charAt(0).toUpperCase()
+                        }
+                      </span>
+                      @{u.username}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="tweet-compose-footer">
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <button
@@ -504,6 +634,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                 key={tw.id}
                 tw={tw}
                 user={user}
+                allUsers={allUsers}
                 onDelete={handleDeleteTweet}
                 onEdit={handleEditTweet}
                 onReact={handleReact}

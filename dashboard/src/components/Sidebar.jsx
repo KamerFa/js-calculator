@@ -79,13 +79,25 @@ function IconChevron({ open }) {
 const TYPE_ICONS = {
   tweet_reaction: '\u2764\uFE0F',
   tweet_comment: '\uD83D\uDCAC',
-  task_created: '\u2795',
-  task_completed: '\u2705',
-  task_status: '\uD83D\uDD04',
-  project_join: '\uD83D\uDC4B',
-  project_leave: '\uD83D\uDEAA',
-  project_invite: '\uD83D\uDCE8',
-  project_removed: '\u274C',
+  task_created: '\u2728',
+  task_completed: '\uD83C\uDF1F',
+  task_status: '\uD83C\uDF3F',
+  project_join: '\uD83C\uDF3B',
+  project_leave: '\uD83C\uDF43',
+  project_invite: '\uD83D\uDC8C',
+  project_removed: '\uD83C\uDF42',
+};
+
+const TYPE_LABELS = {
+  tweet_reaction: 'Someone liked your tweet',
+  tweet_comment: 'New comment on your tweet',
+  task_created: 'New task added',
+  task_completed: 'Task completed',
+  task_status: 'Task updated',
+  project_join: 'Someone joined',
+  project_leave: 'Someone left',
+  project_invite: 'You were invited',
+  project_removed: 'Removed from project',
 };
 
 function timeAgo(iso) {
@@ -356,11 +368,14 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
           <div className="sidebar-notif-list">
             {unreadCount > 0 && (
               <button className="sidebar-notif-mark-all" onClick={handleMarkAllRead}>
-                Mark all read
+                Clear all
               </button>
             )}
             {notifications.length === 0 && (
-              <div className="sidebar-notif-empty">No notifications yet</div>
+              <div className="sidebar-notif-empty">
+                <span className="sidebar-notif-empty-icon">{'\uD83C\uDF3F'}</span>
+                <span>All caught up. Enjoy the calm.</span>
+              </div>
             )}
             {notifications.slice(0, 20).map((n) => (
               <div
@@ -369,7 +384,7 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
                 onClick={() => handleNotificationClick(n)}
               >
                 <span className="sidebar-notif-icon">
-                  {TYPE_ICONS[n.type] || '\uD83D\uDD14'}
+                  {TYPE_ICONS[n.type] || '\uD83C\uDF3F'}
                 </span>
                 <div className="sidebar-notif-body">
                   <span className="sidebar-notif-summary">{n.summary}</span>

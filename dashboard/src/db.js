@@ -180,6 +180,11 @@ const DB = {
     return api('/projects/import', { method: 'POST', body: JSON.stringify(data) });
   },
 
+  // ── Users ─────────────────────────────────────────────────
+  async getUsers() {
+    return api('/users');
+  },
+
   // ── Comment voting ────────────────────────────────────────
   async voteComment(commentId, vote) {
     return api(`/tweets/comments/${commentId}/vote`, {
