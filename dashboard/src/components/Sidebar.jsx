@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
@@ -98,9 +99,18 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-export default function Sidebar({ view, currentProjectId, projects, tasks, user, onNavigate, onNavigateProject, onNewProject, onImportProject, onLogout, mobileOpen, onCloseMobile }) {
+export default function Sidebar({ projects, tasks, user, onNewProject, onImportProject, onLogout, mobileOpen, onCloseMobile }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
+
+  // Derive current view and project id from URL
+  const pathname = location.pathname;
+  const view = pathname === '/' ? 'tasks'
+    : pathname.startsWith('/project/') ? 'project'
+    : pathname.slice(1).split('/')[0] || 'tasks';
+  const currentProjectId = pathname.startsWith('/project/') ? pathname.split('/')[2] : null;
 
   // Accordion state
   const [accordionOpen, setAccordionOpen] = useState(() => {
@@ -169,18 +179,19 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
       setUnreadCount((c) => Math.max(0, c - 1));
     }
     if (notif.targetType === 'tweet') {
-      nav('community');
+      nav('/community');
     } else if (notif.targetType === 'project') {
       navProject(notif.targetId);
     } else if (notif.targetType === 'task') {
-      nav('tasks');
+      nav('/');
     }
   };
 
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(
-    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+    typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)
   );
   useEffect(() => {
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
@@ -201,13 +212,13 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
     }
   };
 
-  const nav = (v) => {
-    onNavigate(v);
+  const nav = (path) => {
+    navigate(path);
     if (onCloseMobile) onCloseMobile();
   };
 
   const navProject = (id) => {
-    onNavigateProject(id);
+    navigate(`/project/${id}`);
     if (onCloseMobile) onCloseMobile();
   };
 
@@ -229,9 +240,9 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
           <ul className="sidebar-nav">
             <li>
               <a
-                href="#"
+                href="/"
                 className={view === 'tasks' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('tasks'); }}
+                onClick={(e) => { e.preventDefault(); nav('/'); }}
               >
                 <IconCheck />
                 {t('tasks.allTasks')}
@@ -239,9 +250,9 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             </li>
             <li>
               <a
-                href="#"
+                href="/calendar"
                 className={view === 'calendar' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('calendar'); }}
+                onClick={(e) => { e.preventDefault(); nav('/calendar'); }}
               >
                 <IconCalendar />
                 {t('sidebar.calendar')}
@@ -249,9 +260,9 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             </li>
             <li>
               <a
-                href="#"
+                href="/notes"
                 className={view === 'notes' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('notes'); }}
+                onClick={(e) => { e.preventDefault(); nav('/notes'); }}
               >
                 <IconFile />
                 {t('sidebar.notes')}
@@ -259,9 +270,9 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             </li>
             <li>
               <a
-                href="#"
+                href="/community"
                 className={view === 'community' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('community'); }}
+                onClick={(e) => { e.preventDefault(); nav('/community'); }}
               >
                 <IconCommunity />
                 {t('sidebar.community')}
@@ -269,9 +280,9 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             </li>
             <li>
               <a
-                href="#"
+                href="/users"
                 className={view === 'users' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('users'); }}
+                onClick={(e) => { e.preventDefault(); nav('/users'); }}
               >
                 <IconUsers />
                 {t('community.users')}
@@ -279,9 +290,9 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
             </li>
             <li>
               <a
-                href="#"
+                href="/radio"
                 className={view === 'radio' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('radio'); }}
+                onClick={(e) => { e.preventDefault(); nav('/radio'); }}
               >
                 <IconRadio />
                 Radio
@@ -377,7 +388,7 @@ export default function Sidebar({ view, currentProjectId, projects, tasks, user,
 
         {user && (
           <div className="user-menu">
-            <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => nav('profile')}>
+            <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => nav('/profile')}>
               {resolveAvatarUrl(user.avatarUrl) ? (
                 <img src={resolveAvatarUrl(user.avatarUrl)} alt="" className="user-menu-avatar" />
               ) : (
