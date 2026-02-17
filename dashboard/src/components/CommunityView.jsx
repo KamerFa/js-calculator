@@ -197,6 +197,9 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
   const [posting, setPosting] = useState(false);
   const [tab, setTab] = useState('feed');
   const [showTemplates, setShowTemplates] = useState(false);
+  const [dismissedBanner, setDismissedBanner] = useState(() =>
+    localStorage.getItem('ramadan_banner_dismissed') === '1'
+  );
 
   const loadData = async () => {
     const [tw, cp] = await Promise.all([DB.getTweets(), DB.getCommunityProjects()]);
@@ -255,6 +258,13 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     if (onReload) onReload();
   };
 
+  const ramadanProject = projects.find((p) => p.isGlobal);
+
+  const dismissBanner = () => {
+    setDismissedBanner(true);
+    localStorage.setItem('ramadan_banner_dismissed', '1');
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -265,6 +275,31 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           </div>
         </div>
       </div>
+
+      {/* Ramadan Banner */}
+      {ramadanProject && !dismissedBanner && (
+        <div className="ramadan-banner">
+          <button className="ramadan-banner-close" onClick={dismissBanner}>&times;</button>
+          <div className="ramadan-banner-icon">&#9770;</div>
+          <div className="ramadan-banner-content">
+            <h3>Ramadan Mubarak! Join {ramadanProject.memberCount} others tracking their ibadah</h3>
+            <p className="ramadan-quote">
+              "To seek trouble - this is not courage, this is madness. Courage is the willingness of man to sensibly face the troubles he cannot avoid."
+              <span className="ramadan-quote-author"> - Alija Izetbegovic</span>
+            </p>
+            <p className="ramadan-subtitle">
+              ...and skipping Suhoor is definitely seeking trouble. Don't be that person.
+            </p>
+            {!ramadanProject.isMember ? (
+              <button className="btn btn-primary btn-sm" onClick={() => handleJoin(ramadanProject.id)}>
+                Join Ramadan
+              </button>
+            ) : (
+              <span className="ramadan-joined-tag">You're in! MashAllah</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="filter-bar">
