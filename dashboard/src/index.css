@@ -3489,7 +3489,6 @@ body {
   height: 88px;
   flex-shrink: 0;
   border-radius: 50%;
-  overflow: hidden;
   cursor: pointer;
 }
 
@@ -3525,6 +3524,8 @@ body {
   padding: 3px 0;
   opacity: 0;
   transition: opacity 0.15s;
+  border-radius: 0 0 44px 44px;
+  overflow: hidden;
 }
 
 .profile-avatar-wrapper:hover .profile-avatar-edit {
@@ -4037,8 +4038,6 @@ body {
 .user-card-avatar {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -4046,6 +4045,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .avatar-placeholder {
@@ -4058,6 +4058,7 @@ body {
   justify-content: center;
   font-size: 24px;
   font-weight: 600;
+  border-radius: 50%;
 }
 
 .user-card-info {
@@ -5878,6 +5879,7 @@ body {
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .avatar-with-status img,

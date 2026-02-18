@@ -88,7 +88,18 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status_emoji TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status_text TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS show_online_status BOOLEAN NOT NULL DEFAULT true`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT '1970-01-01T00:00:00Z'`);
+  await pool.query(`ALTER TABLE users ALTER COLUMN last_active_at SET DEFAULT '1970-01-01T00:00:00Z'`);
+  // One-time fix: if ALL users have nearly identical last_active_at (from old DEFAULT NOW() migration),
+  // reset them so inactive users correctly show as offline.
+  const { rows: [{ all_same }] } = await pool.query(
+    `SELECT (MAX(last_active_at) - MIN(last_active_at) < INTERVAL '2 minutes')
+       AND MIN(last_active_at) > '2020-01-01' AS all_same
+     FROM users`
+  );
+  if (all_same) {
+    await pool.query(`UPDATE users SET last_active_at = '1970-01-01T00:00:00Z'`);
+  }
 
   // Tweet reactions & comments
   await pool.query(`
