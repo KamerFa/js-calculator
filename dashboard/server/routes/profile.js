@@ -7,7 +7,9 @@ const router = Router();
 // ── GET own profile ──────────────────────────────────────────
 router.get('/me', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, username, bio, avatar_url, music_service, music_username, show_projects_on_profile, nickname, created_at
+    `SELECT id, username, bio, avatar_url, music_service, music_username,
+            show_projects_on_profile, nickname, created_at,
+            presence, status_emoji, status_text, show_online_status
      FROM users WHERE id = $1`,
     [req.userId]
   );
@@ -19,13 +21,35 @@ router.get('/me', async (req, res) => {
     musicUsername: u.music_username, createdAt: u.created_at,
     showProjectsOnProfile: u.show_projects_on_profile,
     nickname: u.nickname || null,
+    presence: u.presence || 'active',
+    statusEmoji: u.status_emoji || null,
+    statusText: u.status_text || null,
+    showOnlineStatus: u.show_online_status !== false,
   });
+});
+
+// ── PUT update status (presence + custom status) ─────────────
+router.put('/status', async (req, res) => {
+  const { presence, statusEmoji, statusText } = req.body;
+  const validPresence = ['active', 'away', 'dnd', 'offline'];
+  await pool.query(
+    `UPDATE users SET presence = $1, status_emoji = $2, status_text = $3 WHERE id = $4`,
+    [
+      validPresence.includes(presence) ? presence : 'active',
+      statusEmoji ? String(statusEmoji).slice(0, 4) : null,
+      statusText ? String(statusText).slice(0, 80) : null,
+      req.userId,
+    ]
+  );
+  res.json({ ok: true });
 });
 
 // ── GET public profile by username ───────────────────────────
 router.get('/user/:username', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, username, bio, avatar_url, music_service, music_username, show_projects_on_profile, nickname, created_at
+    `SELECT id, username, bio, avatar_url, music_service, music_username,
+            show_projects_on_profile, nickname, created_at,
+            presence, status_emoji, status_text, show_online_status
      FROM users WHERE LOWER(username) = LOWER($1)`,
     [req.params.username]
   );
@@ -63,6 +87,9 @@ router.get('/user/:username', async (req, res) => {
     nickname: u.nickname || null,
     myNickname,
     friendStatus,
+    presence: u.show_online_status !== false ? (u.presence || 'active') : 'offline',
+    statusEmoji: u.status_emoji || null,
+    statusText: u.status_text || null,
   });
 });
 
@@ -122,7 +149,7 @@ router.get('/user/:username/projects', async (req, res) => {
 
 // ── PUT update profile ───────────────────────────────────────
 router.put('/me', async (req, res) => {
-  const { bio, musicService, musicUsername, avatarUrl, showProjectsOnProfile, nickname } = req.body;
+  const { bio, musicService, musicUsername, avatarUrl, showProjectsOnProfile, nickname, showOnlineStatus } = req.body;
   const fields = [
     'bio = $1', 'music_service = $2', 'music_username = $3'
   ];
@@ -145,6 +172,11 @@ router.put('/me', async (req, res) => {
   if (nickname !== undefined) {
     fields.push(`nickname = $${values.length + 1}`);
     values.push(nickname ? nickname.slice(0, 30) : null);
+  }
+
+  if (showOnlineStatus !== undefined) {
+    fields.push(`show_online_status = $${values.length + 1}`);
+    values.push(showOnlineStatus ? true : false);
   }
 
   values.push(req.userId);

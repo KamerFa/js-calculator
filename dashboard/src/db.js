@@ -285,6 +285,11 @@ const DB = {
     return api(`/comments/${commentId}`, { method: 'DELETE' });
   },
 
+  // ── User Status ─────────────────────────────────────────────
+  async updateStatus(data) {
+    return api('/profile/status', { method: 'PUT', body: JSON.stringify(data) });
+  },
+
   // ── Radio station reports ──────────────────────────────────
   async getStationReports() {
     return api('/radio/reports');
@@ -292,6 +297,19 @@ const DB = {
 
   async reportStation(stationId) {
     return api(`/radio/report/${stationId}`, { method: 'POST' });
+  },
+
+  // ── Radio listening status ──────────────────────────────────
+  async updateListening(stationId) {
+    return api('/radio/listening', { method: 'PUT', body: JSON.stringify({ stationId }) });
+  },
+
+  async stopListening() {
+    return api('/radio/listening', { method: 'DELETE' });
+  },
+
+  async getListeners() {
+    return api('/radio/listeners');
   },
 };
 

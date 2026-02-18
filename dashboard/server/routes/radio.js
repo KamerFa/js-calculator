@@ -56,4 +56,71 @@ router.post('/report/:stationId', async (req, res) => {
   });
 });
 
+// PUT /api/radio/listening — update what station the user is listening to
+router.put('/listening', async (req, res) => {
+  const { stationId } = req.body;
+  if (!stationId) {
+    // Clear listening status
+    await pool.query('DELETE FROM radio_listeners WHERE user_id = $1', [req.userId]);
+    return res.json({ ok: true });
+  }
+  await pool.query(
+    `INSERT INTO radio_listeners (user_id, station_id, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (user_id) DO UPDATE SET station_id = $2, updated_at = NOW()`,
+    [req.userId, stationId]
+  );
+  res.json({ ok: true });
+});
+
+// DELETE /api/radio/listening — stop listening
+router.delete('/listening', async (req, res) => {
+  await pool.query('DELETE FROM radio_listeners WHERE user_id = $1', [req.userId]);
+  res.json({ ok: true });
+});
+
+// GET /api/radio/listeners — who's listening right now (last 5 minutes)
+router.get('/listeners', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT rl.station_id, rl.updated_at,
+            u.id AS user_id, u.username, u.avatar_url,
+            u.status_emoji, u.presence
+     FROM radio_listeners rl
+     JOIN users u ON u.id = rl.user_id
+     WHERE rl.updated_at > NOW() - INTERVAL '5 minutes'
+       AND rl.user_id != $1
+     ORDER BY rl.updated_at DESC`,
+    [req.userId]
+  );
+
+  // Get user's accepted friends
+  const { rows: friends } = await pool.query(
+    `SELECT CASE WHEN user_id = $1 THEN friend_id ELSE user_id END AS fid
+     FROM friendships
+     WHERE (user_id = $1 OR friend_id = $1) AND status = 'accepted'`,
+    [req.userId]
+  );
+  const friendIds = new Set(friends.map((f) => f.fid));
+
+  const others = [];
+  const ahbabi = [];
+  for (const r of rows) {
+    const listener = {
+      userId: r.user_id,
+      username: r.username,
+      avatarUrl: r.avatar_url,
+      statusEmoji: r.status_emoji,
+      presence: r.presence,
+      stationId: r.station_id,
+    };
+    if (friendIds.has(r.user_id)) {
+      ahbabi.push(listener);
+    } else {
+      others.push(listener);
+    }
+  }
+
+  res.json({ others, ahbabi });
+});
+
 export default router;

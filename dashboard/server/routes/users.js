@@ -17,6 +17,7 @@ router.get('/', async (req, res) => {
 
     const { rows: users } = await pool.query(
       `SELECT u.id, u.username, u.avatar_url, u.created_at,
+              u.presence, u.status_emoji, u.show_online_status,
               (SELECT COUNT(*) FROM tasks WHERE user_id = u.id AND status = 'done') as tasks_completed,
               (SELECT COUNT(*) FROM projects WHERE user_id = u.id) as projects_owned
        FROM users u
@@ -29,7 +30,9 @@ router.get('/', async (req, res) => {
       avatarUrl: u.avatar_url,
       memberSince: u.created_at,
       tasksCompleted: parseInt(u.tasks_completed),
-      projectsOwned: parseInt(u.projects_owned)
+      projectsOwned: parseInt(u.projects_owned),
+      presence: u.show_online_status !== false ? (u.presence || 'active') : 'offline',
+      statusEmoji: u.status_emoji || null,
     })));
   } catch (error) {
     console.error('Error fetching users:', error);

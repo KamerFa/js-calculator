@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from '../i18n';
 import { DB } from '../db';
 import radioAudio from '../radioAudio';
+import StatusDot from './StatusDot';
 
 const PLAYER_POSITION_OPTIONS = [
   { value: 'bottom-right', label: 'Cozy Corner', desc: 'Floating snugly in the bottom-right' },
@@ -26,10 +27,12 @@ export default function SettingsView({ user }) {
   const [showProjectsOnProfile, setShowProjectsOnProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const [playerPosition, setPlayerPosition] = useState(radioAudio.getPlayerPosition());
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
 
   useEffect(() => {
     DB.getProfile().then((p) => {
       setShowProjectsOnProfile(p.showProjectsOnProfile !== false);
+      setShowOnlineStatus(p.showOnlineStatus !== false);
     }).catch(() => {});
   }, []);
 
@@ -135,6 +138,35 @@ export default function SettingsView({ user }) {
             </div>
             <label className="toggle-row" onClick={handleToggleProjects}>
               <span className={`toggle-switch${showProjectsOnProfile ? ' on' : ''}`}>
+                <span className="toggle-knob" />
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3 className="settings-section-title">Online Status</h3>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-info">
+              <span className="settings-row-label">
+                <StatusDot presence="active" size={10} style={{ marginRight: 6 }} />
+                Show online status
+              </span>
+              <span className="settings-row-desc">
+                {showOnlineStatus
+                  ? 'Others can see when you\'re active'
+                  : 'Your online status is hidden from others'}
+              </span>
+            </div>
+            <label className="toggle-row" onClick={async () => {
+              const next = !showOnlineStatus;
+              setShowOnlineStatus(next);
+              setSaving(true);
+              try { await DB.updateProfile({ showOnlineStatus: next }); } finally { setSaving(false); }
+            }}>
+              <span className={`toggle-switch${showOnlineStatus ? ' on' : ''}`}>
                 <span className="toggle-knob" />
               </span>
             </label>

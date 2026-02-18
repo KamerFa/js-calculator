@@ -3,6 +3,7 @@ import { DB } from '../db';
 import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
+import StatusDot from './StatusDot';
 
 const REACTION_EMOJIS = [
   '\u2764\uFE0F', // red heart
@@ -105,11 +106,12 @@ function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, o
 
   return (
     <div className="tweet-card">
-      <div className="tweet-avatar" onClick={() => onUserClick(tw.username)} style={{ cursor: 'pointer' }}>
+      <div className="tweet-avatar avatar-with-status" onClick={() => onUserClick(tw.username)} style={{ cursor: 'pointer' }}>
         {resolveAvatarUrl(tw.avatarUrl)
           ? <img src={resolveAvatarUrl(tw.avatarUrl)} alt="" className="tweet-avatar-img" />
           : tw.username.charAt(0).toUpperCase()
         }
+        <StatusDot presence={tw.presence || 'offline'} size={10} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
       </div>
       <div className="tweet-content">
         <div className="tweet-header">

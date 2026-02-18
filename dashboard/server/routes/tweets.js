@@ -74,6 +74,7 @@ async function enrichTweets(rows) {
     avatarUrl: r.avatar_url || null,
     userId: r.user_id,
     createdAt: r.created_at,
+    presence: r.presence || 'active',
     reactions: reactMap[r.id] || {},
     comments: commentMap[r.id] || [],
   }));
@@ -82,7 +83,7 @@ async function enrichTweets(rows) {
 // ── GET community feed (all tweets, newest first) ─────────
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT t.*, u.username, u.avatar_url
+    `SELECT t.*, u.username, u.avatar_url, u.presence
      FROM tweets t
      JOIN users u ON u.id = t.user_id
      ORDER BY t.created_at DESC
@@ -103,7 +104,7 @@ router.post('/', async (req, res) => {
     [id, req.userId, body.trim()]
   );
   const { rows } = await pool.query(
-    `SELECT t.*, u.username, u.avatar_url FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    `SELECT t.*, u.username, u.avatar_url, u.presence FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
     [id]
   );
   const enriched = await enrichTweets(rows);
@@ -121,7 +122,7 @@ router.put('/:id', async (req, res) => {
     [body.trim(), req.params.id, req.userId]
   );
   const { rows } = await pool.query(
-    `SELECT t.*, u.username, u.avatar_url FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    `SELECT t.*, u.username, u.avatar_url, u.presence FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
     [req.params.id]
   );
   if (rows.length === 0) {

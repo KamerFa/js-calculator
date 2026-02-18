@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import radioAudio from '../radioAudio';
 import { DB } from '../db';
+import { resolveAvatarUrl } from '../avatarUtils';
+import StatusDot from './StatusDot';
 
 const NETWORK_COLORS = {
   'SomaFM': '#2a5caa',
@@ -119,6 +121,38 @@ export default function RadioView() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [playing, isPaused]);
+
+  // ── Social listening: broadcast & fetch who's listening ────
+  const [listeners, setListeners] = useState({ others: [], ahbabi: [] });
+  const broadcastRef = useRef(null);
+
+  // Broadcast current station to server
+  useEffect(() => {
+    if (playing && !isPaused) {
+      DB.updateListening(playing.id).catch(() => {});
+      // Keep-alive: re-broadcast every 2 minutes
+      broadcastRef.current = setInterval(() => {
+        DB.updateListening(playing.id).catch(() => {});
+      }, 120000);
+    } else {
+      DB.stopListening().catch(() => {});
+    }
+    return () => { if (broadcastRef.current) clearInterval(broadcastRef.current); };
+  }, [playing?.id, isPaused]);
+
+  // Fetch listeners every 30s
+  useEffect(() => {
+    const fetchListeners = () => {
+      DB.getListeners().then(setListeners).catch(() => {});
+    };
+    fetchListeners();
+    const interval = setInterval(fetchListeners, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Build station map for quick lookup
+  const stationMap = {};
+  STATIONS.forEach((s) => { stationMap[s.id] = s; });
 
   const reportStation = async (stationId) => {
     try {
@@ -364,6 +398,71 @@ export default function RadioView() {
                 {s.name}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ahbabi slušaju (Friends listening) */}
+      {listeners.ahbabi.length > 0 && (
+        <div className="radio-section">
+          <h3 className="radio-section-label">Ahbabi slušaju</h3>
+          <div className="radio-listeners-row">
+            {listeners.ahbabi.map((l) => {
+              const st = stationMap[l.stationId];
+              return (
+                <button
+                  key={l.userId}
+                  className={`radio-listener-chip${playing?.id === l.stationId ? ' radio-listener-chip-active' : ''}`}
+                  onClick={() => st && play(st)}
+                  title={`${l.username} sluša ${st?.name || l.stationId}`}
+                >
+                  <span className="radio-listener-avatar">
+                    {resolveAvatarUrl(l.avatarUrl) ? (
+                      <img src={resolveAvatarUrl(l.avatarUrl)} alt="" />
+                    ) : (
+                      <span className="radio-listener-avatar-placeholder">{l.username.charAt(0).toUpperCase()}</span>
+                    )}
+                    <StatusDot presence={l.presence || 'active'} size={8} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
+                  </span>
+                  <span className="radio-listener-info">
+                    <span className="radio-listener-name">{l.username} {l.statusEmoji || ''}</span>
+                    <span className="radio-listener-station">{st?.name || l.stationId}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Drugi slušaju (Others listening) */}
+      {listeners.others.length > 0 && (
+        <div className="radio-section">
+          <h3 className="radio-section-label">Drugi slušaju</h3>
+          <div className="radio-listeners-row">
+            {listeners.others.map((l) => {
+              const st = stationMap[l.stationId];
+              return (
+                <button
+                  key={l.userId}
+                  className={`radio-listener-chip${playing?.id === l.stationId ? ' radio-listener-chip-active' : ''}`}
+                  onClick={() => st && play(st)}
+                  title={`${l.username} sluša ${st?.name || l.stationId}`}
+                >
+                  <span className="radio-listener-avatar">
+                    {resolveAvatarUrl(l.avatarUrl) ? (
+                      <img src={resolveAvatarUrl(l.avatarUrl)} alt="" />
+                    ) : (
+                      <span className="radio-listener-avatar-placeholder">{l.username.charAt(0).toUpperCase()}</span>
+                    )}
+                  </span>
+                  <span className="radio-listener-info">
+                    <span className="radio-listener-name">{l.username}</span>
+                    <span className="radio-listener-station">{st?.name || l.stationId}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

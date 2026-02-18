@@ -4,6 +4,9 @@ import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
+import StatusDot, { CustomStatusBadge } from './StatusDot';
+import StatusPicker from './StatusPicker';
+import { DB } from '../db';
 
 function IconCalendar() {
   return (
@@ -89,7 +92,21 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [myStatus, setMyStatus] = useState({ presence: 'active', statusEmoji: null, statusText: null });
   const userMenuRef = useRef(null);
+
+  // Load own status from profile
+  useEffect(() => {
+    if (!user) return;
+    DB.getProfile().then((p) => {
+      setMyStatus({
+        presence: p.presence || 'active',
+        statusEmoji: p.statusEmoji || null,
+        statusText: p.statusText || null,
+      });
+    }).catch(() => {});
+  }, [user]);
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 
   // Derive current view and project id from URL
@@ -304,15 +321,36 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
         {user && (
           <div className="user-menu" ref={userMenuRef}>
             <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => setUserMenuOpen(!userMenuOpen)}>
-              {resolveAvatarUrl(user.avatarUrl) ? (
-                <img src={resolveAvatarUrl(user.avatarUrl)} alt="" className="user-menu-avatar" />
-              ) : (
-                <span className="user-menu-avatar-placeholder">{user.username?.charAt(0).toUpperCase()}</span>
-              )}
-              <span className="user-menu-name">{user.username}</span>
+              <span className="avatar-with-status">
+                {resolveAvatarUrl(user.avatarUrl) ? (
+                  <img src={resolveAvatarUrl(user.avatarUrl)} alt="" className="user-menu-avatar" />
+                ) : (
+                  <span className="user-menu-avatar-placeholder">{user.username?.charAt(0).toUpperCase()}</span>
+                )}
+                <StatusDot presence={myStatus.presence} size={10} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--sidebar-bg, var(--surface))', borderRadius: '50%', boxSizing: 'content-box' }} />
+              </span>
+              <span className="user-menu-name-col">
+                <span className="user-menu-name">{user.username}</span>
+                {(myStatus.statusEmoji || myStatus.statusText) && (
+                  <span className="user-menu-status-text">
+                    {myStatus.statusEmoji} {myStatus.statusText}
+                  </span>
+                )}
+              </span>
             </div>
-            {userMenuOpen && (
+            {userMenuOpen && !statusPickerOpen && (
               <div className="user-menu-popup">
+                <button
+                  className="user-menu-popup-item"
+                  onClick={() => { setStatusPickerOpen(true); }}
+                >
+                  <StatusDot presence={myStatus.presence} size={10} />
+                  {myStatus.statusEmoji || myStatus.statusText
+                    ? <span>{myStatus.statusEmoji} {myStatus.statusText}</span>
+                    : <span>Set a status</span>
+                  }
+                </button>
+                <div className="user-menu-popup-divider" />
                 <button className="user-menu-popup-item" onClick={() => { nav('/profile'); setUserMenuOpen(false); }}>
                   <IconUser /> {t('profile.title')}
                 </button>
@@ -324,6 +362,14 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
                   <IconLogout /> {t('auth.logout')}
                 </button>
               </div>
+            )}
+            {statusPickerOpen && (
+              <StatusPicker
+                currentPresence={myStatus.presence}
+                currentStatus={{ emoji: myStatus.statusEmoji, text: myStatus.statusText }}
+                onUpdate={(s) => { setMyStatus(s); setStatusPickerOpen(false); setUserMenuOpen(false); }}
+                onClose={() => { setStatusPickerOpen(false); }}
+              />
             )}
           </div>
         )}

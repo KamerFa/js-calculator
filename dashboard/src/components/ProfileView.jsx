@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
+import StatusDot from './StatusDot';
 import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
 import { IconUsers, IconPlus } from './Icons';
 import AvatarPicker from './AvatarPicker';
@@ -242,6 +243,11 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
                 {profile.username.charAt(0).toUpperCase()}
               </div>
             )}
+            <StatusDot
+              presence={profile.presence || 'offline'}
+              size={18}
+              style={{ position: 'absolute', bottom: 2, right: 2, border: '3px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }}
+            />
             {isOwn && <span className="profile-avatar-edit">{t('modal.edit')}</span>}
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
           </div>
@@ -251,6 +257,12 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
               @{profile.username}
               {profile.nickname && <span className="profile-nickname"> ({profile.nickname})</span>}
             </h2>
+            {(profile.statusEmoji || profile.statusText) && (
+              <p className="profile-custom-status">
+                {profile.statusEmoji && <span>{profile.statusEmoji}</span>}
+                {profile.statusText && <span>{profile.statusText}</span>}
+              </p>
+            )}
             <p className="profile-joined">{t('profile.memberSince')} {memberSince}</p>
             {profile.musicService && (
               <MusicBadge service={profile.musicService} username={profile.musicUsername} />

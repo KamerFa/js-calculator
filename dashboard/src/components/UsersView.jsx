@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
+import StatusDot from './StatusDot';
 
 export default function UsersView({ onUserClick }) {
   const { t } = useTranslation();
@@ -53,14 +54,20 @@ export default function UsersView({ onUserClick }) {
         {filteredUsers.map((user) => (
           <div key={user.id} className="user-card" onClick={() => onUserClick(user.username)}>
             <div className="user-card-avatar">
-              {resolveAvatarUrl(user.avatarUrl) ? (
-                <img src={resolveAvatarUrl(user.avatarUrl)} alt={user.username} />
-              ) : (
-                <div className="avatar-placeholder">{user.username.charAt(0).toUpperCase()}</div>
-              )}
+              <span className="avatar-with-status avatar-with-status-lg">
+                {resolveAvatarUrl(user.avatarUrl) ? (
+                  <img src={resolveAvatarUrl(user.avatarUrl)} alt={user.username} />
+                ) : (
+                  <div className="avatar-placeholder">{user.username.charAt(0).toUpperCase()}</div>
+                )}
+                <StatusDot presence={user.presence || 'offline'} size={14} style={{ position: 'absolute', bottom: 0, right: 0, border: '2.5px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
+              </span>
             </div>
             <div className="user-card-info">
-              <h3>{user.username}</h3>
+              <h3>
+                {user.username}
+                {user.statusEmoji && <span className="user-card-status-emoji">{user.statusEmoji}</span>}
+              </h3>
               <div className="user-card-stats">
                 <span>{t('profile.tasksCompleted')}: <strong>{user.tasksCompleted}</strong></span>
                 <span>{t('profile.projectsOwned')}: <strong>{user.projectsOwned}</strong></span>

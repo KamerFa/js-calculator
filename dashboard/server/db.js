@@ -83,6 +83,12 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS music_username TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS show_projects_on_profile BOOLEAN NOT NULL DEFAULT true`);
 
+  // Online status / presence
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS presence TEXT NOT NULL DEFAULT 'active'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status_emoji TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status_text TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS show_online_status BOOLEAN NOT NULL DEFAULT true`);
+
   // Tweet reactions & comments
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tweet_reactions (
@@ -226,6 +232,15 @@ async function initDB() {
     )
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_item_comments_target ON item_comments(target_type, target_id, created_at DESC)`);
+
+  // Radio listeners – track who's currently listening to what
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS radio_listeners (
+      user_id      TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      station_id   TEXT NOT NULL,
+      updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 
   // Radio station broken reports (2 unique reports = auto-hide)
   await pool.query(`
