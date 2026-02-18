@@ -8,6 +8,11 @@ import { json } from "@remix-run/node";
  * If no productId, returns all rental-enabled bikes (with optional date filtering).
  */
 export const loader = async ({ request }) => {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+
   const prisma = (await import("../db.server")).default;
 
   const url = new URL(request.url);
@@ -17,7 +22,7 @@ export const loader = async ({ request }) => {
   const endDate = url.searchParams.get("end");
 
   if (!shop) {
-    return json({ error: "shop parameter required" }, { status: 400 });
+    return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
   }
 
   // If a specific product is requested, check its availability

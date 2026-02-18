@@ -1,5 +1,5 @@
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, Link } from "@remix-run/react";
 import { useState, useCallback } from "react";
 import {
   Page,
@@ -219,7 +219,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Dashboard() {
-  const { shopifyProducts, rentalMap, stats, recentBookings } = useLoaderData();
+  const { shopifyProducts, rentalMap, stats, recentBookings, dbError } = useLoaderData();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state !== "idle";
@@ -288,6 +288,65 @@ export default function Dashboard() {
   return (
     <Page title="Bike Reservations">
       <BlockStack gap="500">
+        {dbError && (
+          <Banner title="Database Error" tone="critical">
+            <p>{dbError}</p>
+            <p>Make sure your database is migrated. Run: <code>npx prisma migrate deploy</code></p>
+          </Banner>
+        )}
+
+        {/* Quick Navigation */}
+        <InlineGrid columns={{ xs: 2, sm: 4 }} gap="400">
+          <Link to="/app/bookings" style={{ textDecoration: "none" }}>
+            <Card>
+              <BlockStack gap="200" inlineAlign="center">
+                <Text as="h3" variant="headingSm" alignment="center">
+                  Bookings
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                  View & manage reservations
+                </Text>
+              </BlockStack>
+            </Card>
+          </Link>
+          <Link to="/app/pricing" style={{ textDecoration: "none" }}>
+            <Card>
+              <BlockStack gap="200" inlineAlign="center">
+                <Text as="h3" variant="headingSm" alignment="center">
+                  Pricing
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                  Set rental prices & tiers
+                </Text>
+              </BlockStack>
+            </Card>
+          </Link>
+          <Link to="/app/addons" style={{ textDecoration: "none" }}>
+            <Card>
+              <BlockStack gap="200" inlineAlign="center">
+                <Text as="h3" variant="headingSm" alignment="center">
+                  Add-ons
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                  Manage extras (helmet, GPS)
+                </Text>
+              </BlockStack>
+            </Card>
+          </Link>
+          <Link to="/app/settings" style={{ textDecoration: "none" }}>
+            <Card>
+              <BlockStack gap="200" inlineAlign="center">
+                <Text as="h3" variant="headingSm" alignment="center">
+                  Settings
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                  Business config & notifications
+                </Text>
+              </BlockStack>
+            </Card>
+          </Link>
+        </InlineGrid>
+
         <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
           <Card>
             <BlockStack gap="200">

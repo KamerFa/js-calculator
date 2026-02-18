@@ -6,6 +6,11 @@ import { json } from "@remix-run/node";
  * Also supports bikeId for backwards compatibility.
  */
 export const loader = async ({ request }) => {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+
   const prisma = (await import("../db.server")).default;
   const { getBikeCalendar } = await import("../utils/availability.server");
 
@@ -17,7 +22,7 @@ export const loader = async ({ request }) => {
   const month = parseInt(url.searchParams.get("month") || new Date().getMonth() + 1);
 
   if (!shop) {
-    return json({ error: "shop parameter required" }, { status: 400 });
+    return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
   }
 
   // Resolve internal bikeId from productId if needed
