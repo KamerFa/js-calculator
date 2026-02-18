@@ -1,12 +1,13 @@
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
-import { calculatePrice } from "../utils/pricing.server";
 
 /**
  * Public API: Get pricing for a bike and date range
  * GET /api/pricing?shop=xxx&bikeId=xxx&start=2024-06-01&end=2024-06-03
  */
 export const loader = async ({ request }) => {
+  const prisma = (await import("../db.server")).default;
+  const { calculatePrice } = await import("../utils/pricing.server");
+
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
   const bikeId = url.searchParams.get("bikeId");

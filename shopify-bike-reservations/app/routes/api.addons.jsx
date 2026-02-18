@@ -1,11 +1,12 @@
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
 
 /**
  * Public API: Get available add-ons
  * GET /api/addons?shop=xxx
  */
 export const loader = async ({ request }) => {
+  const prisma = (await import("../db.server")).default;
+
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
 

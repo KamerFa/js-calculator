@@ -1,12 +1,13 @@
 import { json } from "@remix-run/node";
-import { getBikeCalendar } from "../utils/availability.server";
-import prisma from "../db.server";
 
 /**
  * Public API: Get availability calendar for a bike
  * GET /api/availability?shop=xxx&bikeId=xxx&year=2024&month=6
  */
 export const loader = async ({ request }) => {
+  const prisma = (await import("../db.server")).default;
+  const { getBikeCalendar } = await import("../utils/availability.server");
+
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
   const bikeId = url.searchParams.get("bikeId");

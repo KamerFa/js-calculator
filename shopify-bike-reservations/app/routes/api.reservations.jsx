@@ -1,9 +1,4 @@
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
-import { calculatePrice, calculateAddonTotal } from "../utils/pricing.server";
-import { isBikeAvailable } from "../utils/availability.server";
-import { generateConfirmationCode } from "../utils/confirmation.server";
-import { notifyNewReservation } from "../utils/notifications.server";
 
 /**
  * Public API: Create a reservation
@@ -19,6 +14,12 @@ export const action = async ({ request }) => {
   }
 
   try {
+    const prisma = (await import("../db.server")).default;
+    const { calculatePrice } = await import("../utils/pricing.server");
+    const { isBikeAvailable } = await import("../utils/availability.server");
+    const { generateConfirmationCode } = await import("../utils/confirmation.server");
+    const { notifyNewReservation } = await import("../utils/notifications.server");
+
     const body = await request.json();
     const {
       shop, bikeId, startDate, endDate,
@@ -188,6 +189,8 @@ export const loader = async ({ request }) => {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
+
+  const prisma = (await import("../db.server")).default;
 
   // GET: Look up a reservation by confirmation code
   const url = new URL(request.url);
