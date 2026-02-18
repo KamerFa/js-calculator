@@ -18,6 +18,7 @@ import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import UsersPage from './pages/UsersPage';
 import RadioPage from './pages/RadioPage';
+import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
 
 // ── Radio mini player ────────────────────────────────────
@@ -279,6 +280,7 @@ export default function App() {
           <Route path="community" element={<CommunityPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="radio" element={<RadioPage />} />
+          <Route path="news" element={<NewsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:username" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />

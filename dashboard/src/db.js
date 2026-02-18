@@ -311,6 +311,19 @@ const DB = {
   async getListeners() {
     return api('/radio/listeners');
   },
+
+  // ── News ────────────────────────────────────────────────────
+  async getNews(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.source) qs.set('source', params.source);
+    if (params.category) qs.set('category', params.category);
+    const q = qs.toString();
+    return api(`/news${q ? `?${q}` : ''}`);
+  },
+
+  async getNewsSources() {
+    return api('/news/sources');
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

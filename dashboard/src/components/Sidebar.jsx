@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
@@ -265,6 +265,16 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
               >
                 <IconRadio />
                 Radio
+              </a>
+            </li>
+            <li>
+              <a
+                href="/news"
+                className={view === 'news' ? 'active' : ''}
+                onClick={(e) => { e.preventDefault(); nav('/news'); }}
+              >
+                <IconNews />
+                News
               </a>
             </li>
           </ul>
