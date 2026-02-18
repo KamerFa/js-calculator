@@ -68,6 +68,73 @@ const STATIONS = [
 
   // Special
   { id: 'naxi-kids', name: 'Naxi Kids', genre: 'Kids', network: 'Naxi', url: 'https://naxidigital-kids128.streaming.rs:8052/;', desc: 'Music and fun for the little ones' },
+
+  // ── BiG Radio (Bosnia) ──────────────────────────────────
+  { id: 'big1', name: 'BiG 1', genre: 'Pop', network: 'BiG', url: 'http://big1.bigportal.ba:8100/big1', desc: 'BiG Radio main channel' },
+  { id: 'big2', name: 'BiG 2', genre: 'Pop', network: 'BiG', url: 'http://big2.bigportal.ba:8100/big2', desc: 'BiG Radio second channel' },
+  { id: 'big3', name: 'BiG 3', genre: 'Pop', network: 'BiG', url: 'http://big3.bigportal.ba:8100/big3', desc: 'BiG Radio third channel' },
+  { id: 'big4', name: 'BiG 4', genre: 'Pop', network: 'BiG', url: 'http://domacica.bigportal.ba:8100/domacica', desc: 'BiG Radio fourth channel' },
+  { id: 'big-house', name: 'BiG House', genre: 'House', network: 'BiG', url: 'http://188.124.211.103:8100/house', desc: 'BiG house music' },
+  { id: 'big-lounge', name: 'BiG Lounge Cafee', genre: 'Lounge', network: 'BiG', url: 'http://188.124.211.103:8100/lounge', desc: 'BiG lounge & cafe vibes' },
+  { id: 'big-folk', name: 'BiG Folk', genre: 'Folk', network: 'BiG', url: 'http://big-folk.bigportal.ba:8100/folk', desc: 'BiG folk music' },
+
+  // ── Soundset (Bosnia) ───────────────────────────────────
+  { id: 'soundset-visoko', name: 'Soundset Visoko', genre: 'Pop', network: 'Soundset', url: 'http://50.7.77.114:8057/', desc: 'Soundset Visoko' },
+  { id: 'soundset-zenica', name: 'Soundset Zenica', genre: 'Pop', network: 'Soundset', url: 'http://50.7.77.114:8059/', desc: 'Soundset Zenica' },
+  { id: 'soundset-bl', name: 'Soundset Banja Luka', genre: 'Pop', network: 'Soundset', url: 'http://50.7.77.114:8061/', desc: 'Soundset Banja Luka' },
+  { id: 'soundset-sarajevo', name: 'Soundset Sarajevo', genre: 'Pop', network: 'Soundset', url: 'http://50.7.77.114:8063/', desc: 'Soundset Sarajevo' },
+  { id: 'soundset-mostar', name: 'Soundset Mostar', genre: 'Pop', network: 'Soundset', url: 'http://50.7.77.114:8065/', desc: 'Soundset Mostar' },
+
+  // ── Radio M (Bosnia) ────────────────────────────────────
+  { id: 'radiom-cafe', name: 'Radio M Cafee', genre: 'Cafe', network: 'Radio M', url: 'http://206.190.135.28:8037/', desc: 'Radio M cafe channel' },
+  { id: 'radiom-prvi', name: 'Radio M Prvi', genre: 'Pop', network: 'Radio M', url: 'http://195.222.33.217:8026/', desc: 'Radio M first program' },
+  { id: 'radiom-drugi', name: 'Radio M Drugi', genre: 'Pop', network: 'Radio M', url: 'http://mobile.ba:23500/', desc: 'Radio M second program' },
+  { id: 'radiom-folk', name: 'Radio M Folk', genre: 'Folk', network: 'Radio M', url: 'http://206.190.135.28:8092/', desc: 'Radio M folk music' },
+
+  // ── TDI Radio (Serbia) ──────────────────────────────────
+  { id: 'tdi', name: 'TDI Radio', genre: 'Pop', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/tdiradio', desc: 'TDI main program' },
+  { id: 'tdi-hq', name: 'TDI HQ', genre: 'Pop', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/tdiradio96', desc: 'TDI high quality stream' },
+  { id: 'tdi-alltime', name: 'TDI Alltime', genre: 'Hits', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/alltime', desc: 'All-time greatest hits' },
+  { id: 'tdi-chillout', name: 'TDI Chillout', genre: 'Chill', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/chillout', desc: 'Chill & relax' },
+  { id: 'tdi-classics', name: 'TDI Classics', genre: 'Classics', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/classics', desc: 'Classic hits' },
+  { id: 'tdi-cg', name: 'TDI Crna Gora', genre: 'Pop', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/crnagora', desc: 'TDI Montenegro' },
+  { id: 'tdi-dj', name: 'TDI DJ Akademija', genre: 'Electronic', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/djakademija', desc: 'DJ mixes & electronic' },
+  { id: 'tdi-domacica', name: 'TDI Doma\u0107ica', genre: 'Folk', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/domacica', desc: 'Domestic music' },
+  { id: 'tdi-edm', name: 'TDI EDM', genre: 'Electronic', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/edm', desc: 'Electronic dance music' },
+  { id: 'tdi-house', name: 'TDI House', genre: 'House', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/house', desc: 'House music' },
+  { id: 'tdi-love', name: 'TDI Love', genre: 'Love Songs', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/love', desc: 'Love songs & ballads' },
+  { id: 'tdi-rnb', name: 'TDI RnB', genre: 'R&B', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/rnb', desc: 'R&B and soul' },
+  { id: 'tdi-starogradska', name: 'TDI Starogradska', genre: 'Folk', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/starogradska', desc: 'Traditional old-town music' },
+  { id: 'tdi-top40', name: 'TDI Top 40', genre: 'Pop', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/top40', desc: 'Top 40 hits' },
+  { id: 'tdi-eurodance', name: 'TDI Euro Dance', genre: 'Dance', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/eurodance', desc: 'Euro dance hits' },
+  { id: 'tdi-yudance', name: 'TDI Yu Dance', genre: 'Dance', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/yudance', desc: 'Yu dance music' },
+  { id: 'tdi-kids', name: 'TDI Kids', genre: 'Kids', network: 'TDI', url: 'http://streaming.tdiradio.com:8000/kids', desc: 'Music for kids' },
+
+  // ── B92 / Play (Serbia) ─────────────────────────────────
+  { id: 'b92', name: 'B92', genre: 'Pop', network: 'B92', url: 'http://stream.b92.net:7999/radio-b92.mp3', desc: 'B92 radio Belgrade' },
+  { id: 'play-radio', name: 'Play Radio', genre: 'Pop', network: 'B92', url: 'http://stream.playradio.rs:8001/play.mp3', desc: 'Play Radio Serbia' },
+
+  // ── Radio 101 (Croatia) ─────────────────────────────────
+  { id: 'radio101', name: 'Radio 101 Zagreb', genre: 'Pop', network: 'Radio 101', url: 'http://live.radio101.hr:7038/;', desc: 'Radio 101 Zagreb' },
+  { id: 'radio101-rock', name: 'Radio 101 Rock', genre: 'Rock', network: 'Radio 101', url: 'http://live.radio101.hr:7005/;', desc: 'Radio 101 Rock Zagreb' },
+
+  // ── Other Regional ──────────────────────────────────────
+  { id: 'antena-zg', name: 'Radio Antena Zagreb', genre: 'Pop', network: 'Other', url: 'http://173.192.137.34:8050/;', desc: 'Radio Antena Zagreb' },
+  { id: 'otvoreni', name: 'Otvoreni Radio', genre: 'Pop', network: 'Other', url: 'http://87.98.250.149:8002/;', desc: 'Otvoreni Radio Croatia' },
+  { id: 'nes', name: 'Nes Radio', genre: 'Pop', network: 'Other', url: 'http://mobile.ba:16500/', desc: 'Nes Radio Bosnia' },
+  { id: 'nes-castra', name: 'Nes Castra', genre: 'Pop', network: 'Other', url: 'http://mobile.ba:17000/', desc: 'Nes Castra Bosnia' },
+  { id: 'radio-as', name: 'Radio AS', genre: 'Pop', network: 'Other', url: 'http://radioas.kbcnet.rs:8045/;', desc: 'Radio AS Serbia' },
+  { id: 'urban-city', name: 'Urban City Radio', genre: 'Electronic', network: 'Other', url: 'http://cp2.striming.info:8216/;', desc: 'Urban City Radio' },
+  { id: 'uno1', name: 'Uno Radio', genre: 'Pop', network: 'Other', url: 'http://stream.btgport.net:8008/unoradiobl.com', desc: 'Uno Radio Banja Luka' },
+  { id: 'kontakt', name: 'Kontakt Radio', genre: 'Pop', network: 'Other', url: 'http://stream.mojkontakt.com:8092/kontaktradio', desc: 'Kontakt Radio' },
+  { id: 'balkan-radio', name: 'Balkan Radio', genre: 'Folk', network: 'Other', url: 'http://176.9.59.144:8038/balkanbl', desc: 'Balkan Radio' },
+  { id: 'radio-srbac', name: 'Radio Srbac', genre: 'Pop', network: 'Other', url: 'http://91.121.195.222:4858/;', desc: 'Radio Srbac' },
+  { id: 'yu-poprock', name: 'YU Pop-Rock', genre: 'Rock', network: 'Other', url: 'http://listen.radionomy.com/yugopoprock', desc: 'Yugoslav pop and rock classics' },
+
+  // ── Classical ───────────────────────────────────────────
+  { id: 'wguc', name: 'WGUC Classical', genre: 'Classical', network: 'Classical', url: 'http://cpr2.streamguys.net/wguc', desc: 'WGUC Cincinnati classical' },
+  { id: 'kmfa', name: 'KMFA Classical', genre: 'Classical', network: 'Classical', url: 'http://pubint.ic.llnwd.net/stream/pubint_kmfa', desc: 'KMFA Austin classical' },
+  { id: 'wcpe', name: 'WCPE Classical', genre: 'Classical', network: 'Classical', url: 'http://audio-ogg.ibiblio.org:8000/wcpe.ogg', desc: 'WCPE TheClassicalStation.org' },
 ];
 
 const audio = new Audio();

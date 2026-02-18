@@ -2463,84 +2463,170 @@ body {
   margin-top: 0;
 }
 
-.radio-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
-}
-
-.radio-card {
+.radio-list {
   display: flex;
-  align-items: center;
-  gap: 0;
-  background: var(--surface);
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  text-align: left;
-  padding: 0;
-  position: relative;
 }
 
-.radio-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+.radio-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-3);
 }
 
-.radio-card-active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
-}
-
-.radio-card-color {
-  width: 5px;
-  align-self: stretch;
+.radio-list-header-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.radio-card-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 14px;
-  min-width: 0;
+.radio-list-header-count {
+  font-weight: 400;
+  opacity: 0.6;
+  margin-left: auto;
 }
 
-.radio-card-name {
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.12s;
+  position: relative;
+  width: 100%;
+}
+
+.radio-row:hover {
+  background: var(--accent-bg);
+}
+
+.radio-row-active {
+  background: var(--accent-bg);
+}
+
+.radio-row-paused {
+  opacity: 0.65;
+}
+
+.radio-row-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.radio-row-name {
   font-weight: 600;
   font-size: 13px;
   color: var(--text);
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.radio-card-action {
-  padding: 0 14px;
+.radio-row-genre {
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.radio-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.radio-row:hover .radio-row-actions {
+  opacity: 1;
+}
+
+.radio-row-play {
   color: var(--text-3);
   flex-shrink: 0;
   transition: color 0.15s;
+  display: flex;
+  align-items: center;
 }
 
-.radio-card:hover .radio-card-action {
+.radio-row:hover .radio-row-play {
   color: var(--accent);
 }
 
-.radio-card-active .radio-card-action {
+.radio-row-active .radio-row-play {
   color: var(--accent);
 }
 
-.radio-card-error {
+.radio-row-error {
   position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 16px;
   font-size: 10px;
   color: var(--danger);
   font-weight: 600;
+}
+
+/* ── Radio: Filter Bar ───────────────────────────── */
+.radio-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.radio-filter-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.radio-filter-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.radio-filter-chip-active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.radio-filter-star {
+  color: #f59e0b;
+  font-size: 11px;
 }
 
 /* ── Now Playing Bar ─────────────────────────────────────── */
@@ -2625,23 +2711,6 @@ body {
   opacity: 0.75;
 }
 
-.radio-card-paused {
-  opacity: 0.7;
-}
-
-.radio-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
-}
-
-.radio-card-network {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
 
 .radio-mini-paused {
   opacity: 0.7;
@@ -2837,48 +2906,7 @@ body {
   color: var(--text);
 }
 
-/* ── Radio: Genre Filter Tabs ───────────────────────── */
-.radio-genre-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 20px;
-}
-
-.radio-genre-tab {
-  padding: 5px 14px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.radio-genre-tab:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
-}
-
-.radio-genre-tab-active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-/* ── Radio: Card Enhancements ───────────────────────── */
-.radio-card-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.radio-card-top .radio-card-name {
-  flex: 1;
-}
-
+/* ── Radio: Row Buttons ───────────────────────────── */
 .radio-fav-btn {
   border: none;
   background: none;
@@ -2898,12 +2926,6 @@ body {
   color: #f59e0b;
 }
 
-.radio-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
 .radio-report-btn {
   border: none;
   background: none;
@@ -2917,11 +2939,6 @@ body {
   gap: 2px;
   font-size: 10px;
   font-family: var(--font-body);
-  opacity: 0;
-}
-
-.radio-card:hover .radio-report-btn {
-  opacity: 1;
 }
 
 .radio-report-btn:hover {
@@ -2931,7 +2948,6 @@ body {
 
 .radio-report-active {
   color: var(--danger);
-  opacity: 1 !important;
 }
 
 .radio-report-active svg {
@@ -2942,24 +2958,6 @@ body {
   font-size: 9px;
   font-weight: 600;
   color: var(--danger);
-}
-
-.radio-card-genre-tag {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.radio-card-desc {
-  font-size: 11px;
-  color: var(--text-3);
-  line-height: 1.3;
-  margin-top: 2px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 /* ── Radio: Recently Played ─────────────────────────── */

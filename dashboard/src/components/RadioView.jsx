@@ -2,43 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import radioAudio from '../radioAudio';
 import { DB } from '../db';
 
-const GENRE_COLORS = {
-  'Chill': '#8b5cf6',
-  'Lounge': '#7c3aed',
-  'Deep House': '#db2777',
-  'Electronic': '#f59e0b',
-  'Progressive': '#b45309',
-  'Ambient': '#0ea5e9',
-  'Hip Hop': '#6366f1',
-  'Soul': '#e11d48',
-  'Indie': '#16a34a',
-  '80s': '#d946ef',
-  'Classic Rock': '#ea580c',
-  'Americana': '#a16207',
-  'Metal': '#dc2626',
-  // Naxi genres
-  'Pop': '#e84393',
-  'Dance': '#e17055',
-  'House': '#00b894',
-  'Club': '#fd79a8',
-  'Cafe': '#a0522d',
-  'Love Songs': '#e84393',
-  'Rock': '#d63031',
-  'Jazz': '#0984e3',
-  'Classical': '#6c5ce7',
-  'Evergreen': '#00b894',
-  'Gold Hits': '#d4a017',
-  'Ex-YU': '#2d3436',
-  'Boem': '#b33939',
-  'R&B': '#6366f1',
-  'Fresh': '#00cec9',
-  'Latino': '#f39c12',
-  'Kids': '#fdcb6e',
-};
-
 const NETWORK_COLORS = {
   'SomaFM': '#2a5caa',
   'Naxi': '#e74c3c',
+  'BiG': '#e67e22',
+  'Soundset': '#27ae60',
+  'Radio M': '#8e44ad',
+  'TDI': '#2980b9',
+  'B92': '#e74c3c',
+  'Radio 101': '#d35400',
+  'Other': '#7f8c8d',
+  'Classical': '#6c5ce7',
 };
 
 const SLEEP_OPTIONS = [
@@ -112,7 +86,6 @@ export default function RadioView() {
   }, []);
 
   // Keyboard shortcuts: Ctrl/Cmd+R then key (chord-style)
-  // Press Ctrl+R to arm, then press the action key within 1.5s
   useEffect(() => {
     let armed = false;
     let armTimer = null;
@@ -121,7 +94,6 @@ export default function RadioView() {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       const mod = isMac ? e.metaKey : e.ctrlKey;
 
-      // Step 1: Ctrl/Cmd + R arms the chord
       if (mod && (e.key === 'r' || e.key === 'R')) {
         e.preventDefault();
         armed = true;
@@ -130,12 +102,10 @@ export default function RadioView() {
         return;
       }
 
-      // Step 2: if armed, handle action keys (no modifier needed)
       if (!armed) return;
       armed = false;
       clearTimeout(armTimer);
 
-      // Space — toggle play/pause
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         if (playing) {
@@ -143,22 +113,18 @@ export default function RadioView() {
           else radioAudio.pause();
         }
       }
-      // ArrowUp — volume up
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         radioAudio.setVolume(Math.min(1, radioAudio.getVolume() + 0.05));
       }
-      // ArrowDown — volume down
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         radioAudio.setVolume(Math.max(0, radioAudio.getVolume() - 0.05));
       }
-      // M — mute/unmute
       if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         radioAudio.setVolume(radioAudio.getVolume() > 0 ? 0 : 0.7);
       }
-      // S — stop
       if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
         if (playing) radioAudio.stop();
@@ -204,57 +170,62 @@ export default function RadioView() {
     return true;
   });
 
-  const StationCard = useCallback(({ s }) => {
+  // Group stations by network for section headers
+  const grouped = [];
+  let lastNetwork = null;
+  filteredStations.forEach((s) => {
+    if (s.network !== lastNetwork) {
+      grouped.push({ type: 'header', network: s.network });
+      lastNetwork = s.network;
+    }
+    grouped.push({ type: 'station', station: s });
+  });
+
+  const StationRow = useCallback(({ s }) => {
     const isFav = radioAudio.isFavorite(s.id);
     const isActive = playing?.id === s.id;
     const isActiveAndPaused = isActive && isPaused;
     const isReported = myReports.includes(s.id);
     const reports = reportCounts[s.id] || 0;
+    const color = NETWORK_COLORS[s.network] || '#2a5caa';
+
     return (
       <button
-        className={`radio-card${isActive ? ' radio-card-active' : ''}${isActiveAndPaused ? ' radio-card-paused' : ''}`}
+        className={`radio-row${isActive ? ' radio-row-active' : ''}${isActiveAndPaused ? ' radio-row-paused' : ''}`}
         onClick={() => play(s)}
         disabled={loading}
       >
-        <div className="radio-card-color" style={{ background: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] || '#2a5caa' }} />
-        <div className="radio-card-body">
-          <div className="radio-card-top">
-            <span className="radio-card-name">{s.name}</span>
-            <span className="radio-card-actions">
-              <button
-                className={`radio-report-btn${isReported ? ' radio-report-active' : ''}`}
-                onClick={(e) => { e.stopPropagation(); reportStation(s.id); }}
-                title={isReported ? `You reported this as broken (${reports} report${reports !== 1 ? 's' : ''})` : 'Report as broken'}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                  <line x1="4" y1="22" x2="4" y2="15" />
-                </svg>
-                {reports > 0 && <span className="radio-report-count">{reports}</span>}
-              </button>
-              <button
-                className={`radio-fav-btn${isFav ? ' radio-fav-active' : ''}`}
-                onClick={(e) => { e.stopPropagation(); radioAudio.toggleFavorite(s.id); }}
-                title={isFav ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                {isFav ? '\u2605' : '\u2606'}
-              </button>
-            </span>
-          </div>
-          <div className="radio-card-meta">
-            {s.network && <span className="radio-card-network" style={{ color: NETWORK_COLORS[s.network] || 'var(--text-3)' }}>{s.network}</span>}
-            <span className="radio-card-genre-tag" style={{ color: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] || '#2a5caa' }}>{s.genre}</span>
-          </div>
-          <span className="radio-card-desc">{s.desc}</span>
-        </div>
-        <div className="radio-card-action">
+        <span className="radio-row-dot" style={{ background: color }} />
+        <span className="radio-row-name">{s.name}</span>
+        <span className="radio-row-genre">{s.genre}</span>
+        <span className="radio-row-actions">
+          <button
+            className={`radio-report-btn${isReported ? ' radio-report-active' : ''}`}
+            onClick={(e) => { e.stopPropagation(); reportStation(s.id); }}
+            title={isReported ? `Reported (${reports})` : 'Report broken'}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+              <line x1="4" y1="22" x2="4" y2="15" />
+            </svg>
+            {reports > 0 && <span className="radio-report-count">{reports}</span>}
+          </button>
+          <button
+            className={`radio-fav-btn${isFav ? ' radio-fav-active' : ''}`}
+            onClick={(e) => { e.stopPropagation(); radioAudio.toggleFavorite(s.id); }}
+            title={isFav ? 'Unfavorite' : 'Favorite'}
+          >
+            {isFav ? '\u2605' : '\u2606'}
+          </button>
+        </span>
+        <span className="radio-row-play">
           {isActive && !isActiveAndPaused ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
           ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
           )}
-        </div>
-        {error === s.id && <span className="radio-card-error">Failed</span>}
+        </span>
+        {error === s.id && <span className="radio-row-error">Failed</span>}
       </button>
     );
   }, [playing, loading, error, favorites, isPaused, myReports, reportCounts]);
@@ -265,10 +236,9 @@ export default function RadioView() {
         <div className="page-header-row">
           <div>
             <h1>Radio</h1>
-            <p className="subtitle">{STATIONS.length} stations across all genres</p>
+            <p className="subtitle">{STATIONS.length} stations</p>
           </div>
           <div className="radio-header-actions">
-            {/* Sleep Timer */}
             <div className="radio-sleep-wrapper">
               <button
                 className={`btn btn-sm radio-sleep-btn${radioAudio.hasSleepTimer() ? ' radio-sleep-active' : ''}`}
@@ -352,7 +322,7 @@ export default function RadioView() {
         </div>
       )}
 
-      {/* Search + Filter */}
+      {/* Search + Network Filters */}
       <div className="radio-toolbar">
         <div className="radio-search">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -361,7 +331,7 @@ export default function RadioView() {
           <input
             type="text"
             className="radio-search-input"
-            placeholder="Search stations..."
+            placeholder="Search stations, genres, networks..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -371,23 +341,21 @@ export default function RadioView() {
         </div>
       </div>
 
-      {/* Network Filter Tabs */}
-      <div className="radio-genre-tabs">
+      <div className="radio-filter-bar">
         {hasFavorites && (
           <button
-            className={`radio-genre-tab${filter === 'favorites' ? ' radio-genre-tab-active' : ''}`}
-            onClick={() => setFilter('favorites')}
-            style={filter === 'favorites' ? { background: 'var(--accent)', color: '#fff' } : {}}
+            className={`radio-filter-chip${filter === 'favorites' ? ' radio-filter-chip-active' : ''}`}
+            onClick={() => setFilter(filter === 'favorites' ? 'all' : 'favorites')}
           >
-            Favorites
+            <span className="radio-filter-star">{'\u2605'}</span> Favorites
           </button>
         )}
         {networks.map((n) => (
           <button
             key={n}
-            className={`radio-genre-tab${filter === n ? ' radio-genre-tab-active' : ''}`}
-            onClick={() => setFilter(n)}
-            style={filter === n && n !== 'all' ? { background: NETWORK_COLORS[n] || 'var(--accent)', color: '#fff' } : {}}
+            className={`radio-filter-chip${filter === n ? ' radio-filter-chip-active' : ''}`}
+            onClick={() => setFilter(filter === n ? 'all' : n)}
+            style={filter === n && n !== 'all' ? { borderColor: NETWORK_COLORS[n] || 'var(--accent)', color: NETWORK_COLORS[n] || 'var(--accent)' } : {}}
           >
             {n === 'all' ? 'All' : n}
           </button>
@@ -404,9 +372,9 @@ export default function RadioView() {
                 key={s.id}
                 className={`radio-recent-chip${playing?.id === s.id ? ' radio-recent-active' : ''}`}
                 onClick={() => play(s)}
-                style={{ borderColor: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] || 'var(--border)' }}
+                style={{ borderColor: NETWORK_COLORS[s.network] || 'var(--border)' }}
               >
-                <span className="radio-recent-dot" style={{ background: GENRE_COLORS[s.genre] || NETWORK_COLORS[s.network] }} />
+                <span className="radio-recent-dot" style={{ background: NETWORK_COLORS[s.network] }} />
                 {s.name}
               </button>
             ))}
@@ -414,15 +382,25 @@ export default function RadioView() {
         </div>
       )}
 
-      {/* Station Grid */}
-      <div className="radio-grid">
+      {/* Station List */}
+      <div className="radio-list">
         {filteredStations.length === 0 && (
-          <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+          <div className="empty-state">
             {filter === 'favorites' ? 'No favorites yet. Click the star on any station!' : 'No stations match your search.'}
           </div>
         )}
-        {filteredStations.map((s) => (
-          <StationCard key={s.id} s={s} />
+        {grouped.map((item, i) => (
+          item.type === 'header' ? (
+            <div key={`h-${item.network}`} className="radio-list-header">
+              <span className="radio-list-header-dot" style={{ background: NETWORK_COLORS[item.network] || '#999' }} />
+              <span>{item.network}</span>
+              <span className="radio-list-header-count">
+                {filteredStations.filter((s) => s.network === item.network).length}
+              </span>
+            </div>
+          ) : (
+            <StationRow key={item.station.id} s={item.station} />
+          )
         ))}
       </div>
     </div>
