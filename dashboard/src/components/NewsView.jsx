@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DB } from '../db';
 
-const CATEGORIES = ['All', 'World', 'Tech', 'Science', 'Sports'];
+const CATEGORIES = ['All', 'World', 'Tech', 'Science', 'Sports', 'Balkan'];
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
@@ -58,6 +58,13 @@ const SOURCE_COLORS = {
   nature: '#2a6496',
   nyt: '#1a1a1a',
   verge: '#712cf9',
+  klix: '#e63c2f',
+  avaz: '#0066b2',
+  oslobodjenje: '#1a6834',
+  n1bih: '#d42127',
+  index_hr: '#ff6100',
+  '24sata': '#e2001a',
+  blic: '#1d4e89',
 };
 
 export default function NewsView() {

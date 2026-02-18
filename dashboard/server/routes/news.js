@@ -4,16 +4,30 @@ const router = Router();
 
 // ── News sources (RSS feeds) ─────────────────────────────────
 const NEWS_SOURCES = [
+  // ── World ───────────────────────────────────────────────────
   { id: 'bbc',        name: 'BBC News',        url: 'https://feeds.bbci.co.uk/news/rss.xml',              category: 'World' },
   { id: 'reuters',    name: 'Reuters',          url: 'https://feeds.reuters.com/reuters/topNews',          category: 'World' },
   { id: 'aljazeera',  name: 'Al Jazeera',       url: 'https://www.aljazeera.com/xml/rss/all.xml',         category: 'World' },
+  { id: 'nyt',        name: 'NY Times',         url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', category: 'World' },
+
+  // ── Tech ────────────────────────────────────────────────────
   { id: 'techcrunch', name: 'TechCrunch',       url: 'https://techcrunch.com/feed/',                      category: 'Tech' },
   { id: 'ars',        name: 'Ars Technica',     url: 'https://feeds.arstechnica.com/arstechnica/index',   category: 'Tech' },
   { id: 'hackernews', name: 'Hacker News',      url: 'https://hnrss.org/frontpage',                       category: 'Tech' },
-  { id: 'espn',       name: 'ESPN',             url: 'https://www.espn.com/espn/rss/news',                category: 'Sports' },
-  { id: 'nature',     name: 'Nature',           url: 'https://www.nature.com/nature.rss',                 category: 'Science' },
-  { id: 'nyt',        name: 'NY Times',         url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', category: 'World' },
   { id: 'verge',      name: 'The Verge',        url: 'https://www.theverge.com/rss/index.xml',            category: 'Tech' },
+
+  // ── Science & Sports ───────────────────────────────────────
+  { id: 'nature',     name: 'Nature',           url: 'https://www.nature.com/nature.rss',                 category: 'Science' },
+  { id: 'espn',       name: 'ESPN',             url: 'https://www.espn.com/espn/rss/news',                category: 'Sports' },
+
+  // ── Balkan / Regional ──────────────────────────────────────
+  { id: 'klix',       name: 'Klix.ba',          url: 'https://www.klix.ba/rss',                           category: 'Balkan' },
+  { id: 'avaz',       name: 'Dnevni Avaz',      url: 'https://avaz.ba/rss',                               category: 'Balkan' },
+  { id: 'oslobodjenje', name: 'Oslobodjenje',   url: 'https://www.oslobodjenje.ba/feed',                  category: 'Balkan' },
+  { id: 'n1bih',      name: 'N1 BiH',           url: 'https://n1info.ba/feed/',                           category: 'Balkan' },
+  { id: 'index_hr',   name: 'Index.hr',         url: 'https://www.index.hr/rss',                          category: 'Balkan' },
+  { id: '24sata',     name: '24sata',            url: 'https://www.24sata.hr/feeds/najnovije.xml',         category: 'Balkan' },
+  { id: 'blic',       name: 'Blic',             url: 'https://www.blic.rs/rss',                           category: 'Balkan' },
 ];
 
 // Simple XML tag extractor (no dependency needed)
