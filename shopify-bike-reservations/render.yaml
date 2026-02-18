@@ -30,8 +30,8 @@ services:
         value: read_products,write_products,read_orders,write_orders,read_draft_orders,write_draft_orders
       - key: SHOPIFY_APP_URL
         sync: false  # set to https://bike-reservations.onrender.com
-      - key: HOST
-        value: "0.0.0.0"
+      # NOTE: Do NOT set HOST env var here — it conflicts with Vite's config at build time.
+      # The render-start script already sets HOST=0.0.0.0 inline for remix-serve.
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

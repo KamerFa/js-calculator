@@ -20,57 +20,67 @@ export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  // Ensure settings exist
-  await prisma.appSettings.upsert({
-    where: { shop },
-    create: { shop },
-    update: {},
-  });
+  try {
+    // Ensure settings exist
+    await prisma.appSettings.upsert({
+      where: { shop },
+      create: { shop },
+      update: {},
+    });
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-  const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [totalBikes, activeBikes, todayReservations, upcomingReservations, recentBookings] =
-    await Promise.all([
-      prisma.bike.count({ where: { shop } }),
-      prisma.bike.count({ where: { shop, isActive: true } }),
-      prisma.reservation.count({
-        where: {
-          shop,
-          status: "confirmed",
-          startDate: { lte: todayEnd },
-          endDate: { gte: todayStart },
-        },
-      }),
-      prisma.reservation.count({
-        where: {
-          shop,
-          status: "confirmed",
-          startDate: { gte: todayStart, lte: weekEnd },
-        },
-      }),
-      prisma.reservation.findMany({
-        where: { shop },
-        include: { bike: true, customerInfo: true },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-    ]);
+    const [totalBikes, activeBikes, todayReservations, upcomingReservations, recentBookings] =
+      await Promise.all([
+        prisma.bike.count({ where: { shop } }),
+        prisma.bike.count({ where: { shop, isActive: true } }),
+        prisma.reservation.count({
+          where: {
+            shop,
+            status: "confirmed",
+            startDate: { lte: todayEnd },
+            endDate: { gte: todayStart },
+          },
+        }),
+        prisma.reservation.count({
+          where: {
+            shop,
+            status: "confirmed",
+            startDate: { gte: todayStart, lte: weekEnd },
+          },
+        }),
+        prisma.reservation.findMany({
+          where: { shop },
+          include: { bike: true, customerInfo: true },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        }),
+      ]);
 
-  const isSetupComplete = totalBikes > 0;
+    const isSetupComplete = totalBikes > 0;
 
-  return json({
-    stats: {
-      totalBikes,
-      activeBikes,
-      todayReservations,
-      upcomingReservations,
-    },
-    recentBookings,
-    isSetupComplete,
-  });
+    return json({
+      stats: {
+        totalBikes,
+        activeBikes,
+        todayReservations,
+        upcomingReservations,
+      },
+      recentBookings,
+      isSetupComplete,
+    });
+  } catch (error) {
+    console.error("Dashboard DB error:", error);
+    return json({
+      stats: { totalBikes: 0, activeBikes: 0, todayReservations: 0, upcomingReservations: 0 },
+      recentBookings: [],
+      isSetupComplete: false,
+      dbError: error.message,
+    });
+  }
 };
 
 export default function Dashboard() {
