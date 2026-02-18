@@ -296,7 +296,19 @@ export default function Dashboard() {
         )}
 
         {/* Quick Navigation */}
-        <InlineGrid columns={{ xs: 2, sm: 4 }} gap="400">
+        <InlineGrid columns={{ xs: 2, sm: 3, md: 5 }} gap="400">
+          <Link to="/app/availability" style={{ textDecoration: "none" }}>
+            <Card>
+              <BlockStack gap="200" inlineAlign="center">
+                <Text as="h3" variant="headingSm" alignment="center">
+                  Availability
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                  Bike schedule & calendar
+                </Text>
+              </BlockStack>
+            </Card>
+          </Link>
           <Link to="/app/bookings" style={{ textDecoration: "none" }}>
             <Card>
               <BlockStack gap="200" inlineAlign="center">

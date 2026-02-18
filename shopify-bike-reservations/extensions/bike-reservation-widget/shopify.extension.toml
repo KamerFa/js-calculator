@@ -20,3 +20,11 @@ type = "theme"
 
   [extensions.blocks.presets]
   name = "Bike Reservation Page"
+
+  [[extensions.blocks]]
+  template = "blocks/reservation-general.liquid"
+  name = "Reserve Any Bike"
+  target = "section"
+
+  [extensions.blocks.presets]
+  name = "Reserve Any Bike Button"

@@ -1,16 +1,9 @@
 /**
  * Bike Reservation Widget
- * Streamlined booking flow for Shopify product pages.
+ * Works on product pages (bike pre-selected) and any other page (bike picker shown).
  *
- * The widget knows which product it's on (from Liquid context),
- * so the customer just picks dates, optionally adds extras,
- * fills in details, and confirms. No bike selection needed.
- *
- * Steps:
- * 1. Select dates → check availability & show pricing
- * 2. Select add-ons (optional extras)
- * 3. Customer details → confirm reservation
- * 4. Confirmation / success
+ * Flow on product pages:  Dates → Add-ons → Details → Confirmation
+ * Flow on other pages:    Choose Bike → Dates → Add-ons → Details → Confirmation
  */
 (function () {
   "use strict";
@@ -19,38 +12,47 @@
   const API = CFG.appUrl || "";
   const SHOP = CFG.shop || "";
   const CURRENCY = CFG.currency || "BAM";
-  const PRODUCT_ID = CFG.productId || ""; // Shopify product GID from page context
+  const PRODUCT_ID = CFG.productId || "";
 
-  // State
+  // When there's no product context we need an extra bike-selection step
+  const HAS_PRODUCT = !!PRODUCT_ID;
+
+  // Step definitions differ depending on context
+  // Product page:  1=dates  2=addons  3=details  4=success
+  // General page:  1=bike   2=dates   3=addons   4=details  5=success
+  const STEPS = HAS_PRODUCT
+    ? { DATES: 1, ADDONS: 2, DETAILS: 3, SUCCESS: 4, TOTAL: 3 }
+    : { BIKE: 1, DATES: 2, ADDONS: 3, DETAILS: 4, SUCCESS: 5, TOTAL: 4 };
+
   let currentStep = 1;
-  const TOTAL_STEPS = 3;
-  let state = {
-    startDate: "",
-    endDate: "",
-    available: null, // null = not checked, true/false
-    pricing: null,
-    addons: [],
-    selectedAddons: [],
-    customer: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      licenseNumber: "",
-      idNumber: "",
-      nationality: "",
-    },
-    loading: false,
-    error: null,
-    reservation: null,
-  };
+  let state = freshState();
 
-  // ── API Calls ──────────────────────────────────────────
+  function freshState() {
+    return {
+      bikes: [],
+      selectedBikeId: null,
+      selectedBike: null,
+      startDate: "",
+      endDate: "",
+      available: null,
+      pricing: null,
+      addons: [],
+      selectedAddons: [],
+      customer: {
+        firstName: "", lastName: "", email: "", phone: "",
+        licenseNumber: "", idNumber: "", nationality: "",
+      },
+      loading: false,
+      error: null,
+      reservation: null,
+    };
+  }
+
+  // ── API helpers ────────────────────────────────────────
 
   async function apiFetch(endpoint, params = {}) {
     const url = new URL(`${API}${endpoint}`);
     url.searchParams.set("shop", SHOP);
-    if (PRODUCT_ID) url.searchParams.set("productId", PRODUCT_ID);
     Object.entries(params).forEach(([k, v]) => {
       if (v != null) url.searchParams.set(k, v);
     });
@@ -73,6 +75,22 @@
     return data;
   }
 
+  // ── Data fetching ──────────────────────────────────────
+
+  async function fetchBikes() {
+    state.loading = true;
+    state.error = null;
+    render();
+    try {
+      const data = await apiFetch("/api/bikes");
+      state.bikes = data.bikes || [];
+    } catch (err) {
+      state.error = err.message;
+    }
+    state.loading = false;
+    render();
+  }
+
   async function checkAvailabilityAndPricing() {
     state.loading = true;
     state.error = null;
@@ -80,22 +98,25 @@
     state.pricing = null;
     render();
     try {
-      // Check availability for this product
+      const bikeParam = HAS_PRODUCT
+        ? { productId: PRODUCT_ID }
+        : { bikeId: state.selectedBikeId };
+
       const availData = await apiFetch("/api/bikes", {
+        ...bikeParam,
         start: state.startDate,
         end: state.endDate,
       });
       state.available = availData.available;
 
       if (state.available) {
-        // Fetch pricing
         const pricingData = await apiFetch("/api/pricing", {
+          ...bikeParam,
           start: state.startDate,
           end: state.endDate,
         });
         state.pricing = pricingData;
 
-        // Fetch add-ons
         const addonData = await apiFetch("/api/addons");
         state.addons = addonData.addons || [];
       }
@@ -111,18 +132,20 @@
     state.error = null;
     render();
     try {
-      const data = await apiPost("/api/reservations", {
-        productId: PRODUCT_ID,
+      const body = {
         startDate: state.startDate,
         endDate: state.endDate,
         customer: state.customer,
-        selectedAddons: state.selectedAddons.map((a) => ({
-          id: a.id,
-          quantity: 1,
-        })),
-      });
+        selectedAddons: state.selectedAddons.map((a) => ({ id: a.id, quantity: 1 })),
+      };
+      if (HAS_PRODUCT) {
+        body.productId = PRODUCT_ID;
+      } else {
+        body.bikeId = state.selectedBikeId;
+      }
+      const data = await apiPost("/api/reservations", body);
       state.reservation = data.reservation;
-      currentStep = 4; // success
+      currentStep = STEPS.SUCCESS;
     } catch (err) {
       state.error = err.message;
     }
@@ -133,9 +156,7 @@
   // ── Rendering ──────────────────────────────────────────
 
   function getContainer() {
-    if (CFG.inline) {
-      return document.getElementById("bike-reservation-inline");
-    }
+    if (CFG.inline) return document.getElementById("bike-reservation-inline");
     return document.getElementById("bike-reservation-modal");
   }
 
@@ -149,18 +170,13 @@
       return;
     }
 
-    // Modal mode — only render if open
     if (!container.dataset.open) return;
     container.innerHTML = renderOverlay();
     attachEvents();
   }
 
   function renderOverlay() {
-    return `
-      <div class="br-overlay br-active" id="br-overlay">
-        ${renderModal(true)}
-      </div>
-    `;
+    return `<div class="br-overlay br-active" id="br-overlay">${renderModal(true)}</div>`;
   }
 
   function renderModal(showClose) {
@@ -173,30 +189,31 @@
           ${state.error ? `<div class="br-alert">${esc(state.error)}</div>` : ""}
           ${state.loading ? renderLoading() : renderCurrentStep()}
         </div>
-        ${currentStep <= TOTAL_STEPS && !state.loading ? renderFooter() : ""}
+        ${currentStep <= STEPS.TOTAL && !state.loading ? renderFooter() : ""}
       </div>
     `;
   }
 
   function renderHeader(showClose) {
-    const titles = {
-      1: "Select Dates",
-      2: "Add Extras",
-      3: "Your Details",
-      4: "Reservation Confirmed!",
-    };
+    let title;
+    if (currentStep === STEPS.SUCCESS) title = "Reservation Confirmed!";
+    else if (currentStep === STEPS.BIKE) title = "Choose a Motorbike";
+    else if (currentStep === STEPS.DATES) title = "Select Dates";
+    else if (currentStep === STEPS.ADDONS) title = "Add Extras";
+    else if (currentStep === STEPS.DETAILS) title = "Your Details";
+    else title = "Reserve";
     return `
       <div class="br-header">
-        <h2>${titles[currentStep] || "Reserve"}</h2>
+        <h2>${title}</h2>
         ${showClose ? '<button class="br-close" id="br-close">&times;</button>' : ""}
       </div>
     `;
   }
 
   function renderSteps() {
-    if (currentStep === 4) return "";
+    if (currentStep === STEPS.SUCCESS) return "";
     let html = '<div class="br-steps">';
-    for (let i = 1; i <= TOTAL_STEPS; i++) {
+    for (let i = 1; i <= STEPS.TOTAL; i++) {
       const cls = i === currentStep ? "br-active" : i < currentStep ? "br-done" : "";
       html += `<div class="br-step ${cls}"></div>`;
     }
@@ -205,29 +222,56 @@
   }
 
   function renderLoading() {
-    return `
-      <div class="br-loading">
-        <div class="br-spinner"></div>
-        <p>Loading...</p>
-      </div>
-    `;
+    return `<div class="br-loading"><div class="br-spinner"></div><p>Loading...</p></div>`;
   }
 
   function renderCurrentStep() {
-    switch (currentStep) {
-      case 1: return renderDateStep();
-      case 2: return renderAddonStep();
-      case 3: return renderCustomerStep();
-      case 4: return renderSuccessStep();
-      default: return "";
-    }
+    if (currentStep === STEPS.SUCCESS) return renderSuccessStep();
+    if (currentStep === STEPS.BIKE) return renderBikeStep();
+    if (currentStep === STEPS.DATES) return renderDateStep();
+    if (currentStep === STEPS.ADDONS) return renderAddonStep();
+    if (currentStep === STEPS.DETAILS) return renderCustomerStep();
+    return "";
   }
 
-  // Step 1: Date selection + availability + pricing
+  // ── Step: Choose Bike (general pages only) ─────────────
+
+  function renderBikeStep() {
+    if (state.bikes.length === 0 && !state.loading) {
+      return `
+        <div class="br-empty">
+          <h3>No bikes available</h3>
+          <p>There are no motorbikes available for rental at this time.</p>
+        </div>
+      `;
+    }
+
+    let html = "<h3>Select a motorbike</h3><div class=\"br-bikes\">";
+    for (const bike of state.bikes) {
+      const selected = state.selectedBikeId === bike.id;
+      const imgSrc = bike.imageUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23f0f0f0' width='100' height='100'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='%23ccc' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
+      html += `
+        <div class="br-bike-card ${selected ? "br-selected" : ""}" data-bike-id="${bike.id}">
+          <img class="br-bike-img" src="${esc(imgSrc)}" alt="${esc(bike.name)}" />
+          <div class="br-bike-info">
+            <h4>${esc(bike.name)}</h4>
+            ${bike.description ? `<p>${esc(bike.description).substring(0, 80)}</p>` : ""}
+          </div>
+          <div class="br-bike-check">${selected ? "&#10003;" : ""}</div>
+        </div>
+      `;
+    }
+    html += "</div>";
+    return html;
+  }
+
+  // ── Step: Date selection ───────────────────────────────
+
   function renderDateStep() {
     const today = new Date().toISOString().split("T")[0];
+    const bikeName = HAS_PRODUCT ? "" : (state.selectedBike ? state.selectedBike.name : "");
     let html = `
-      <h3>When would you like to rent?</h3>
+      <h3>When would you like to rent${bikeName ? " " + esc(bikeName) : ""}?</h3>
       <div class="br-date-row">
         <div class="br-field">
           <label for="br-start">Pick-up Date & Time</label>
@@ -243,7 +287,6 @@
       </p>
     `;
 
-    // Show availability result
     if (state.available === false) {
       html += `
         <div class="br-alert" style="margin-top: 16px;">
@@ -252,40 +295,15 @@
       `;
     }
 
-    // Show pricing if available
     if (state.available && state.pricing) {
-      html += `
-        <div class="br-pricing" style="margin-top: 16px;">
-          <div class="br-pricing-row">
-            <span>${esc(state.pricing.tierName || "Rental")}</span>
-            <span>${state.pricing.subtotal} ${CURRENCY}</span>
-          </div>
-          ${state.pricing.seasonalMultiplier !== 1 ? `
-            <div class="br-pricing-row">
-              <span>Seasonal adjustment</span>
-              <span>&times;${state.pricing.seasonalMultiplier}</span>
-            </div>
-          ` : ""}
-          <div class="br-pricing-row br-total">
-            <span>Total</span>
-            <span>${state.pricing.total} ${CURRENCY}</span>
-          </div>
-          <div class="br-pricing-row br-deposit">
-            <span>Deposit (${state.pricing.depositPercentage}%)</span>
-            <span>${state.pricing.depositAmount} ${CURRENCY}</span>
-          </div>
-          <div class="br-pricing-row">
-            <span>Pay on pickup</span>
-            <span>${state.pricing.remainingAmount} ${CURRENCY}</span>
-          </div>
-        </div>
-      `;
+      html += renderPricingSummary(state.pricing);
     }
 
     return html;
   }
 
-  // Step 2: Add-ons
+  // ── Step: Add-ons ──────────────────────────────────────
+
   function renderAddonStep() {
     if (state.addons.length === 0) {
       return `
@@ -303,7 +321,6 @@
       const priceLabel = addon.priceType === "per_day"
         ? `${addon.price} ${CURRENCY}/day (${addon.price * days} ${CURRENCY} total)`
         : `${addon.price} ${CURRENCY}`;
-
       html += `
         <div class="br-addon-card ${selected ? "br-selected" : ""}" data-addon-id="${addon.id}">
           <div class="br-addon-info">
@@ -316,15 +333,10 @@
     }
     html += "</div>";
 
-    // Updated pricing summary with addons
     if (state.pricing) {
       let addonTotal = 0;
       for (const sa of state.selectedAddons) {
-        if (sa.priceType === "per_day") {
-          addonTotal += sa.price * days;
-        } else {
-          addonTotal += sa.price;
-        }
+        addonTotal += sa.priceType === "per_day" ? sa.price * days : sa.price;
       }
       const grandTotal = state.pricing.total + addonTotal;
       const depositPct = state.pricing.depositPercentage || 30;
@@ -332,34 +344,22 @@
 
       html += `
         <div class="br-pricing" style="margin-top: 16px;">
-          <div class="br-pricing-row">
-            <span>Bike rental</span>
-            <span>${state.pricing.total} ${CURRENCY}</span>
-          </div>
+          <div class="br-pricing-row"><span>Bike rental</span><span>${state.pricing.total} ${CURRENCY}</span></div>
           ${state.selectedAddons.map((a) => {
             const p = a.priceType === "per_day" ? a.price * days : a.price;
             return `<div class="br-pricing-row"><span>${esc(a.name)}</span><span>${p} ${CURRENCY}</span></div>`;
           }).join("")}
-          <div class="br-pricing-row br-total">
-            <span>Total</span>
-            <span>${grandTotal.toFixed(2)} ${CURRENCY}</span>
-          </div>
-          <div class="br-pricing-row br-deposit">
-            <span>Deposit (${depositPct}%)</span>
-            <span>${deposit.toFixed(2)} ${CURRENCY}</span>
-          </div>
-          <div class="br-pricing-row">
-            <span>Pay on pickup</span>
-            <span>${(grandTotal - deposit).toFixed(2)} ${CURRENCY}</span>
-          </div>
+          <div class="br-pricing-row br-total"><span>Total</span><span>${grandTotal.toFixed(2)} ${CURRENCY}</span></div>
+          <div class="br-pricing-row br-deposit"><span>Deposit (${depositPct}%)</span><span>${deposit.toFixed(2)} ${CURRENCY}</span></div>
+          <div class="br-pricing-row"><span>Pay on pickup</span><span>${(grandTotal - deposit).toFixed(2)} ${CURRENCY}</span></div>
         </div>
       `;
     }
-
     return html;
   }
 
-  // Step 3: Customer details
+  // ── Step: Customer details ─────────────────────────────
+
   function renderCustomerStep() {
     const c = state.customer;
     return `
@@ -400,11 +400,11 @@
     `;
   }
 
-  // Step 4: Success
+  // ── Step: Success ──────────────────────────────────────
+
   function renderSuccessStep() {
     const r = state.reservation;
     if (!r) return "<p>Something went wrong.</p>";
-
     return `
       <div class="br-success">
         <div class="br-success-icon">&#10003;</div>
@@ -417,18 +417,9 @@
           ${new Date(r.endDate).toLocaleDateString("en-GB", { weekday: "short", month: "short", day: "numeric" })}
         </p>
         <div class="br-pricing" style="text-align: left; margin-top: 16px;">
-          <div class="br-pricing-row br-total">
-            <span>Total</span>
-            <span>${r.totalPrice} ${r.currency}</span>
-          </div>
-          <div class="br-pricing-row br-deposit">
-            <span>Deposit to pay</span>
-            <span>${r.depositAmount} ${r.currency}</span>
-          </div>
-          <div class="br-pricing-row">
-            <span>Pay on pickup</span>
-            <span>${r.remainingAmount} ${r.currency}</span>
-          </div>
+          <div class="br-pricing-row br-total"><span>Total</span><span>${r.totalPrice} ${r.currency}</span></div>
+          <div class="br-pricing-row br-deposit"><span>Deposit to pay</span><span>${r.depositAmount} ${r.currency}</span></div>
+          <div class="br-pricing-row"><span>Pay on pickup</span><span>${r.remainingAmount} ${r.currency}</span></div>
         </div>
         ${r.pickupLocation ? `<p style="margin-top: 16px;"><strong>Pickup:</strong> ${esc(r.pickupLocation)}</p>` : ""}
         ${r.pickupInstructions ? `<p style="font-size: 13px;">${esc(r.pickupInstructions)}</p>` : ""}
@@ -438,14 +429,24 @@
     `;
   }
 
+  // ── Shared rendering helpers ───────────────────────────
+
+  function renderPricingSummary(p) {
+    return `
+      <div class="br-pricing" style="margin-top: 16px;">
+        <div class="br-pricing-row"><span>${esc(p.tierName || "Rental")}</span><span>${p.subtotal} ${CURRENCY}</span></div>
+        ${p.seasonalMultiplier !== 1 ? `<div class="br-pricing-row"><span>Seasonal adjustment</span><span>&times;${p.seasonalMultiplier}</span></div>` : ""}
+        <div class="br-pricing-row br-total"><span>Total</span><span>${p.total} ${CURRENCY}</span></div>
+        <div class="br-pricing-row br-deposit"><span>Deposit (${p.depositPercentage}%)</span><span>${p.depositAmount} ${CURRENCY}</span></div>
+        <div class="br-pricing-row"><span>Pay on pickup</span><span>${p.remainingAmount} ${CURRENCY}</span></div>
+      </div>
+    `;
+  }
+
   function renderFooter() {
-    const canNext =
-      (currentStep === 1 && state.available === true && state.pricing) ||
-      (currentStep === 2) ||
-      (currentStep === 3 && state.customer.firstName && state.customer.lastName && state.customer.email && state.customer.phone);
-
-    const nextLabel = currentStep === 3 ? "Confirm Reservation" : "Continue";
-
+    const canNext = canAdvance();
+    const isLast = currentStep === STEPS.DETAILS;
+    const nextLabel = isLast ? "Confirm Reservation" : "Continue";
     return `
       <div class="br-footer">
         ${currentStep > 1 ? '<button class="br-btn br-btn-back" id="br-back">Back</button>' : '<div></div>'}
@@ -454,36 +455,53 @@
     `;
   }
 
-  // ── Event Handling ─────────────────────────────────────
+  function canAdvance() {
+    if (currentStep === STEPS.BIKE) return !!state.selectedBikeId;
+    if (currentStep === STEPS.DATES) return state.available === true && !!state.pricing;
+    if (currentStep === STEPS.ADDONS) return true;
+    if (currentStep === STEPS.DETAILS) {
+      const c = state.customer;
+      return !!(c.firstName && c.lastName && c.email && c.phone);
+    }
+    return false;
+  }
+
+  // ── Event handling ─────────────────────────────────────
 
   function attachEvents() {
-    // Close button
     const closeBtn = document.getElementById("br-close");
     if (closeBtn) closeBtn.addEventListener("click", closeModal);
 
-    // Overlay click to close
     const overlay = document.getElementById("br-overlay");
-    if (overlay) {
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) closeModal();
-      });
-    }
+    if (overlay) overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
 
-    // Next / Back
     const nextBtn = document.getElementById("br-next");
     if (nextBtn) nextBtn.addEventListener("click", handleNext);
 
     const backBtn = document.getElementById("br-back");
     if (backBtn) backBtn.addEventListener("click", handleBack);
 
-    // Done button (success step)
     const doneBtn = document.getElementById("br-done");
     if (doneBtn) doneBtn.addEventListener("click", closeModal);
 
-    // Step-specific events
-    if (currentStep === 1) attachDateEvents();
-    if (currentStep === 2) attachAddonEvents();
-    if (currentStep === 3) attachCustomerEvents();
+    if (currentStep === STEPS.BIKE) attachBikeEvents();
+    if (currentStep === STEPS.DATES) attachDateEvents();
+    if (currentStep === STEPS.ADDONS) attachAddonEvents();
+    if (currentStep === STEPS.DETAILS) attachCustomerEvents();
+  }
+
+  function attachBikeEvents() {
+    document.querySelectorAll(".br-bike-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const bikeId = card.dataset.bikeId;
+        state.selectedBikeId = bikeId;
+        state.selectedBike = state.bikes.find((b) => b.id === bikeId) || null;
+        // Reset downstream state when bike changes
+        state.available = null;
+        state.pricing = null;
+        render();
+      });
+    });
   }
 
   function attachDateEvents() {
@@ -504,14 +522,9 @@
         state.available = null;
         state.pricing = null;
         render();
-        // Auto-check availability when both dates are set
         if (state.startDate && state.endDate) {
-          const start = new Date(state.startDate);
-          const end = new Date(state.endDate);
-          const hours = (end - start) / (1000 * 60 * 60);
-          if (hours >= 4) {
-            checkAvailabilityAndPricing();
-          }
+          const hours = (new Date(state.endDate) - new Date(state.startDate)) / (1000 * 60 * 60);
+          if (hours >= 4) checkAvailabilityAndPricing();
         }
       });
     }
@@ -535,12 +548,9 @@
 
   function attachCustomerEvents() {
     const fields = {
-      "br-fname": "firstName",
-      "br-lname": "lastName",
-      "br-email": "email",
-      "br-phone": "phone",
-      "br-license": "licenseNumber",
-      "br-idnum": "idNumber",
+      "br-fname": "firstName", "br-lname": "lastName",
+      "br-email": "email", "br-phone": "phone",
+      "br-license": "licenseNumber", "br-idnum": "idNumber",
       "br-nationality": "nationality",
     };
     Object.entries(fields).forEach(([elemId, field]) => {
@@ -548,37 +558,41 @@
       if (el) {
         el.addEventListener("input", (e) => {
           state.customer[field] = e.target.value;
-          const footer = document.querySelector(".br-footer");
-          if (footer) {
-            const canNext = state.customer.firstName && state.customer.lastName &&
-                            state.customer.email && state.customer.phone;
-            const nextBtn = document.getElementById("br-next");
-            if (nextBtn) nextBtn.disabled = !canNext;
-          }
+          const nextBtn = document.getElementById("br-next");
+          if (nextBtn) nextBtn.disabled = !canAdvance();
         });
       }
     });
   }
 
+  // ── Navigation ─────────────────────────────────────────
+
   async function handleNext() {
     state.error = null;
 
-    if (currentStep === 1) {
-      // Validate dates
+    if (currentStep === STEPS.BIKE) {
+      if (!state.selectedBikeId) {
+        state.error = "Please select a motorbike.";
+        render();
+        return;
+      }
+      currentStep = STEPS.DATES;
+      render();
+      return;
+    }
+
+    if (currentStep === STEPS.DATES) {
       if (!state.startDate || !state.endDate) {
         state.error = "Please select both pick-up and return dates.";
         render();
         return;
       }
-      const start = new Date(state.startDate);
-      const end = new Date(state.endDate);
-      const hours = (end - start) / (1000 * 60 * 60);
+      const hours = (new Date(state.endDate) - new Date(state.startDate)) / (1000 * 60 * 60);
       if (hours < 4) {
         state.error = "Minimum rental is 4 hours (half day).";
         render();
         return;
       }
-      // If not yet checked, check now
       if (state.available === null) {
         await checkAvailabilityAndPricing();
         if (!state.available) return;
@@ -588,20 +602,20 @@
         render();
         return;
       }
-      currentStep = 2;
+      currentStep = STEPS.ADDONS;
       render();
       return;
     }
 
-    if (currentStep === 2) {
-      currentStep = 3;
+    if (currentStep === STEPS.ADDONS) {
+      currentStep = STEPS.DETAILS;
       render();
       return;
     }
 
-    if (currentStep === 3) {
-      if (!state.customer.firstName || !state.customer.lastName ||
-          !state.customer.email || !state.customer.phone) {
+    if (currentStep === STEPS.DETAILS) {
+      const c = state.customer;
+      if (!c.firstName || !c.lastName || !c.email || !c.phone) {
         state.error = "Please fill in all required fields.";
         render();
         return;
@@ -624,26 +638,13 @@
   function openModal() {
     const container = getContainer();
     if (!container) return;
-    // Reset state
     currentStep = 1;
-    state = {
-      startDate: "",
-      endDate: "",
-      available: null,
-      pricing: null,
-      addons: [],
-      selectedAddons: [],
-      customer: {
-        firstName: "", lastName: "", email: "", phone: "",
-        licenseNumber: "", idNumber: "", nationality: "",
-      },
-      loading: false,
-      error: null,
-      reservation: null,
-    };
+    state = freshState();
     container.dataset.open = "true";
     document.body.style.overflow = "hidden";
     render();
+    // If general page, load bikes immediately
+    if (!HAS_PRODUCT) fetchBikes();
   }
 
   function closeModal() {
@@ -676,10 +677,7 @@
 
   // ── Public API ─────────────────────────────────────────
 
-  window.BikeReservation = {
-    open: openModal,
-    close: closeModal,
-  };
+  window.BikeReservation = { open: openModal, close: closeModal };
 
   // Auto-init inline mode
   if (CFG.inline) {
@@ -689,6 +687,7 @@
       if (container) {
         container.dataset.open = "true";
         render();
+        if (!HAS_PRODUCT) fetchBikes();
       }
     });
   }

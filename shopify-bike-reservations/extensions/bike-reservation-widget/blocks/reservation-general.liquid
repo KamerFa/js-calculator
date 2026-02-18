@@ -1,0 +1,130 @@
+{% comment %}
+  General Reservation Button — works on ANY page (homepage, collections, etc.)
+  Opens a modal where the customer picks a motorbike first, then dates, then books.
+{% endcomment %}
+
+<div id="bike-reservation-trigger" class="bike-reservation-trigger">
+  <button
+    type="button"
+    class="bike-res-btn"
+    onclick="window.BikeReservation.open()"
+    style="
+      background: {{ block.settings.button_color }};
+      color: {{ block.settings.text_color }};
+      padding: {{ block.settings.button_padding }}px {{ block.settings.button_padding | times: 2 }}px;
+      border: none;
+      border-radius: {{ block.settings.border_radius }}px;
+      font-size: {{ block.settings.font_size }}px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+      width: {{ block.settings.full_width | default: false | ternary: '100%', 'auto' }};
+      justify-content: center;
+    "
+    onmouseover="this.style.opacity='0.85'"
+    onmouseout="this.style.opacity='1'"
+  >
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+    {{ block.settings.button_text }}
+  </button>
+</div>
+
+<!-- Reservation Modal Container -->
+<div id="bike-reservation-modal"></div>
+
+<!-- Load the reservation widget JS & CSS -->
+<link rel="stylesheet" href="{{ 'reservation-modal.css' | asset_url }}">
+<script src="{{ 'reservation-modal.js' | asset_url }}" defer></script>
+<script>
+  // No productId → widget will show bike selection step first
+  window.BikeReservationConfig = {
+    shop: "{{ shop.permanent_domain }}",
+    appUrl: "{{ block.settings.app_url }}",
+    currency: "{{ block.settings.currency | default: 'BAM' }}",
+    locale: "{{ request.locale.iso_code | default: 'en' }}",
+  };
+</script>
+
+{% schema %}
+{
+  "name": "Reserve Any Bike",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button Text",
+      "default": "Reserve a Motorbike"
+    },
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://bike-reservations.onrender.com",
+      "info": "Your Shopify app URL (e.g. https://bike-reservations.onrender.com)"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button Color",
+      "default": "#1a1a2e"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font Size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "button_padding",
+      "label": "Padding",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "default": 14,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border Radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Full Width Button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "currency",
+      "label": "Currency Code",
+      "default": "BAM"
+    }
+  ]
+}
+{% endschema %}
