@@ -1,131 +1,120 @@
 import { json } from "@remix-run/node";
 
 /**
- * Public API: Check availability for a specific product by Shopify product ID
- * GET /api/bikes?shop=xxx&productId=gid://shopify/Product/123&start=2024-06-01&end=2024-06-03
+ * Public API: List bikes and check availability
  *
- * If productId is provided, returns availability for that single product.
- * If no productId, returns all rental-enabled bikes (with optional date filtering).
+ * GET /api/bikes?shop=xxx                                     → all rental bikes
+ * GET /api/bikes?shop=xxx&productId=gid://...&start=...&end=... → single bike by Shopify ID
+ * GET /api/bikes?shop=xxx&bikeId=xxx&start=...&end=...          → single bike by internal ID
  */
 export const loader = async ({ request }) => {
-  // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
 
-  const prisma = (await import("../db.server")).default;
+  try {
+    const prisma = (await import("../db.server")).default;
 
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
-  const productId = url.searchParams.get("productId");
-  const startDate = url.searchParams.get("start");
-  const endDate = url.searchParams.get("end");
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+    const productId = url.searchParams.get("productId");
+    const bikeId = url.searchParams.get("bikeId");
+    const startDate = url.searchParams.get("start");
+    const endDate = url.searchParams.get("end");
 
-  if (!shop) {
-    return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
-  }
-
-  // If a specific product is requested, check its availability
-  if (productId) {
-    const bike = await prisma.bike.findUnique({
-      where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        imageUrl: true,
-        shopifyProductId: true,
-        isActive: true,
-      },
-    });
-
-    if (!bike || !bike.isActive) {
-      return json({ available: false, bike: null }, { headers: corsHeaders() });
+    if (!shop) {
+      return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
     }
 
-    // Check date availability if dates provided
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      const conflicting = await prisma.reservation.findFirst({
-        where: {
-          shop,
-          bikeId: bike.id,
-          status: { in: ["confirmed", "pending"] },
-          startDate: { lt: end },
-          endDate: { gt: start },
-        },
+    // ── Single-bike lookup (by productId OR bikeId) ───────────
+    let bike = null;
+    if (productId) {
+      bike = await prisma.bike.findUnique({
+        where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
+        select: { id: true, name: true, description: true, imageUrl: true, shopifyProductId: true, isActive: true },
       });
-
-      const blocked = await prisma.blockedDate.findFirst({
-        where: {
-          shop,
-          OR: [{ bikeId: bike.id }, { bikeId: null }],
-          startDate: { lt: end },
-          endDate: { gt: start },
-        },
+    } else if (bikeId) {
+      bike = await prisma.bike.findFirst({
+        where: { id: bikeId, shop },
+        select: { id: true, name: true, description: true, imageUrl: true, shopifyProductId: true, isActive: true },
       });
+    }
+
+    if (bike) {
+      if (!bike.isActive) {
+        return json({ available: false, bike: null }, { headers: corsHeaders() });
+      }
+
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const conflicting = await prisma.reservation.findFirst({
+          where: {
+            shop, bikeId: bike.id,
+            status: { in: ["confirmed", "pending"] },
+            startDate: { lt: end }, endDate: { gt: start },
+          },
+        });
+
+        const blocked = await prisma.blockedDate.findFirst({
+          where: {
+            shop,
+            OR: [{ bikeId: bike.id }, { bikeId: null }],
+            startDate: { lt: end }, endDate: { gt: start },
+          },
+        });
+
+        return json({
+          available: !conflicting && !blocked,
+          bike: { id: bike.id, name: bike.name, productId: bike.shopifyProductId },
+        }, { headers: corsHeaders() });
+      }
 
       return json({
-        available: !conflicting && !blocked,
+        available: true,
         bike: { id: bike.id, name: bike.name, productId: bike.shopifyProductId },
       }, { headers: corsHeaders() });
     }
 
-    return json({
-      available: true,
-      bike: { id: bike.id, name: bike.name, productId: bike.shopifyProductId },
-    }, { headers: corsHeaders() });
-  }
+    // ── No specific bike → list all rental-enabled bikes ──────
+    const bikes = await prisma.bike.findMany({
+      where: { shop, isActive: true },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, description: true, imageUrl: true, shopifyProductId: true },
+    });
 
-  // No productId — return all rental-enabled bikes
-  const bikes = await prisma.bike.findMany({
-    where: { shop, isActive: true },
-    orderBy: { sortOrder: "asc" },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      imageUrl: true,
-      shopifyProductId: true,
-    },
-  });
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const available = [];
 
-  // If dates provided, filter to available bikes only
-  if (startDate && endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    const available = [];
-    for (const bike of bikes) {
-      const conflicting = await prisma.reservation.findFirst({
-        where: {
-          shop,
-          bikeId: bike.id,
-          status: { in: ["confirmed", "pending"] },
-          startDate: { lt: end },
-          endDate: { gt: start },
-        },
-      });
-
-      const blocked = await prisma.blockedDate.findFirst({
-        where: {
-          shop,
-          OR: [{ bikeId: bike.id }, { bikeId: null }],
-          startDate: { lt: end },
-          endDate: { gt: start },
-        },
-      });
-
-      if (!conflicting && !blocked) {
-        available.push(bike);
+      for (const b of bikes) {
+        const conflicting = await prisma.reservation.findFirst({
+          where: {
+            shop, bikeId: b.id,
+            status: { in: ["confirmed", "pending"] },
+            startDate: { lt: end }, endDate: { gt: start },
+          },
+        });
+        const blocked = await prisma.blockedDate.findFirst({
+          where: {
+            shop,
+            OR: [{ bikeId: b.id }, { bikeId: null }],
+            startDate: { lt: end }, endDate: { gt: start },
+          },
+        });
+        if (!conflicting && !blocked) available.push(b);
       }
-    }
-    return json({ bikes: available }, { headers: corsHeaders() });
-  }
 
-  return json({ bikes }, { headers: corsHeaders() });
+      return json({ bikes: available }, { headers: corsHeaders() });
+    }
+
+    return json({ bikes }, { headers: corsHeaders() });
+  } catch (err) {
+    console.error("api.bikes error:", err);
+    return json({ error: "Internal server error" }, { status: 500, headers: corsHeaders() });
+  }
 };
 
 function corsHeaders() {

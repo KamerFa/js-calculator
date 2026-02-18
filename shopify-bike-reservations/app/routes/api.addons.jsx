@@ -5,34 +5,38 @@ import { json } from "@remix-run/node";
  * GET /api/addons?shop=xxx
  */
 export const loader = async ({ request }) => {
-  // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
 
-  const prisma = (await import("../db.server")).default;
+  try {
+    const prisma = (await import("../db.server")).default;
 
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
 
-  if (!shop) {
-    return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
+    if (!shop) {
+      return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
+    }
+
+    const addons = await prisma.addon.findMany({
+      where: { shop, isActive: true },
+      orderBy: { sortOrder: "asc" },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        priceType: true,
+        imageUrl: true,
+      },
+    });
+
+    return json({ addons }, { headers: corsHeaders() });
+  } catch (err) {
+    console.error("api.addons error:", err);
+    return json({ error: "Internal server error" }, { status: 500, headers: corsHeaders() });
   }
-
-  const addons = await prisma.addon.findMany({
-    where: { shop, isActive: true },
-    orderBy: { sortOrder: "asc" },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      price: true,
-      priceType: true,
-      imageUrl: true,
-    },
-  });
-
-  return json({ addons }, { headers: corsHeaders() });
 };
 
 function corsHeaders() {

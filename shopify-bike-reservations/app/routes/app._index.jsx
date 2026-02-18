@@ -51,7 +51,27 @@ const PRODUCTS_QUERY = `
 `;
 
 export const loader = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  let session, admin;
+  try {
+    ({ session, admin } = await authenticate.admin(request));
+  } catch (err) {
+    // If auth itself throws (not a redirect), return a diagnostic page
+    if (err instanceof Response) throw err; // let redirects pass through
+    console.error("Auth error:", err);
+    return json({
+      shopifyProducts: [],
+      rentalMap: {},
+      stats: {
+        totalProducts: 0,
+        rentalEnabled: 0,
+        activeBikes: 0,
+        todayReservations: 0,
+        upcomingReservations: 0,
+      },
+      recentBookings: [],
+      dbError: `Authentication failed: ${err.message}. Check SHOPIFY_API_KEY, SHOPIFY_API_SECRET, and DATABASE_URL on Render.`,
+    });
+  }
   const shop = session.shop;
 
   try {
