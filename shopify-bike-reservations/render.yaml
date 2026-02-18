@@ -31,7 +31,7 @@ services:
       - key: SHOPIFY_APP_URL
         sync: false  # set to https://bike-reservations.onrender.com
       - key: HOST
-        sync: false
+        value: "0.0.0.0"
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
