@@ -21,7 +21,7 @@
       align-items: center;
       gap: 8px;
       transition: opacity 0.2s;
-      width: {{ block.settings.full_width | default: false | ternary: '100%', 'auto' }};
+      {% if block.settings.full_width %}width: 100%;{% else %}width: auto;{% endif %}
       justify-content: center;
     "
     onmouseover="this.style.opacity='0.85'"
