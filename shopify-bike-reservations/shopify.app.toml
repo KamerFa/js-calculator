@@ -8,6 +8,7 @@ embedded = true
 
 [access_scopes]
 scopes = "read_products,write_products,read_orders,write_orders,read_draft_orders,write_draft_orders"
+use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
