@@ -1,5 +1,8 @@
 FROM node:18-alpine
 
+# Required for Prisma with PostgreSQL
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Install dependencies
@@ -9,10 +12,8 @@ RUN npm ci --omit=dev
 # Copy app source
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client and build
 RUN npx prisma generate
-
-# Build Remix app
 RUN npm run build
 
 # Expose port

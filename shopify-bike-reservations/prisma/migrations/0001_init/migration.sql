@@ -1,18 +1,20 @@
 -- CreateTable
 CREATE TABLE "Session" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "state" TEXT NOT NULL,
     "isOnline" BOOLEAN NOT NULL DEFAULT false,
     "scope" TEXT,
-    "expires" DATETIME,
+    "expires" TIMESTAMP(3),
     "accessToken" TEXT NOT NULL,
-    "userId" BIGINT
+    "userId" BIGINT,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Bike" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -23,81 +25,89 @@ CREATE TABLE "Bike" (
     "plateNumber" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Bike_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PricingTier" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "bikeId" TEXT,
     "name" TEXT NOT NULL,
-    "durationHours" REAL NOT NULL,
-    "price" REAL NOT NULL,
+    "durationHours" DOUBLE PRECISION NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
     "isDefault" BOOLEAN NOT NULL DEFAULT false,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "PricingTier_bikeId_fkey" FOREIGN KEY ("bikeId") REFERENCES "Bike" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PricingTier_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SeasonalPricing" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "startDate" DATETIME NOT NULL,
-    "endDate" DATETIME NOT NULL,
-    "multiplier" REAL NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
+    "multiplier" DOUBLE PRECISION NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SeasonalPricing_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Addon" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "price" REAL NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
     "priceType" TEXT NOT NULL DEFAULT 'per_rental',
     "imageUrl" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Addon_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Reservation" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "bikeId" TEXT NOT NULL,
     "confirmationCode" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'confirmed',
-    "startDate" DATETIME NOT NULL,
-    "endDate" DATETIME NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
     "pricingTierName" TEXT,
-    "subtotal" REAL NOT NULL,
-    "addonTotal" REAL NOT NULL DEFAULT 0,
-    "seasonalMultiplier" REAL NOT NULL DEFAULT 1.0,
-    "totalPrice" REAL NOT NULL,
-    "depositAmount" REAL NOT NULL,
+    "subtotal" DOUBLE PRECISION NOT NULL,
+    "addonTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "seasonalMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    "totalPrice" DOUBLE PRECISION NOT NULL,
+    "depositAmount" DOUBLE PRECISION NOT NULL,
     "depositPaid" BOOLEAN NOT NULL DEFAULT false,
     "remainderPaid" BOOLEAN NOT NULL DEFAULT false,
     "shopifyOrderId" TEXT,
     "shopifyDraftOrderId" TEXT,
     "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Reservation_bikeId_fkey" FOREIGN KEY ("bikeId") REFERENCES "Bike" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Reservation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CustomerInfo" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "reservationId" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
@@ -107,30 +117,31 @@ CREATE TABLE "CustomerInfo" (
     "idNumber" TEXT,
     "nationality" TEXT,
     "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "CustomerInfo_reservationId_fkey" FOREIGN KEY ("reservationId") REFERENCES "Reservation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CustomerInfo_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ReservationAddon" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "reservationId" TEXT NOT NULL,
     "addonId" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
-    "priceCharged" REAL NOT NULL,
-    CONSTRAINT "ReservationAddon_reservationId_fkey" FOREIGN KEY ("reservationId") REFERENCES "Reservation" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "ReservationAddon_addonId_fkey" FOREIGN KEY ("addonId") REFERENCES "Addon" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "priceCharged" DOUBLE PRECISION NOT NULL,
+
+    CONSTRAINT "ReservationAddon_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "AppSettings" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "businessName" TEXT NOT NULL DEFAULT 'Bike Rentals',
     "currency" TEXT NOT NULL DEFAULT 'BAM',
     "timezone" TEXT NOT NULL DEFAULT 'Europe/Sarajevo',
-    "depositPercentage" REAL NOT NULL DEFAULT 30,
-    "minBookingHours" REAL NOT NULL DEFAULT 4,
+    "depositPercentage" DOUBLE PRECISION NOT NULL DEFAULT 30,
+    "minBookingHours" DOUBLE PRECISION NOT NULL DEFAULT 4,
     "ownerEmail" TEXT,
     "ownerWhatsApp" TEXT,
     "emailNotifications" BOOLEAN NOT NULL DEFAULT true,
@@ -138,19 +149,23 @@ CREATE TABLE "AppSettings" (
     "pickupLocation" TEXT,
     "pickupInstructions" TEXT,
     "cancellationPolicy" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AppSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "BlockedDate" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "bikeId" TEXT,
-    "startDate" DATETIME NOT NULL,
-    "endDate" DATETIME NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
     "reason" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BlockedDate_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -185,3 +200,18 @@ CREATE UNIQUE INDEX "AppSettings_shop_key" ON "AppSettings"("shop");
 -- CreateIndex
 CREATE INDEX "BlockedDate_shop_idx" ON "BlockedDate"("shop");
 CREATE INDEX "BlockedDate_bikeId_idx" ON "BlockedDate"("bikeId");
+
+-- AddForeignKey
+ALTER TABLE "PricingTier" ADD CONSTRAINT "PricingTier_bikeId_fkey" FOREIGN KEY ("bikeId") REFERENCES "Bike"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reservation" ADD CONSTRAINT "Reservation_bikeId_fkey" FOREIGN KEY ("bikeId") REFERENCES "Bike"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerInfo" ADD CONSTRAINT "CustomerInfo_reservationId_fkey" FOREIGN KEY ("reservationId") REFERENCES "Reservation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReservationAddon" ADD CONSTRAINT "ReservationAddon_reservationId_fkey" FOREIGN KEY ("reservationId") REFERENCES "Reservation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReservationAddon" ADD CONSTRAINT "ReservationAddon_addonId_fkey" FOREIGN KEY ("addonId") REFERENCES "Addon"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
