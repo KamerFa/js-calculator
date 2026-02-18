@@ -227,6 +227,27 @@ const DB = {
     return api('/notifications/read-all', { method: 'PUT' });
   },
 
+  // ── Task History ──────────────────────────────────────────
+  async getTaskHistory(taskId) {
+    return api(`/tasks/${taskId}/history`);
+  },
+
+  // ── Notification Management ─────────────────────────────
+  async deleteNotification(id) {
+    return api(`/notifications/${id}`, { method: 'DELETE' });
+  },
+
+  async getNotificationPreferences() {
+    return api('/notifications/preferences');
+  },
+
+  async updateNotificationPreferences(prefs) {
+    return api('/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    });
+  },
+
   // ── Profile Comments ──────────────────────────────────────
   async getProfileComments(username) {
     return api(`/profile/user/${username}/comments`);

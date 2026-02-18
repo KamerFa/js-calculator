@@ -60,7 +60,10 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
     }
 
     // Spread recurring tasks (no date at all) across the visible month
-    const recurringTasks = tasks.filter((t) => !t.dueDate && !t.scheduledDate && t.recurrence && t.recurrence !== 'none');
+    // Repeatable tasks only show on days they were actually completed
+    const recurringTasks = tasks.filter((t) => !t.dueDate && !t.scheduledDate && t.recurrence && t.recurrence !== 'none' && t.recurrence !== 'repeatable');
+    const repeatableTasks = tasks.filter((t) => t.recurrence === 'repeatable');
+
     if (recurringTasks.length > 0) {
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       for (let d = 1; d <= daysInMonth; d++) {
@@ -80,6 +83,18 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
             if (!map[ds]) map[ds] = [];
             map[ds].push(withDateStatus(t, ds));
           }
+        }
+      }
+    }
+
+    // Repeatable tasks: only show on days they were completed
+    for (const t of repeatableTasks) {
+      const completionDates = t.completionDates || [];
+      for (const dateStr of completionDates) {
+        // Only show for dates within the current month view
+        if (dateStr.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
+          if (!map[dateStr]) map[dateStr] = [];
+          map[dateStr].push(withDateStatus(t, dateStr));
         }
       }
     }

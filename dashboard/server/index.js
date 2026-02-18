@@ -19,6 +19,7 @@ import commentRoutes from './routes/comments.js';
 import radioRoutes from './routes/radio.js';
 import newsRoutes from './routes/news.js';
 import pool from './db.js';
+import { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones } from './scheduled.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -91,6 +92,20 @@ initDB()
     app.listen(PORT, () => {
       console.log(`Dashboard API running on http://localhost:${PORT}`);
     });
+
+    // Run scheduled notification jobs every hour
+    const runScheduledJobs = async () => {
+      try {
+        await checkDueTaskReminders();
+        await checkOverdueTasks();
+        await checkStreakMilestones();
+      } catch (err) {
+        console.error('Scheduled job error:', err.message);
+      }
+    };
+    // Run once on startup, then every hour
+    runScheduledJobs();
+    setInterval(runScheduledJobs, 3600000);
   })
   .catch((err) => {
     console.error('Failed to initialize database:', err);

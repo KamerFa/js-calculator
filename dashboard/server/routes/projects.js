@@ -318,7 +318,7 @@ router.post('/import', async (req, res) => {
 
     for (const t of tasks) {
       if (!t.title?.trim()) continue;
-      const rec = ['daily', 'weekly', 'monthly', 'none'].includes(t.recurrence) ? t.recurrence : 'none';
+      const rec = ['daily', 'weekly', 'monthly', 'repeatable', 'none'].includes(t.recurrence) ? t.recurrence : 'none';
       const pri = ['high', 'medium', 'low'].includes(t.priority) ? t.priority : 'medium';
       await client.query(
         `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, recurrence, task_type)

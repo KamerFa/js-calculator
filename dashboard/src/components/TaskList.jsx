@@ -28,10 +28,14 @@ function isDueToday(task) {
 export default function TaskList({ tasks, projects, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [intervalFilter, setIntervalFilter] = useState('all');
 
   const filtered = tasks.filter((t) => {
     if (statusFilter !== 'all' && t.status !== statusFilter) return false;
     if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+    if (intervalFilter === 'one-off' && (t.recurrence && t.recurrence !== 'none')) return false;
+    if (intervalFilter === 'recurring' && !['daily', 'weekly', 'monthly'].includes(t.recurrence)) return false;
+    if (intervalFilter === 'repeatable' && t.recurrence !== 'repeatable') return false;
     return true;
   });
 
@@ -98,6 +102,12 @@ export default function TaskList({ tasks, projects, onToggle, onTaskClick, onEdi
         {['all', 'high', 'medium', 'low'].map((p) => (
           <button key={p} className={`chip${priorityFilter === p ? ' active' : ''}`} onClick={() => setPriorityFilter(p)}>
             {p === 'all' ? 'Any Priority' : p.charAt(0).toUpperCase() + p.slice(1)}
+          </button>
+        ))}
+        <div className="divider" />
+        {['all', 'one-off', 'recurring', 'repeatable'].map((f) => (
+          <button key={f} className={`chip${intervalFilter === f ? ' active' : ''}`} onClick={() => setIntervalFilter(f)}>
+            {f === 'all' ? 'Any Type' : f === 'one-off' ? 'One-off' : f === 'recurring' ? 'Recurring' : 'Repeatable'}
           </button>
         ))}
       </div>

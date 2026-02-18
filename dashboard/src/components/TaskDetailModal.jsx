@@ -1,10 +1,54 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { IconX } from './Icons';
 import { renderWithMentions } from '../mentions';
 import ItemComments from './ItemComments';
+import { DB } from '../db';
+
+function CompletionHeatmap({ history }) {
+  // Build a 52-day heatmap (7 rows x ~8 cols)
+  const today = new Date();
+  const days = [];
+  for (let i = 51; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+
+  const completedDates = new Set(history.map((h) => h.completionDate));
+
+  return (
+    <div className="completion-heatmap">
+      {days.map((day) => (
+        <div
+          key={day}
+          className={`heatmap-cell${completedDates.has(day) ? ' completed' : ''}`}
+          title={day}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function TaskDetailModal({ open, task, projects, notes, onClose, onEdit, onProjectClick, onNoteClick }) {
   const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const isRecurring = task && task.recurrence && task.recurrence !== 'none';
+
+  useEffect(() => {
+    if (!open || !task || !isRecurring) {
+      setHistory([]);
+      return;
+    }
+    setLoadingHistory(true);
+    DB.getTaskHistory(task.id)
+      .then(setHistory)
+      .catch(() => setHistory([]))
+      .finally(() => setLoadingHistory(false));
+  }, [open, task?.id]);
+
   if (!open || !task) return null;
 
   const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
@@ -41,6 +85,45 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
               </span>
             )}
           </div>
+
+          {/* Completion Stats for recurring/repeatable tasks */}
+          {isRecurring && (
+            <div className="completion-stats-section">
+              <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 8 }}>Completion Stats:</span>
+              <div className="completion-stats-row">
+                <div className="stat-box">
+                  <div className="stat-value">{task.completionCount || 0}</div>
+                  <div className="stat-label">Total</div>
+                </div>
+                <div className="stat-box">
+                  <div className="stat-value">{task.currentStreak || 0}</div>
+                  <div className="stat-label">Current Streak</div>
+                </div>
+                <div className="stat-box">
+                  <div className="stat-value">{task.bestStreak || 0}</div>
+                  <div className="stat-label">Best Streak</div>
+                </div>
+              </div>
+
+              {!loadingHistory && history.length > 0 && (
+                <>
+                  <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginTop: 12, marginBottom: 6 }}>Last 52 days:</span>
+                  <CompletionHeatmap history={history} />
+
+                  <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginTop: 12, marginBottom: 6 }}>Recent completions:</span>
+                  <div className="completion-history-list">
+                    {history.slice(0, 10).map((h, i) => (
+                      <div key={i} className="completion-history-item">
+                        <span>{new Date(h.completionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span style={{ color: 'var(--text-3)', fontSize: 12 }}>{h.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {project && (
             <div style={{ marginBottom: 16 }}>
               <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Project: </span>

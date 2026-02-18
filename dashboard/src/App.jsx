@@ -86,10 +86,24 @@ const NOTIF_ICONS = {
   task_created: '\u2728',
   task_completed: '\uD83C\uDF1F',
   task_status: '\uD83C\uDF3F',
+  task_reminder: '\u23F0',
+  task_overdue: '\u26A0\uFE0F',
+  streak_milestone: '\uD83D\uDD25',
   project_join: '\uD83C\uDF3B',
   project_leave: '\uD83C\uDF43',
   project_invite: '\uD83D\uDC8C',
   project_removed: '\uD83C\uDF42',
+  comment_upvote: '\uD83D\uDC4D',
+  friend_request: '\uD83E\uDD1D',
+  friend_accepted: '\uD83C\uDF89',
+  profile_comment: '\uD83D\uDCDD',
+};
+
+const NOTIF_FILTER_CATEGORIES = {
+  all: () => true,
+  tasks: (n) => ['task_created', 'task_completed', 'task_status', 'task_reminder', 'task_overdue', 'streak_milestone'].includes(n.type),
+  social: (n) => ['tweet_reaction', 'tweet_comment', 'comment_upvote', 'friend_request', 'friend_accepted', 'profile_comment'].includes(n.type),
+  projects: (n) => ['project_join', 'project_leave', 'project_invite', 'project_removed'].includes(n.type),
 };
 
 function notifTimeAgo(iso) {
@@ -103,11 +117,28 @@ function notifTimeAgo(iso) {
   return `${days}d ago`;
 }
 
+function getDateGroup(iso) {
+  const now = new Date();
+  const d = new Date(iso);
+  const today = now.toISOString().split('T')[0];
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  const dateStr = d.toISOString().split('T')[0];
+
+  if (dateStr === today) return 'Today';
+  if (dateStr === yesterdayStr) return 'Yesterday';
+  const diffDays = (now - d) / 86400000;
+  if (diffDays < 7) return 'This Week';
+  return 'Older';
+}
+
 function NotificationBell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifFilter, setNotifFilter] = useState('all');
   const panelRef = useRef(null);
   const bellRef = useRef(null);
 
@@ -157,6 +188,13 @@ function NotificationBell() {
     setUnreadCount(0);
   };
 
+  const handleDismiss = async (e, notif) => {
+    e.stopPropagation();
+    await DB.deleteNotification(notif.id);
+    setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+    if (!notif.isRead) setUnreadCount((c) => Math.max(0, c - 1));
+  };
+
   const handleClick = async (notif) => {
     if (!notif.isRead) {
       await DB.markNotificationRead(notif.id);
@@ -169,12 +207,25 @@ function NotificationBell() {
     if (notif.targetType === 'tweet') navigate('/community');
     else if (notif.targetType === 'project') navigate(`/project/${notif.targetId}`);
     else if (notif.targetType === 'profile') {
-      // For friend requests, navigate to the actor's profile; for profile comments, navigate to own profile
       if (notif.type === 'profile_comment') navigate('/profile');
       else navigate(`/profile/${notif.actorName}`);
     }
     else if (notif.targetType === 'task') navigate('/');
   };
+
+  const filteredNotifs = notifications.filter(NOTIF_FILTER_CATEGORIES[notifFilter] || (() => true));
+
+  // Group notifications by date
+  const groups = [];
+  let lastGroup = null;
+  for (const n of filteredNotifs.slice(0, 30)) {
+    const group = getDateGroup(n.createdAt);
+    if (group !== lastGroup) {
+      groups.push({ label: group, items: [] });
+      lastGroup = group;
+    }
+    groups[groups.length - 1].items.push(n);
+  }
 
   return (
     <div className="notif-float">
@@ -204,26 +255,50 @@ function NotificationBell() {
             )}
           </div>
 
+          <div className="notif-filter-tabs">
+            {['all', 'tasks', 'social', 'projects'].map((f) => (
+              <button
+                key={f}
+                className={`notif-filter-tab${notifFilter === f ? ' active' : ''}`}
+                onClick={() => setNotifFilter(f)}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+
           <div className="notif-panel-list">
-            {notifications.length === 0 && (
+            {filteredNotifs.length === 0 && (
               <div className="notif-panel-empty">
                 <span className="notif-panel-empty-icon">{'\uD83C\uDF3F'}</span>
                 <span>All caught up. Enjoy the calm.</span>
               </div>
             )}
-            {notifications.slice(0, 30).map((n) => (
-              <div
-                key={n.id}
-                className={`notif-panel-item${n.isRead ? '' : ' notif-unread'}`}
-                onClick={() => handleClick(n)}
-              >
-                <span className="notif-panel-icon">
-                  {NOTIF_ICONS[n.type] || '\uD83C\uDF3F'}
-                </span>
-                <div className="notif-panel-body">
-                  <span className="notif-panel-summary">{n.summary}</span>
-                  <span className="notif-panel-time">{notifTimeAgo(n.createdAt)}</span>
-                </div>
+            {groups.map((g) => (
+              <div key={g.label}>
+                <div className="notif-date-group">{g.label}</div>
+                {g.items.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`notif-panel-item${n.isRead ? '' : ' notif-unread'}`}
+                    onClick={() => handleClick(n)}
+                  >
+                    <span className="notif-panel-icon">
+                      {NOTIF_ICONS[n.type] || '\uD83C\uDF3F'}
+                    </span>
+                    <div className="notif-panel-body">
+                      <span className="notif-panel-summary">{n.summary}</span>
+                      <span className="notif-panel-time">{notifTimeAgo(n.createdAt)}</span>
+                    </div>
+                    <button
+                      className="notif-dismiss-btn"
+                      onClick={(e) => handleDismiss(e, n)}
+                      title="Dismiss"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
               </div>
             ))}
           </div>

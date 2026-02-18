@@ -36,6 +36,26 @@ router.get('/unread-count', async (req, res) => {
   res.json({ count: parseInt(rows[0].count) });
 });
 
+// ── GET notification preferences ───────────────────────────
+router.get('/preferences', async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT notification_preferences FROM users WHERE id = $1',
+    [req.userId]
+  );
+  const prefs = JSON.parse(rows[0]?.notification_preferences || '{}');
+  res.json(prefs);
+});
+
+// ── PUT update notification preferences ────────────────────
+router.put('/preferences', async (req, res) => {
+  const prefs = JSON.stringify(req.body || {});
+  await pool.query(
+    'UPDATE users SET notification_preferences = $1 WHERE id = $2',
+    [prefs, req.userId]
+  );
+  res.json({ ok: true });
+});
+
 // ── PUT mark one as read ───────────────────────────────────
 router.put('/:id/read', async (req, res) => {
   await pool.query(
@@ -50,6 +70,15 @@ router.put('/read-all', async (req, res) => {
   await pool.query(
     `UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false`,
     [req.userId]
+  );
+  res.json({ ok: true });
+});
+
+// ── DELETE individual notification ─────────────────────────
+router.delete('/:id', async (req, res) => {
+  await pool.query(
+    `DELETE FROM notifications WHERE id = $1 AND user_id = $2`,
+    [req.params.id, req.userId]
   );
   res.json({ ok: true });
 });

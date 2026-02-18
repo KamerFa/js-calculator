@@ -6625,3 +6625,189 @@ body {
     flex-shrink: 0;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Repeatable tasks, streaks, completion stats
+   ═══════════════════════════════════════════════════════════ */
+
+.recurrence-badge.repeatable {
+  background: var(--accent-light, #e8f5e9);
+  color: var(--accent, #2e7d32);
+  border: 1px solid var(--accent, #2e7d32);
+}
+
+.completion-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--bg-3, #f0f0f0);
+  color: var(--text-2, #666);
+  white-space: nowrap;
+}
+
+.streak-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #fff3e0;
+  color: #e65100;
+  white-space: nowrap;
+}
+.streak-badge.hot {
+  background: #fbe9e7;
+  color: #d84315;
+}
+.streak-badge.gold {
+  background: #fff8e1;
+  color: #f57f17;
+  box-shadow: 0 0 4px rgba(255, 193, 7, 0.3);
+}
+
+.repeatable-hint {
+  font-size: 12px;
+  color: var(--text-3, #999);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Completion stats section in task detail modal */
+.completion-stats-section {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--bg-2, #f8f8f8);
+  border-radius: 10px;
+}
+
+.completion-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.stat-box {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  background: var(--bg-1, #fff);
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  color: var(--text-1, #333);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-3, #999);
+  margin-top: 2px;
+}
+
+/* Completion heatmap */
+.completion-heatmap {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 3px;
+  max-width: 260px;
+}
+
+.heatmap-cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--bg-3, #eee);
+  cursor: default;
+  transition: background 0.15s;
+}
+
+.heatmap-cell.completed {
+  background: #4caf50;
+}
+
+.heatmap-cell:hover {
+  outline: 1px solid var(--text-3, #999);
+}
+
+/* Completion history list */
+.completion-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completion-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 13px;
+  background: var(--bg-1, #fff);
+  border-radius: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Notification panel improvements
+   ═══════════════════════════════════════════════════════════ */
+
+.notif-filter-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border, #e0e0e0);
+  padding: 0 8px;
+}
+
+.notif-filter-tab {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-3, #999);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.notif-filter-tab.active {
+  color: var(--primary, #2a5caa);
+  border-bottom-color: var(--primary, #2a5caa);
+}
+
+.notif-filter-tab:hover {
+  color: var(--text-1, #333);
+}
+
+.notif-date-group {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3, #999);
+  padding: 8px 12px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notif-dismiss-btn {
+  background: none;
+  border: none;
+  color: var(--text-3, #999);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.notif-panel-item:hover .notif-dismiss-btn {
+  opacity: 1;
+}
+
+.notif-dismiss-btn:hover {
+  color: var(--danger, #e53935);
+}

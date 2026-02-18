@@ -1,12 +1,14 @@
 import { IconCheckSmall, IconEdit, IconTrash } from './Icons';
 
-const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
+const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', repeatable: 'Repeatable' };
 
 export default function TaskRow({ task, project, showProject, showCreator, currentUserId, onToggle, onClick, onEdit, onDelete, onProjectClick }) {
   const effectiveDate = task.dueDate || task.scheduledDate;
   const isScheduled = !task.dueDate && !!task.scheduledDate;
   const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
   const isOwnTask = !currentUserId || task.userId === currentUserId;
+  const isRepeatable = task.recurrence === 'repeatable';
+  const isRecurring = task.recurrence && task.recurrence !== 'none';
 
   const formatDate = (iso) => {
     if (!iso) return '';
@@ -29,8 +31,20 @@ export default function TaskRow({ task, project, showProject, showCreator, curre
           </svg>
         </span>
       )}
-      {task.recurrence && task.recurrence !== 'none' && (
-        <span className="recurrence-badge">{REC_LABELS[task.recurrence]}</span>
+      {isRecurring && (
+        <span className={`recurrence-badge${isRepeatable ? ' repeatable' : ''}`}>
+          {isRepeatable ? '\u{1F501} ' : ''}{REC_LABELS[task.recurrence]}
+        </span>
+      )}
+      {isRecurring && task.completionCount > 0 && (
+        <span className="completion-count-badge" title={`Completed ${task.completionCount} times`}>
+          {'\u00D7'}{task.completionCount}
+        </span>
+      )}
+      {isRecurring && task.currentStreak > 0 && (
+        <span className={`streak-badge${task.currentStreak >= 30 ? ' gold' : task.currentStreak >= 7 ? ' hot' : ''}`} title={`${task.currentStreak} day streak (best: ${task.bestStreak})`}>
+          {'\uD83D\uDD25'}{task.currentStreak}
+        </span>
       )}
       {showProject && project && (
         <span

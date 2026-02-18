@@ -150,6 +150,27 @@ async function initDB() {
     END $$
   `);
 
+  // Task completion history log (append-only, for streaks & stats)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_completion_log (
+      id              TEXT PRIMARY KEY,
+      task_id         TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      completed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completion_date TEXT NOT NULL
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_task_completion_log_task ON task_completion_log(task_id, user_id, completed_at DESC)`);
+
+  // Streak & completion count columns on tasks
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS current_streak INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS best_streak INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completion_count INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS last_reminded_at TIMESTAMPTZ`);
+
+  // Notification preferences on users
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_preferences TEXT NOT NULL DEFAULT '{}'`);
+
   // Notifications
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notifications (

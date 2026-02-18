@@ -5,6 +5,7 @@ import { DB } from '../db';
 
 const RECURRENCE_OPTIONS = [
   { value: 'none', label: 'No repeat' },
+  { value: 'repeatable', label: 'Repeatable (anytime)' },
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'monthly', label: 'Monthly' },
@@ -148,7 +149,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
                 <option value="low">Low</option>
               </select>
             </div>
-            <div className="form-group">
+            <div className="form-group" style={form.recurrence === 'repeatable' ? { display: 'none' } : undefined}>
               <label>Date</label>
               <div className="date-type-toggle">
                 <button
@@ -195,6 +196,11 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
                 ))}
               </select>
             </div>
+            {form.recurrence === 'repeatable' && (
+              <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                <span className="repeatable-hint">Can be completed multiple times. Resets daily.</span>
+              </div>
+            )}
             {selectedProject && selectedProject.memberCount > 1 ? (
               <div className="form-group">
                 <label>Tracking</label>

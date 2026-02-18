@@ -21,6 +21,20 @@ const LANG_OPTIONS = [
   { value: 'en', label: 'English' },
 ];
 
+const NOTIF_TYPES = [
+  { key: 'task_reminder', label: 'Task reminders', desc: 'When a task is due tomorrow' },
+  { key: 'task_overdue', label: 'Overdue alerts', desc: 'When a task passes its due date' },
+  { key: 'streak_milestone', label: 'Streak milestones', desc: 'When you hit a streak milestone (7, 30, etc.)' },
+  { key: 'task_created', label: 'Task created', desc: 'When a new task is created in your projects' },
+  { key: 'task_completed', label: 'Task completed', desc: 'When someone completes a task' },
+  { key: 'task_status', label: 'Task status changes', desc: 'When a task status changes' },
+  { key: 'project_invite', label: 'Project invites', desc: 'When you are added to a project' },
+  { key: 'project_join', label: 'Project joins', desc: 'When someone joins your project' },
+  { key: 'tweet_reaction', label: 'Tweet reactions', desc: 'When someone reacts to your post' },
+  { key: 'tweet_comment', label: 'Tweet comments', desc: 'When someone comments on your post' },
+  { key: 'friend_request', label: 'Friend requests', desc: 'When someone sends you a friend request' },
+];
+
 export default function SettingsView({ user }) {
   const { mode, setMode } = useTheme();
   const { language, setLanguage, t } = useTranslation();
@@ -28,13 +42,28 @@ export default function SettingsView({ user }) {
   const [saving, setSaving] = useState(false);
   const [playerPosition, setPlayerPosition] = useState(radioAudio.getPlayerPosition());
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [notifPrefs, setNotifPrefs] = useState({});
+  const [notifLoaded, setNotifLoaded] = useState(false);
 
   useEffect(() => {
     DB.getProfile().then((p) => {
       setShowProjectsOnProfile(p.showProjectsOnProfile !== false);
       setShowOnlineStatus(p.showOnlineStatus !== false);
     }).catch(() => {});
+    DB.getNotificationPreferences().then((prefs) => {
+      setNotifPrefs(prefs);
+      setNotifLoaded(true);
+    }).catch(() => setNotifLoaded(true));
   }, []);
+
+  const toggleNotifPref = async (key) => {
+    const current = notifPrefs[key] !== false; // default is true
+    const updated = { ...notifPrefs, [key]: !current };
+    setNotifPrefs(updated);
+    try {
+      await DB.updateNotificationPreferences(updated);
+    } catch { /* ignore */ }
+  };
 
   const handleToggleProjects = async () => {
     const next = !showProjectsOnProfile;
@@ -171,6 +200,25 @@ export default function SettingsView({ user }) {
               </span>
             </label>
           </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3 className="settings-section-title">Notifications</h3>
+        <div className="settings-card">
+          {notifLoaded && NOTIF_TYPES.map((nt) => (
+            <div className="settings-row" key={nt.key}>
+              <div className="settings-row-info">
+                <span className="settings-row-label">{nt.label}</span>
+                <span className="settings-row-desc">{nt.desc}</span>
+              </div>
+              <label className="toggle-row" onClick={() => toggleNotifPref(nt.key)}>
+                <span className={`toggle-switch${notifPrefs[nt.key] !== false ? ' on' : ''}`}>
+                  <span className="toggle-knob" />
+                </span>
+              </label>
+            </div>
+          ))}
         </div>
       </div>
 
