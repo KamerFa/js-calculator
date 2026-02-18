@@ -3,6 +3,9 @@ import { json } from "@remix-run/node";
 /**
  * Public API: Create a reservation
  * POST /api/reservations
+ *
+ * Accepts either `bikeId` (internal) or `productId` (Shopify product GID).
+ * The widget sends `productId` from the product page context.
  */
 export const action = async ({ request }) => {
   if (request.method === "OPTIONS") {
@@ -22,14 +25,21 @@ export const action = async ({ request }) => {
 
     const body = await request.json();
     const {
-      shop, bikeId, startDate, endDate,
+      shop, bikeId, productId, startDate, endDate,
       customer, selectedAddons,
     } = body;
 
     // Validate required fields
-    if (!shop || !bikeId || !startDate || !endDate) {
+    if (!shop || !startDate || !endDate) {
       return json(
-        { error: "Missing required fields: shop, bikeId, startDate, endDate" },
+        { error: "Missing required fields: shop, startDate, endDate" },
+        { status: 400, headers: corsHeaders() }
+      );
+    }
+
+    if (!bikeId && !productId) {
+      return json(
+        { error: "Either bikeId or productId is required" },
         { status: 400, headers: corsHeaders() }
       );
     }
@@ -41,28 +51,36 @@ export const action = async ({ request }) => {
       );
     }
 
-    // Check bike exists and is active
-    const bike = await prisma.bike.findFirst({
-      where: { id: bikeId, shop, isActive: true },
-    });
-    if (!bike) {
+    // Resolve bike: by productId (Shopify GID) or bikeId (internal)
+    let bike;
+    if (productId) {
+      bike = await prisma.bike.findUnique({
+        where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
+      });
+    } else {
+      bike = await prisma.bike.findFirst({
+        where: { id: bikeId, shop },
+      });
+    }
+
+    if (!bike || !bike.isActive) {
       return json(
-        { error: "Bike not found or not available" },
+        { error: "Product not found or rental not enabled" },
         { status: 404, headers: corsHeaders() }
       );
     }
 
     // Check availability
-    const available = await isBikeAvailable(shop, bikeId, startDate, endDate);
+    const available = await isBikeAvailable(shop, bike.id, startDate, endDate);
     if (!available) {
       return json(
-        { error: "Bike is not available for the selected dates" },
+        { error: "This bike is not available for the selected dates" },
         { status: 409, headers: corsHeaders() }
       );
     }
 
     // Calculate pricing
-    const pricing = await calculatePrice(shop, bikeId, startDate, endDate);
+    const pricing = await calculatePrice(shop, bike.id, startDate, endDate);
 
     // Calculate add-on costs
     let addonTotal = 0;
@@ -112,7 +130,7 @@ export const action = async ({ request }) => {
     const reservation = await prisma.reservation.create({
       data: {
         shop,
-        bikeId,
+        bikeId: bike.id,
         confirmationCode,
         status: "confirmed",
         startDate: new Date(startDate),
@@ -152,7 +170,7 @@ export const action = async ({ request }) => {
       console.error("Notification failed:", err)
     );
 
-    // Return reservation details for the storefront to create a draft order
+    // Return reservation details
     return json({
       success: true,
       reservation: {
@@ -183,7 +201,7 @@ export const action = async ({ request }) => {
 };
 
 /**
- * Handle CORS preflight
+ * Handle CORS preflight and reservation lookup
  */
 export const loader = async ({ request }) => {
   if (request.method === "OPTIONS") {

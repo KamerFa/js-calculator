@@ -23,23 +23,22 @@ model Session {
 // ─── Motorbike Fleet ────────────────────────────────────────────────────────
 
 model Bike {
-  id          String   @id @default(cuid())
-  shop        String
-  name        String
-  description String?
-  category    String?
-  imageUrl    String?
-  engineSize  String?
-  year        Int?
-  plateNumber String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  shop             String
+  shopifyProductId String   // Shopify product GID e.g. "gid://shopify/Product/123"
+  name             String   // cached from Shopify for display in bookings
+  description      String?  // cached from Shopify
+  imageUrl         String?  // cached from Shopify
+  plateNumber      String?  // rental-specific: physical plate number
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   pricingTiers PricingTier[]
   reservations Reservation[]
 
+  @@unique([shop, shopifyProductId])
   @@index([shop])
 }
 

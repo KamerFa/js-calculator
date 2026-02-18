@@ -2,7 +2,8 @@ import { json } from "@remix-run/node";
 
 /**
  * Public API: Get pricing for a bike and date range
- * GET /api/pricing?shop=xxx&bikeId=xxx&start=2024-06-01&end=2024-06-03
+ * GET /api/pricing?shop=xxx&productId=gid://...&start=2024-06-01&end=2024-06-03
+ * Also supports bikeId for backwards compatibility.
  */
 export const loader = async ({ request }) => {
   const prisma = (await import("../db.server")).default;
@@ -10,6 +11,7 @@ export const loader = async ({ request }) => {
 
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const productId = url.searchParams.get("productId");
   const bikeId = url.searchParams.get("bikeId");
   const startDate = url.searchParams.get("start");
   const endDate = url.searchParams.get("end");
@@ -18,9 +20,22 @@ export const loader = async ({ request }) => {
     return json({ error: "shop parameter required" }, { status: 400 });
   }
 
+  // Resolve internal bikeId from productId if needed
+  let resolvedBikeId = bikeId;
+  if (productId && !bikeId) {
+    const bike = await prisma.bike.findUnique({
+      where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
+      select: { id: true },
+    });
+    if (!bike) {
+      return json({ error: "Product not configured for rental" }, { status: 404, headers: corsHeaders() });
+    }
+    resolvedBikeId = bike.id;
+  }
+
   // If a specific bike + dates, calculate the price
-  if (bikeId && startDate && endDate) {
-    const pricing = await calculatePrice(shop, bikeId, startDate, endDate);
+  if (resolvedBikeId && startDate && endDate) {
+    const pricing = await calculatePrice(shop, resolvedBikeId, startDate, endDate);
 
     // Get deposit percentage
     const settings = await prisma.appSettings.findUnique({ where: { shop } });
@@ -44,9 +59,9 @@ export const loader = async ({ request }) => {
   });
 
   let bikeTiers = [];
-  if (bikeId) {
+  if (resolvedBikeId) {
     bikeTiers = await prisma.pricingTier.findMany({
-      where: { shop, bikeId },
+      where: { shop, bikeId: resolvedBikeId },
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, durationHours: true, price: true },
     });

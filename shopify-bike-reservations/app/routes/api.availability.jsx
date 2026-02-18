@@ -1,8 +1,9 @@
 import { json } from "@remix-run/node";
 
 /**
- * Public API: Get availability calendar for a bike
- * GET /api/availability?shop=xxx&bikeId=xxx&year=2024&month=6
+ * Public API: Get availability calendar for a product
+ * GET /api/availability?shop=xxx&productId=gid://...&year=2024&month=6
+ * Also supports bikeId for backwards compatibility.
  */
 export const loader = async ({ request }) => {
   const prisma = (await import("../db.server")).default;
@@ -10,6 +11,7 @@ export const loader = async ({ request }) => {
 
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const productId = url.searchParams.get("productId");
   const bikeId = url.searchParams.get("bikeId");
   const year = parseInt(url.searchParams.get("year") || new Date().getFullYear());
   const month = parseInt(url.searchParams.get("month") || new Date().getMonth() + 1);
@@ -18,10 +20,23 @@ export const loader = async ({ request }) => {
     return json({ error: "shop parameter required" }, { status: 400 });
   }
 
+  // Resolve internal bikeId from productId if needed
+  let resolvedBikeId = bikeId;
+  if (productId && !bikeId) {
+    const bike = await prisma.bike.findUnique({
+      where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
+      select: { id: true },
+    });
+    if (!bike) {
+      return json({ error: "Product not configured for rental" }, { status: 404, headers: corsHeaders() });
+    }
+    resolvedBikeId = bike.id;
+  }
+
   // If bikeId provided, return calendar for that bike
-  if (bikeId) {
-    const calendar = await getBikeCalendar(shop, bikeId, year, month);
-    return json({ bikeId, year, month, calendar }, { headers: corsHeaders() });
+  if (resolvedBikeId) {
+    const calendar = await getBikeCalendar(shop, resolvedBikeId, year, month);
+    return json({ bikeId: resolvedBikeId, year, month, calendar }, { headers: corsHeaders() });
   }
 
   // Otherwise return availability summary for all active bikes

@@ -1,13 +1,16 @@
 /**
  * Bike Reservation Widget
- * Multi-step booking modal for Shopify storefront
+ * Streamlined booking flow for Shopify product pages.
+ *
+ * The widget knows which product it's on (from Liquid context),
+ * so the customer just picks dates, optionally adds extras,
+ * fills in details, and confirms. No bike selection needed.
  *
  * Steps:
- * 1. Select dates
- * 2. Choose bike (shows only available bikes for selected dates)
- * 3. Select add-ons
- * 4. Customer details
- * 5. Confirmation / success
+ * 1. Select dates → check availability & show pricing
+ * 2. Select add-ons (optional extras)
+ * 3. Customer details → confirm reservation
+ * 4. Confirmation / success
  */
 (function () {
   "use strict";
@@ -16,15 +19,15 @@
   const API = CFG.appUrl || "";
   const SHOP = CFG.shop || "";
   const CURRENCY = CFG.currency || "BAM";
+  const PRODUCT_ID = CFG.productId || ""; // Shopify product GID from page context
 
   // State
   let currentStep = 1;
-  const TOTAL_STEPS = 4;
+  const TOTAL_STEPS = 3;
   let state = {
     startDate: "",
     endDate: "",
-    bikes: [],
-    selectedBike: null,
+    available: null, // null = not checked, true/false
     pricing: null,
     addons: [],
     selectedAddons: [],
@@ -47,6 +50,7 @@
   async function apiFetch(endpoint, params = {}) {
     const url = new URL(`${API}${endpoint}`);
     url.searchParams.set("shop", SHOP);
+    if (PRODUCT_ID) url.searchParams.set("productId", PRODUCT_ID);
     Object.entries(params).forEach(([k, v]) => {
       if (v != null) url.searchParams.set(k, v);
     });
@@ -69,45 +73,37 @@
     return data;
   }
 
-  async function fetchAvailableBikes() {
+  async function checkAvailabilityAndPricing() {
     state.loading = true;
     state.error = null;
+    state.available = null;
+    state.pricing = null;
     render();
     try {
-      const data = await apiFetch("/api/bikes", {
+      // Check availability for this product
+      const availData = await apiFetch("/api/bikes", {
         start: state.startDate,
         end: state.endDate,
       });
-      state.bikes = data.bikes || [];
+      state.available = availData.available;
+
+      if (state.available) {
+        // Fetch pricing
+        const pricingData = await apiFetch("/api/pricing", {
+          start: state.startDate,
+          end: state.endDate,
+        });
+        state.pricing = pricingData;
+
+        // Fetch add-ons
+        const addonData = await apiFetch("/api/addons");
+        state.addons = addonData.addons || [];
+      }
     } catch (err) {
       state.error = err.message;
     }
     state.loading = false;
     render();
-  }
-
-  async function fetchPricing() {
-    if (!state.selectedBike) return;
-    try {
-      const data = await apiFetch("/api/pricing", {
-        bikeId: state.selectedBike.id,
-        start: state.startDate,
-        end: state.endDate,
-      });
-      state.pricing = data;
-    } catch (err) {
-      console.error("Pricing error:", err);
-    }
-    render();
-  }
-
-  async function fetchAddons() {
-    try {
-      const data = await apiFetch("/api/addons");
-      state.addons = data.addons || [];
-    } catch (err) {
-      console.error("Addons error:", err);
-    }
   }
 
   async function submitReservation() {
@@ -116,7 +112,7 @@
     render();
     try {
       const data = await apiPost("/api/reservations", {
-        bikeId: state.selectedBike.id,
+        productId: PRODUCT_ID,
         startDate: state.startDate,
         endDate: state.endDate,
         customer: state.customer,
@@ -126,7 +122,7 @@
         })),
       });
       state.reservation = data.reservation;
-      currentStep = 5; // success
+      currentStep = 4; // success
     } catch (err) {
       state.error = err.message;
     }
@@ -185,21 +181,20 @@
   function renderHeader(showClose) {
     const titles = {
       1: "Select Dates",
-      2: "Choose Your Bike",
-      3: "Add Extras",
-      4: "Your Details",
-      5: "Reservation Confirmed!",
+      2: "Add Extras",
+      3: "Your Details",
+      4: "Reservation Confirmed!",
     };
     return `
       <div class="br-header">
-        <h2>${titles[currentStep] || "Reserve a Bike"}</h2>
+        <h2>${titles[currentStep] || "Reserve"}</h2>
         ${showClose ? '<button class="br-close" id="br-close">&times;</button>' : ""}
       </div>
     `;
   }
 
   function renderSteps() {
-    if (currentStep === 5) return "";
+    if (currentStep === 4) return "";
     let html = '<div class="br-steps">';
     for (let i = 1; i <= TOTAL_STEPS; i++) {
       const cls = i === currentStep ? "br-active" : i < currentStep ? "br-done" : "";
@@ -221,18 +216,17 @@
   function renderCurrentStep() {
     switch (currentStep) {
       case 1: return renderDateStep();
-      case 2: return renderBikeStep();
-      case 3: return renderAddonStep();
-      case 4: return renderCustomerStep();
-      case 5: return renderSuccessStep();
+      case 2: return renderAddonStep();
+      case 3: return renderCustomerStep();
+      case 4: return renderSuccessStep();
       default: return "";
     }
   }
 
-  // Step 1: Date selection
+  // Step 1: Date selection + availability + pricing
   function renderDateStep() {
     const today = new Date().toISOString().split("T")[0];
-    return `
+    let html = `
       <h3>When would you like to rent?</h3>
       <div class="br-date-row">
         <div class="br-field">
@@ -248,46 +242,20 @@
         Minimum rental: half day (4 hours)
       </p>
     `;
-  }
 
-  // Step 2: Bike selection
-  function renderBikeStep() {
-    if (state.bikes.length === 0) {
-      return `
-        <div class="br-empty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <h3>No bikes available</h3>
-          <p>Sorry, no bikes are available for your selected dates. Please try different dates.</p>
+    // Show availability result
+    if (state.available === false) {
+      html += `
+        <div class="br-alert" style="margin-top: 16px;">
+          Sorry, this bike is not available for the selected dates. Please try different dates.
         </div>
       `;
     }
 
-    let html = '<h3>Available bikes for your dates</h3><div class="br-bikes">';
-    for (const bike of state.bikes) {
-      const selected = state.selectedBike?.id === bike.id;
-      const imgSrc = bike.imageUrl || "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png";
+    // Show pricing if available
+    if (state.available && state.pricing) {
       html += `
-        <div class="br-bike-card ${selected ? "br-selected" : ""}" data-bike-id="${bike.id}">
-          <img class="br-bike-img" src="${esc(imgSrc)}" alt="${esc(bike.name)}" loading="lazy" />
-          <div class="br-bike-info">
-            <h4>${esc(bike.name)}</h4>
-            <p>${[bike.category, bike.engineSize, bike.year].filter(Boolean).join(" | ")}</p>
-            ${bike.description ? `<p>${esc(bike.description.substring(0, 80))}</p>` : ""}
-          </div>
-          <div class="br-bike-check">${selected ? "&#10003;" : ""}</div>
-        </div>
-      `;
-    }
-    html += "</div>";
-
-    // Show pricing if bike selected
-    if (state.pricing && state.selectedBike) {
-      html += `
-        <div class="br-pricing">
+        <div class="br-pricing" style="margin-top: 16px;">
           <div class="br-pricing-row">
             <span>${esc(state.pricing.tierName || "Rental")}</span>
             <span>${state.pricing.subtotal} ${CURRENCY}</span>
@@ -303,7 +271,7 @@
             <span>${state.pricing.total} ${CURRENCY}</span>
           </div>
           <div class="br-pricing-row br-deposit">
-            <span>Deposit due now (${state.pricing.depositPercentage}%)</span>
+            <span>Deposit (${state.pricing.depositPercentage}%)</span>
             <span>${state.pricing.depositAmount} ${CURRENCY}</span>
           </div>
           <div class="br-pricing-row">
@@ -317,7 +285,7 @@
     return html;
   }
 
-  // Step 3: Add-ons
+  // Step 2: Add-ons
   function renderAddonStep() {
     if (state.addons.length === 0) {
       return `
@@ -377,7 +345,7 @@
             <span>${grandTotal.toFixed(2)} ${CURRENCY}</span>
           </div>
           <div class="br-pricing-row br-deposit">
-            <span>Deposit due now (${depositPct}%)</span>
+            <span>Deposit (${depositPct}%)</span>
             <span>${deposit.toFixed(2)} ${CURRENCY}</span>
           </div>
           <div class="br-pricing-row">
@@ -391,7 +359,7 @@
     return html;
   }
 
-  // Step 4: Customer details
+  // Step 3: Customer details
   function renderCustomerStep() {
     const c = state.customer;
     return `
@@ -432,7 +400,7 @@
     `;
   }
 
-  // Step 5: Success
+  // Step 4: Success
   function renderSuccessStep() {
     const r = state.reservation;
     if (!r) return "<p>Something went wrong.</p>";
@@ -472,12 +440,11 @@
 
   function renderFooter() {
     const canNext =
-      (currentStep === 1 && state.startDate && state.endDate) ||
-      (currentStep === 2 && state.selectedBike) ||
-      (currentStep === 3) ||
-      (currentStep === 4 && state.customer.firstName && state.customer.lastName && state.customer.email && state.customer.phone);
+      (currentStep === 1 && state.available === true && state.pricing) ||
+      (currentStep === 2) ||
+      (currentStep === 3 && state.customer.firstName && state.customer.lastName && state.customer.email && state.customer.phone);
 
-    const nextLabel = currentStep === 4 ? "Confirm Reservation" : "Continue";
+    const nextLabel = currentStep === 3 ? "Confirm Reservation" : "Continue";
 
     return `
       <div class="br-footer">
@@ -515,9 +482,8 @@
 
     // Step-specific events
     if (currentStep === 1) attachDateEvents();
-    if (currentStep === 2) attachBikeEvents();
-    if (currentStep === 3) attachAddonEvents();
-    if (currentStep === 4) attachCustomerEvents();
+    if (currentStep === 2) attachAddonEvents();
+    if (currentStep === 3) attachCustomerEvents();
   }
 
   function attachDateEvents() {
@@ -526,6 +492,8 @@
     if (startInput) {
       startInput.addEventListener("change", (e) => {
         state.startDate = e.target.value;
+        state.available = null;
+        state.pricing = null;
         if (endInput) endInput.min = e.target.value;
         render();
       });
@@ -533,19 +501,20 @@
     if (endInput) {
       endInput.addEventListener("change", (e) => {
         state.endDate = e.target.value;
+        state.available = null;
+        state.pricing = null;
         render();
+        // Auto-check availability when both dates are set
+        if (state.startDate && state.endDate) {
+          const start = new Date(state.startDate);
+          const end = new Date(state.endDate);
+          const hours = (end - start) / (1000 * 60 * 60);
+          if (hours >= 4) {
+            checkAvailabilityAndPricing();
+          }
+        }
       });
     }
-  }
-
-  function attachBikeEvents() {
-    document.querySelectorAll(".br-bike-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const bikeId = card.dataset.bikeId;
-        state.selectedBike = state.bikes.find((b) => b.id === bikeId) || null;
-        fetchPricing();
-      });
-    });
   }
 
   function attachAddonEvents() {
@@ -579,7 +548,6 @@
       if (el) {
         el.addEventListener("input", (e) => {
           state.customer[field] = e.target.value;
-          // Re-render footer only to update button state
           const footer = document.querySelector(".br-footer");
           if (footer) {
             const canNext = state.customer.firstName && state.customer.lastName &&
@@ -597,6 +565,11 @@
 
     if (currentStep === 1) {
       // Validate dates
+      if (!state.startDate || !state.endDate) {
+        state.error = "Please select both pick-up and return dates.";
+        render();
+        return;
+      }
       const start = new Date(state.startDate);
       const end = new Date(state.endDate);
       const hours = (end - start) / (1000 * 60 * 60);
@@ -605,30 +578,28 @@
         render();
         return;
       }
+      // If not yet checked, check now
+      if (state.available === null) {
+        await checkAvailabilityAndPricing();
+        if (!state.available) return;
+      }
+      if (!state.available) {
+        state.error = "This bike is not available for the selected dates.";
+        render();
+        return;
+      }
       currentStep = 2;
-      await fetchAvailableBikes();
-      await fetchAddons();
+      render();
       return;
     }
 
     if (currentStep === 2) {
-      if (!state.selectedBike) {
-        state.error = "Please select a bike.";
-        render();
-        return;
-      }
       currentStep = 3;
       render();
       return;
     }
 
     if (currentStep === 3) {
-      currentStep = 4;
-      render();
-      return;
-    }
-
-    if (currentStep === 4) {
       if (!state.customer.firstName || !state.customer.lastName ||
           !state.customer.email || !state.customer.phone) {
         state.error = "Please fill in all required fields.";
@@ -658,8 +629,7 @@
     state = {
       startDate: "",
       endDate: "",
-      bikes: [],
-      selectedBike: null,
+      available: null,
       pricing: null,
       addons: [],
       selectedAddons: [],

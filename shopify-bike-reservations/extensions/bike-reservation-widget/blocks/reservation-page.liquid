@@ -1,8 +1,9 @@
 {% comment %}
-  Bike Reservation Page - Full-page booking experience
-  Use this as a dedicated /pages/book section
+  Bike Reservation Page - Full-page inline booking experience
+  Use on a product page for an inline (non-modal) reservation form.
 {% endcomment %}
 
+{% if product %}
 <div id="bike-reservation-inline" class="bike-reservation-inline">
   <div class="bike-res-page-loading">
     <p>Loading reservation system...</p>
@@ -17,9 +18,15 @@
     appUrl: "{{ block.settings.app_url }}",
     currency: "{{ block.settings.currency | default: 'BAM' }}",
     locale: "{{ request.locale.iso_code | default: 'en' }}",
+    productId: "gid://shopify/Product/{{ product.id }}",
     inline: true,
   };
 </script>
+{% else %}
+<p style="color: #999; font-size: 14px;">
+  Reservation form: place this block on a product page.
+</p>
+{% endif %}
 
 {% schema %}
 {

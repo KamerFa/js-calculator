@@ -1,9 +1,11 @@
 {% comment %}
   Bike Reservation Button - Theme App Extension Block
-  Renders a "Reserve Now" button that opens the booking modal.
-  Place this block anywhere in your theme.
+  Place this on a PRODUCT PAGE. It reads the current product
+  and passes its Shopify GID to the booking widget so the
+  customer can reserve without an extra bike-selection step.
 {% endcomment %}
 
+{% if product %}
 <div id="bike-reservation-trigger" class="bike-reservation-trigger">
   <button
     type="button"
@@ -45,14 +47,20 @@
 <link rel="stylesheet" href="{{ 'reservation-modal.css' | asset_url }}">
 <script src="{{ 'reservation-modal.js' | asset_url }}" defer></script>
 <script>
-  // Pass configuration from Shopify to the widget
+  // Pass configuration + product context from Shopify to the widget
   window.BikeReservationConfig = {
     shop: "{{ shop.permanent_domain }}",
     appUrl: "{{ block.settings.app_url }}",
     currency: "{{ block.settings.currency | default: 'BAM' }}",
     locale: "{{ request.locale.iso_code | default: 'en' }}",
+    productId: "gid://shopify/Product/{{ product.id }}",
   };
 </script>
+{% else %}
+<p style="color: #999; font-size: 14px;">
+  Reserve button: place this block on a product page.
+</p>
+{% endif %}
 
 {% schema %}
 {
@@ -63,7 +71,7 @@
       "type": "text",
       "id": "button_text",
       "label": "Button Text",
-      "default": "Reserve a Bike"
+      "default": "Reserve This Bike"
     },
     {
       "type": "url",
