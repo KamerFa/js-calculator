@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "Session" (
+CREATE TABLE IF NOT EXISTS "Session" (
     "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "state" TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "Session" (
 );
 
 -- CreateTable
-CREATE TABLE "RentableProduct" (
+CREATE TABLE IF NOT EXISTS "RentableProduct" (
     "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
@@ -34,4 +34,4 @@ CREATE TABLE "RentableProduct" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "RentableProduct_shop_productId_key" ON "RentableProduct"("shop", "productId");
+CREATE UNIQUE INDEX IF NOT EXISTS "RentableProduct_shop_productId_key" ON "RentableProduct"("shop", "productId");
