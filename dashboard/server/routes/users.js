@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import { getRandomAvatarUrl } from '../avatars.js';
+import { derivePresence } from '../auth.js';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
 
     const { rows: users } = await pool.query(
       `SELECT u.id, u.username, u.avatar_url, u.created_at,
-              u.presence, u.status_emoji, u.show_online_status,
+              u.presence, u.status_emoji, u.status_text, u.show_online_status, u.last_active_at,
               (SELECT COUNT(*) FROM tasks WHERE user_id = u.id AND status = 'done') as tasks_completed,
               (SELECT COUNT(*) FROM projects WHERE user_id = u.id) as projects_owned
        FROM users u
@@ -31,8 +32,9 @@ router.get('/', async (req, res) => {
       memberSince: u.created_at,
       tasksCompleted: parseInt(u.tasks_completed),
       projectsOwned: parseInt(u.projects_owned),
-      presence: u.show_online_status !== false ? (u.presence || 'active') : 'offline',
+      presence: derivePresence(u),
       statusEmoji: u.status_emoji || null,
+      statusText: u.status_text || null,
     })));
   } catch (error) {
     console.error('Error fetching users:', error);

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
 import { notify, getUsername } from '../notify.js';
+import { derivePresence } from '../auth.js';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ router.get('/me', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, username, bio, avatar_url, music_service, music_username,
             show_projects_on_profile, nickname, created_at,
-            presence, status_emoji, status_text, show_online_status
+            presence, status_emoji, status_text, show_online_status, last_active_at
      FROM users WHERE id = $1`,
     [req.userId]
   );
@@ -21,7 +22,7 @@ router.get('/me', async (req, res) => {
     musicUsername: u.music_username, createdAt: u.created_at,
     showProjectsOnProfile: u.show_projects_on_profile,
     nickname: u.nickname || null,
-    presence: u.presence || 'active',
+    presence: derivePresence(u),
     statusEmoji: u.status_emoji || null,
     statusText: u.status_text || null,
     showOnlineStatus: u.show_online_status !== false,
@@ -49,7 +50,7 @@ router.get('/user/:username', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, username, bio, avatar_url, music_service, music_username,
             show_projects_on_profile, nickname, created_at,
-            presence, status_emoji, status_text, show_online_status
+            presence, status_emoji, status_text, show_online_status, last_active_at
      FROM users WHERE LOWER(username) = LOWER($1)`,
     [req.params.username]
   );
@@ -87,7 +88,7 @@ router.get('/user/:username', async (req, res) => {
     nickname: u.nickname || null,
     myNickname,
     friendStatus,
-    presence: u.show_online_status !== false ? (u.presence || 'active') : 'offline',
+    presence: derivePresence(u),
     statusEmoji: u.status_emoji || null,
     statusText: u.status_text || null,
   });

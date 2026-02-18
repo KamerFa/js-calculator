@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
 import { notify, getUsername } from '../notify.js';
+import { derivePresence } from '../auth.js';
 
 const router = Router();
 
@@ -74,7 +75,9 @@ async function enrichTweets(rows) {
     avatarUrl: r.avatar_url || null,
     userId: r.user_id,
     createdAt: r.created_at,
-    presence: r.presence || 'active',
+    presence: derivePresence(r),
+    statusEmoji: r.status_emoji || null,
+    statusText: r.status_text || null,
     reactions: reactMap[r.id] || {},
     comments: commentMap[r.id] || [],
   }));
@@ -83,7 +86,8 @@ async function enrichTweets(rows) {
 // ── GET community feed (all tweets, newest first) ─────────
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT t.*, u.username, u.avatar_url, u.presence
+    `SELECT t.*, u.username, u.avatar_url, u.presence, u.status_emoji, u.status_text,
+            u.show_online_status, u.last_active_at
      FROM tweets t
      JOIN users u ON u.id = t.user_id
      ORDER BY t.created_at DESC
@@ -104,7 +108,9 @@ router.post('/', async (req, res) => {
     [id, req.userId, body.trim()]
   );
   const { rows } = await pool.query(
-    `SELECT t.*, u.username, u.avatar_url, u.presence FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    `SELECT t.*, u.username, u.avatar_url, u.presence, u.status_emoji, u.status_text,
+            u.show_online_status, u.last_active_at
+     FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
     [id]
   );
   const enriched = await enrichTweets(rows);
@@ -122,7 +128,9 @@ router.put('/:id', async (req, res) => {
     [body.trim(), req.params.id, req.userId]
   );
   const { rows } = await pool.query(
-    `SELECT t.*, u.username, u.avatar_url, u.presence FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    `SELECT t.*, u.username, u.avatar_url, u.presence, u.status_emoji, u.status_text,
+            u.show_online_status, u.last_active_at
+     FROM tweets t JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
     [req.params.id]
   );
   if (rows.length === 0) {

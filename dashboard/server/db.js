@@ -88,6 +88,7 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status_emoji TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status_text TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS show_online_status BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
 
   // Tweet reactions & comments
   await pool.query(`

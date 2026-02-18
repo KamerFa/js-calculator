@@ -60,7 +60,7 @@ export default function UsersView({ onUserClick }) {
                 ) : (
                   <div className="avatar-placeholder">{user.username.charAt(0).toUpperCase()}</div>
                 )}
-                <StatusDot presence={user.presence || 'offline'} size={14} style={{ position: 'absolute', bottom: 0, right: 0, border: '2.5px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
+                <StatusDot presence={user.presence || 'offline'} size={14} statusEmoji={user.statusEmoji} statusText={user.statusText} style={{ position: 'absolute', bottom: 0, right: 0, border: '2.5px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
               </span>
             </div>
             <div className="user-card-info">

@@ -327,7 +327,7 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
                 ) : (
                   <span className="user-menu-avatar-placeholder">{user.username?.charAt(0).toUpperCase()}</span>
                 )}
-                <StatusDot presence={myStatus.presence} size={10} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--sidebar-bg, var(--surface))', borderRadius: '50%', boxSizing: 'content-box' }} />
+                <StatusDot presence={myStatus.presence} size={10} statusEmoji={myStatus.statusEmoji} statusText={myStatus.statusText} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--sidebar-bg, var(--surface))', borderRadius: '50%', boxSizing: 'content-box' }} />
               </span>
               <span className="user-menu-name-col">
                 <span className="user-menu-name">{user.username}</span>
@@ -344,7 +344,7 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
                   className="user-menu-popup-item"
                   onClick={() => { setStatusPickerOpen(true); }}
                 >
-                  <StatusDot presence={myStatus.presence} size={10} />
+                  <StatusDot presence={myStatus.presence} size={10} statusEmoji={myStatus.statusEmoji} statusText={myStatus.statusText} />
                   {myStatus.statusEmoji || myStatus.statusText
                     ? <span>{myStatus.statusEmoji} {myStatus.statusText}</span>
                     : <span>Set a status</span>

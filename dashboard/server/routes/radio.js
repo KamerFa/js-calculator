@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
+import { derivePresence } from '../auth.js';
 
 const router = Router();
 
@@ -84,7 +85,8 @@ router.get('/listeners', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT rl.station_id, rl.updated_at,
             u.id AS user_id, u.username, u.avatar_url,
-            u.status_emoji, u.presence
+            u.status_emoji, u.status_text, u.presence,
+            u.show_online_status, u.last_active_at
      FROM radio_listeners rl
      JOIN users u ON u.id = rl.user_id
      WHERE rl.updated_at > NOW() - INTERVAL '5 minutes'
@@ -110,7 +112,8 @@ router.get('/listeners', async (req, res) => {
       username: r.username,
       avatarUrl: r.avatar_url,
       statusEmoji: r.status_emoji,
-      presence: r.presence,
+      statusText: r.status_text,
+      presence: derivePresence(r),
       stationId: r.station_id,
     };
     if (friendIds.has(r.user_id)) {

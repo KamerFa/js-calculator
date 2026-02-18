@@ -422,7 +422,7 @@ export default function RadioView() {
                     ) : (
                       <span className="radio-listener-avatar-placeholder">{l.username.charAt(0).toUpperCase()}</span>
                     )}
-                    <StatusDot presence={l.presence || 'active'} size={8} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
+                    <StatusDot presence={l.presence || 'active'} size={8} statusEmoji={l.statusEmoji} statusText={l.statusText} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
                   </span>
                   <span className="radio-listener-info">
                     <span className="radio-listener-name">{l.username} {l.statusEmoji || ''}</span>

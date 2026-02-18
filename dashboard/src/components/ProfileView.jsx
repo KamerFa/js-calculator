@@ -246,6 +246,8 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
             <StatusDot
               presence={profile.presence || 'offline'}
               size={18}
+              statusEmoji={profile.statusEmoji}
+              statusText={profile.statusText}
               style={{ position: 'absolute', bottom: 2, right: 2, border: '3px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }}
             />
             {isOwn && <span className="profile-avatar-edit">{t('modal.edit')}</span>}

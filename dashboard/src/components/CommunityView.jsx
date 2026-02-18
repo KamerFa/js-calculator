@@ -111,7 +111,7 @@ function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, o
           ? <img src={resolveAvatarUrl(tw.avatarUrl)} alt="" className="tweet-avatar-img" />
           : tw.username.charAt(0).toUpperCase()
         }
-        <StatusDot presence={tw.presence || 'offline'} size={10} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
+        <StatusDot presence={tw.presence || 'offline'} size={10} statusEmoji={tw.statusEmoji} statusText={tw.statusText} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
       </div>
       <div className="tweet-content">
         <div className="tweet-header">

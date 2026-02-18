@@ -13,9 +13,16 @@ export function getPresenceInfo(presence) {
   return PRESENCE[presence] || PRESENCE.offline;
 }
 
-export default function StatusDot({ presence = 'offline', size = 10, style }) {
+export default function StatusDot({ presence = 'offline', size = 10, style, statusEmoji, statusText }) {
   const info = getPresenceInfo(presence);
   const isDnd = presence === 'dnd';
+
+  // Build a rich tooltip: "Active" or "Away · 🏖️ On vacation"
+  let tooltip = info.label;
+  if (statusEmoji || statusText) {
+    const parts = [statusEmoji, statusText].filter(Boolean).join(' ');
+    tooltip += ` · ${parts}`;
+  }
 
   return (
     <span
@@ -28,9 +35,10 @@ export default function StatusDot({ presence = 'offline', size = 10, style }) {
         display: 'inline-block',
         flexShrink: 0,
         position: 'relative',
+        cursor: 'default',
         ...style,
       }}
-      title={info.label}
+      title={tooltip}
     >
       {isDnd && (
         <span
