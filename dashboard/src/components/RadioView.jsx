@@ -23,9 +23,6 @@ const SLEEP_OPTIONS = [
   { label: '2 hours', value: 120 },
 ];
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
-const modKey = isMac ? '\u2318' : 'Ctrl';
-
 function useRadio() {
   const [, forceUpdate] = useState(0);
 
@@ -85,53 +82,42 @@ export default function RadioView() {
     return () => clearInterval(interval);
   }, []);
 
-  // Keyboard shortcuts: Ctrl/Cmd+R then key (chord-style)
+  // Keyboard shortcuts (only when not typing in an input)
+  // Space = play/pause, Shift+Up/Down = volume, Shift+M = mute
   useEffect(() => {
-    let armed = false;
-    let armTimer = null;
-
     const handler = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
-      if (mod && (e.key === 'r' || e.key === 'R')) {
-        e.preventDefault();
-        armed = true;
-        clearTimeout(armTimer);
-        armTimer = setTimeout(() => { armed = false; }, 1500);
-        return;
-      }
-
-      if (!armed) return;
-      armed = false;
-      clearTimeout(armTimer);
-
+      // Space — toggle play/pause (only when radio is loaded)
       if (e.key === ' ' || e.code === 'Space') {
-        e.preventDefault();
         if (playing) {
+          e.preventDefault();
           if (isPaused) radioAudio.resume();
           else radioAudio.pause();
         }
+        return;
       }
+
+      if (!e.shiftKey) return;
+
+      // Shift + ArrowUp — volume up
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         radioAudio.setVolume(Math.min(1, radioAudio.getVolume() + 0.05));
       }
+      // Shift + ArrowDown — volume down
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         radioAudio.setVolume(Math.max(0, radioAudio.getVolume() - 0.05));
       }
-      if (e.key === 'm' || e.key === 'M') {
+      // Shift + M — mute/unmute
+      if (e.key === 'M') {
         e.preventDefault();
         radioAudio.setVolume(radioAudio.getVolume() > 0 ? 0 : 0.7);
       }
-      if (e.key === 's' || e.key === 'S') {
-        e.preventDefault();
-        if (playing) radioAudio.stop();
-      }
     };
     window.addEventListener('keydown', handler);
-    return () => { window.removeEventListener('keydown', handler); clearTimeout(armTimer); };
+    return () => window.removeEventListener('keydown', handler);
   }, [playing, isPaused]);
 
   const reportStation = async (stationId) => {
@@ -273,7 +259,7 @@ export default function RadioView() {
               )}
             </div>
             <div className="radio-shortcuts-hint">
-              {modKey}+R then Space: play/pause &middot; &uarr;&darr;: volume &middot; M: mute &middot; S: stop
+              Space: play/pause &middot; Shift+&uarr;&darr;: volume &middot; Shift+M: mute
             </div>
           </div>
         </div>
