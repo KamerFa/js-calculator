@@ -1,0 +1,22 @@
+{
+  "bike_reservation_widget": {
+    "rental_product": {
+      "name": "Rental - Product Page",
+      "check_availability": "Check Availability",
+      "reserve_now": "Reserve Now",
+      "select_dates": "Select your rental dates",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "duration": "Duration",
+      "total": "Total",
+      "add_to_cart": "Add to Cart"
+    },
+    "rental_browse": {
+      "name": "Browse All Rentals",
+      "view_all": "View All",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "per_day": "per day"
+    }
+  }
+}
