@@ -1,43 +1,48 @@
 {
-  "name": "shopify-bike-reservations",
-  "version": "1.0.0",
+  "name": "bike-reservations",
   "private": true,
   "type": "module",
-  "description": "Shopify app for motorbike rental reservations in Sarajevo",
   "scripts": {
-    "build": "prisma generate && remix vite:build",
+    "build": "remix vite:build",
     "dev": "shopify app dev",
-    "docker-start": "npm run setup && npm run start",
-    "generate": "shopify app generate",
+    "deploy": "shopify app deploy",
+    "start": "remix-serve ./build/server/index.js",
+    "docker-start": "npx prisma migrate deploy && npm run start",
     "setup": "prisma generate && prisma migrate deploy",
-    "start": "prisma migrate deploy && remix-serve ./build/server/index.js",
-    "render-start": "prisma migrate deploy && HOST=0.0.0.0 remix-serve ./build/server/index.js",
-    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
-    "shopify": "shopify",
-    "prisma": "prisma"
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint ."
   },
   "dependencies": {
-    "@prisma/client": "^5.11.0",
-    "@remix-run/dev": "^2.7.1",
-    "@remix-run/node": "^2.7.1",
-    "@remix-run/react": "^2.7.1",
-    "@remix-run/serve": "^2.7.1",
-    "@shopify/app-bridge-react": "^4.1.2",
-    "@shopify/polaris": "^12.27.0",
-    "@shopify/shopify-app-remix": "^3.0.0",
-    "@shopify/shopify-app-session-storage-prisma": "^5.2.3",
+    "@prisma/client": "^6.2.1",
+    "@remix-run/node": "^2.16.1",
+    "@remix-run/react": "^2.16.1",
+    "@remix-run/serve": "^2.16.1",
+    "@remix-run/fs-routes": "^2.16.1",
+    "@shopify/app-bridge-react": "^4.1.6",
+    "@shopify/polaris": "^12.0.0",
+    "@shopify/shopify-app-remix": "^4.1.0",
+    "@shopify/shopify-app-session-storage-prisma": "^8.0.0",
     "isbot": "^5.1.0",
-    "nodemailer": "^6.9.8",
-    "prisma": "^5.11.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "vite": "^5.1.0"
+    "vite-tsconfig-paths": "^5.0.1"
   },
   "devDependencies": {
-    "@remix-run/eslint-config": "^2.7.1",
-    "eslint": "^8.42.0"
+    "@remix-run/dev": "^2.16.1",
+    "@shopify/api-codegen-preset": "^1.1.1",
+    "@types/react": "^18.2.31",
+    "@types/react-dom": "^18.2.14",
+    "@types/node": "^22.1.0",
+    "prisma": "^6.2.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.0"
   },
+  "workspaces": [
+    "extensions/*"
+  ],
+  "trustedDependencies": [
+    "@shopify/plugin-cloudflare"
+  ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19 <22 || >=22.12"
   }
 }

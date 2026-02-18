@@ -3,232 +3,37 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-// ─── Shop Session (Shopify auth) ────────────────────────────────────────────
-
 model Session {
-  id            String    @id
-  shop          String
-  state         String
-  isOnline      Boolean   @default(false)
-  scope         String?
-  expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
-  email         String?
-  accountOwner  Boolean   @default(false)
-  locale        String?
-  collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
 }
 
-// ─── Rental Item Types (categories/templates) ───────────────────────────────
+model RentableProduct {
+  id        String   @id @default(cuid())
+  shop      String
+  productId String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-model RentalItemType {
-  id           String   @id @default(cuid())
-  shop         String
-  name         String
-  slug         String
-  description  String?
-  imageUrl     String?
-  customFields Json     @default("[]")
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  items        RentalItem[]
-  pricingTiers PricingTier[]
-
-  @@unique([shop, slug])
-  @@index([shop])
-}
-
-// ─── Rental Items (individual rentable products) ────────────────────────────
-
-model RentalItem {
-  id                String   @id @default(cuid())
-  shop              String
-  rentalItemTypeId  String
-  shopifyProductId  String
-  name              String
-  description       String?
-  imageUrl          String?
-  customFieldValues Json     @default("{}")
-  isActive          Boolean  @default(true)
-  sortOrder         Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  rentalItemType RentalItemType @relation(fields: [rentalItemTypeId], references: [id], onDelete: Cascade)
-  pricingTiers   PricingTier[]
-  reservations   Reservation[]
-  blockedDates   BlockedDate[]
-
-  @@unique([shop, shopifyProductId])
-  @@index([shop])
-  @@index([rentalItemTypeId])
-}
-
-// ─── Pricing ────────────────────────────────────────────────────────────────
-
-model PricingTier {
-  id               String  @id @default(cuid())
-  shop             String
-  rentalItemTypeId String?
-  rentalItemId     String?
-  name             String
-  durationHours    Float
-  price            Float
-  isDefault        Boolean @default(false)
-  sortOrder        Int     @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  rentalItemType RentalItemType? @relation(fields: [rentalItemTypeId], references: [id], onDelete: Cascade)
-  rentalItem     RentalItem?     @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
-
-  @@index([shop])
-  @@index([rentalItemTypeId])
-  @@index([rentalItemId])
-}
-
-model SeasonalPricing {
-  id         String   @id @default(cuid())
-  shop       String
-  name       String
-  startDate  DateTime
-  endDate    DateTime
-  multiplier Float
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([shop])
-}
-
-// ─── Add-ons ────────────────────────────────────────────────────────────────
-
-model Addon {
-  id          String  @id @default(cuid())
-  shop        String
-  name        String
-  description String?
-  price       Float
-  priceType   String  @default("per_rental")
-  imageUrl    String?
-  isActive    Boolean @default(true)
-  sortOrder   Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  reservationAddons ReservationAddon[]
-
-  @@index([shop])
-}
-
-// ─── Reservations ───────────────────────────────────────────────────────────
-
-model Reservation {
-  id               String   @id @default(cuid())
-  shop             String
-  rentalItemId     String
-  confirmationCode String   @unique
-  status           String   @default("confirmed")
-  startDate        DateTime
-  endDate          DateTime
-  pricingTierName  String?
-  subtotal         Float
-  addonTotal       Float    @default(0)
-  seasonalMultiplier Float  @default(1.0)
-  totalPrice       Float
-  depositAmount    Float
-  depositPaid      Boolean  @default(false)
-  remainderPaid    Boolean  @default(false)
-  shopifyOrderId   String?
-  shopifyDraftOrderId String?
-  notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  rentalItem   RentalItem       @relation(fields: [rentalItemId], references: [id])
-  customerInfo CustomerInfo?
-  addons       ReservationAddon[]
-
-  @@index([shop])
-  @@index([rentalItemId])
-  @@index([startDate, endDate])
-  @@index([confirmationCode])
-}
-
-model CustomerInfo {
-  id            String @id @default(cuid())
-  reservationId String @unique
-  firstName     String
-  lastName      String
-  email         String
-  phone         String
-  customFields  Json   @default("{}")
-  notes         String?
-  createdAt     DateTime @default(now())
-
-  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-}
-
-model ReservationAddon {
-  id            String @id @default(cuid())
-  reservationId String
-  addonId       String
-  quantity      Int    @default(1)
-  priceCharged  Float
-
-  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  addon       Addon       @relation(fields: [addonId], references: [id])
-
-  @@index([reservationId])
-}
-
-// ─── App Settings ───────────────────────────────────────────────────────────
-
-model AppSettings {
-  id                    String  @id @default(cuid())
-  shop                  String  @unique
-  businessName          String  @default("Rentals")
-  currency              String  @default("USD")
-  timezone              String  @default("America/New_York")
-  depositPercentage     Float   @default(30)
-  minBookingHours       Float   @default(4)
-  confirmationPrefix    String  @default("RN")
-  ownerEmail            String?
-  ownerWhatsApp         String?
-  emailNotifications    Boolean @default(true)
-  whatsAppNotifications Boolean @default(false)
-  pickupLocation        String?
-  pickupInstructions    String?
-  cancellationPolicy    String?
-  onboardingComplete    Boolean @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-}
-
-// ─── Blocked Dates ──────────────────────────────────────────────────────────
-
-model BlockedDate {
-  id            String   @id @default(cuid())
-  shop          String
-  rentalItemId  String?
-  startDate     DateTime
-  endDate       DateTime
-  reason        String?
-  createdAt     DateTime @default(now())
-
-  rentalItem RentalItem? @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
-
-  @@index([shop])
-  @@index([rentalItemId])
+  @@unique([shop, productId])
 }

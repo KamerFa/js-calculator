@@ -1,4 +1,3 @@
-# Shopify App Configuration
 # Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
 
 name = "Bike Reservations"
@@ -7,7 +6,7 @@ application_url = "https://bike-reservations.onrender.com"
 embedded = true
 
 [access_scopes]
-scopes = "read_products,write_products,read_orders,write_orders,read_draft_orders,write_draft_orders"
+scopes = "read_products,write_products"
 use_legacy_install_flow = false
 
 [auth]
@@ -18,7 +17,7 @@ redirect_urls = [
 ]
 
 [webhooks]
-api_version = "2024-04"
+api_version = "2025-01"
 
 [pos]
 embedded = false

@@ -1,25 +1,20 @@
-FROM node:18-alpine
-
-# Required for Prisma with PostgreSQL
+FROM node:20-alpine
 RUN apk add --no-cache openssl
+
+EXPOSE 3000
 
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm ci --omit=dev
+ENV NODE_ENV=production
 
-# Copy app source
+COPY package.json package-lock.json* ./
+
+RUN npm ci --omit=dev && npm cache clean --force
+RUN npm remove @shopify/cli
+
 COPY . .
 
-# Generate Prisma client and build
 RUN npx prisma generate
 RUN npm run build
 
-# Expose port
-EXPOSE 3000
-ENV PORT=3000
-ENV NODE_ENV=production
-
-# Run migrations and start
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["npm", "run", "docker-start"]
