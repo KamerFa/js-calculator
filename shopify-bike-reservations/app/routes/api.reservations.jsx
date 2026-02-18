@@ -3,9 +3,6 @@ import { json } from "@remix-run/node";
 /**
  * Public API: Create a reservation
  * POST /api/reservations
- *
- * Accepts either `bikeId` (internal) or `productId` (Shopify product GID).
- * The widget sends `productId` from the product page context.
  */
 export const action = async ({ request }) => {
   if (request.method === "OPTIONS") {
@@ -19,17 +16,16 @@ export const action = async ({ request }) => {
   try {
     const prisma = (await import("../db.server")).default;
     const { calculatePrice } = await import("../utils/pricing.server");
-    const { isBikeAvailable } = await import("../utils/availability.server");
+    const { isItemAvailable } = await import("../utils/availability.server");
     const { generateConfirmationCode } = await import("../utils/confirmation.server");
     const { notifyNewReservation } = await import("../utils/notifications.server");
 
     const body = await request.json();
     const {
-      shop, bikeId, productId, startDate, endDate,
+      shop, itemId, productId, startDate, endDate,
       customer, selectedAddons,
     } = body;
 
-    // Validate required fields
     if (!shop || !startDate || !endDate) {
       return json(
         { error: "Missing required fields: shop, startDate, endDate" },
@@ -37,9 +33,9 @@ export const action = async ({ request }) => {
       );
     }
 
-    if (!bikeId && !productId) {
+    if (!itemId && !productId) {
       return json(
-        { error: "Either bikeId or productId is required" },
+        { error: "Either itemId or productId is required" },
         { status: 400, headers: corsHeaders() }
       );
     }
@@ -51,19 +47,19 @@ export const action = async ({ request }) => {
       );
     }
 
-    // Resolve bike: by productId (Shopify GID) or bikeId (internal)
-    let bike;
+    // Resolve rental item
+    let rentalItem;
     if (productId) {
-      bike = await prisma.bike.findUnique({
+      rentalItem = await prisma.rentalItem.findUnique({
         where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
       });
     } else {
-      bike = await prisma.bike.findFirst({
-        where: { id: bikeId, shop },
+      rentalItem = await prisma.rentalItem.findFirst({
+        where: { id: itemId, shop },
       });
     }
 
-    if (!bike || !bike.isActive) {
+    if (!rentalItem || !rentalItem.isActive) {
       return json(
         { error: "Product not found or rental not enabled" },
         { status: 404, headers: corsHeaders() }
@@ -71,16 +67,16 @@ export const action = async ({ request }) => {
     }
 
     // Check availability
-    const available = await isBikeAvailable(shop, bike.id, startDate, endDate);
+    const available = await isItemAvailable(shop, rentalItem.id, startDate, endDate);
     if (!available) {
       return json(
-        { error: "This bike is not available for the selected dates" },
+        { error: "This item is not available for the selected dates" },
         { status: 409, headers: corsHeaders() }
       );
     }
 
     // Calculate pricing
-    const pricing = await calculatePrice(shop, bike.id, startDate, endDate);
+    const pricing = await calculatePrice(shop, rentalItem.id, startDate, endDate);
 
     // Calculate add-on costs
     let addonTotal = 0;
@@ -109,7 +105,6 @@ export const action = async ({ request }) => {
     addonTotal = Math.round(addonTotal * 100) / 100;
     const totalPrice = Math.round((pricing.total + addonTotal) * 100) / 100;
 
-    // Calculate deposit
     const settings = await prisma.appSettings.findUnique({ where: { shop } });
     const depositPct = settings?.depositPercentage ?? 30;
     const depositAmount = Math.round(totalPrice * (depositPct / 100) * 100) / 100;
@@ -118,19 +113,22 @@ export const action = async ({ request }) => {
     let confirmationCode;
     let attempts = 0;
     while (attempts < 10) {
-      confirmationCode = generateConfirmationCode();
-      const existing = await prisma.reservation.findUnique({
-        where: { confirmationCode },
-      });
+      confirmationCode = await generateConfirmationCode(shop);
+      const existing = await prisma.reservation.findUnique({ where: { confirmationCode } });
       if (!existing) break;
       attempts++;
     }
 
-    // Create reservation with customer info and addons
+    // Build custom fields for customer info
+    const customFields = {};
+    if (customer.customFields && typeof customer.customFields === "object") {
+      Object.assign(customFields, customer.customFields);
+    }
+
     const reservation = await prisma.reservation.create({
       data: {
         shop,
-        bikeId: bike.id,
+        rentalItemId: rentalItem.id,
         confirmationCode,
         status: "confirmed",
         startDate: new Date(startDate),
@@ -148,9 +146,7 @@ export const action = async ({ request }) => {
             lastName: customer.lastName,
             email: customer.email,
             phone: customer.phone,
-            licenseNumber: customer.licenseNumber || null,
-            idNumber: customer.idNumber || null,
-            nationality: customer.nationality || null,
+            customFields,
             notes: customer.notes || null,
           },
         },
@@ -159,7 +155,9 @@ export const action = async ({ request }) => {
         },
       },
       include: {
-        bike: true,
+        rentalItem: {
+          include: { rentalItemType: { select: { name: true } } },
+        },
         customerInfo: true,
         addons: { include: { addon: true } },
       },
@@ -170,14 +168,17 @@ export const action = async ({ request }) => {
       console.error("Notification failed:", err)
     );
 
-    // Return reservation details
     return json({
       success: true,
       reservation: {
         id: reservation.id,
         confirmationCode: reservation.confirmationCode,
         status: reservation.status,
-        bike: { id: bike.id, name: bike.name },
+        item: {
+          id: rentalItem.id,
+          name: rentalItem.name,
+          type: reservation.rentalItem.rentalItemType?.name,
+        },
         startDate: reservation.startDate,
         endDate: reservation.endDate,
         pricingTier: reservation.pricingTierName,
@@ -186,7 +187,7 @@ export const action = async ({ request }) => {
         totalPrice: reservation.totalPrice,
         depositAmount: reservation.depositAmount,
         remainingAmount: Math.round((totalPrice - depositAmount) * 100) / 100,
-        currency: settings?.currency || "BAM",
+        currency: settings?.currency || "USD",
         pickupLocation: settings?.pickupLocation,
         pickupInstructions: settings?.pickupInstructions,
       },
@@ -201,7 +202,7 @@ export const action = async ({ request }) => {
 };
 
 /**
- * Handle CORS preflight and reservation lookup
+ * Reservation lookup by confirmation code
  */
 export const loader = async ({ request }) => {
   if (request.method === "OPTIONS") {
@@ -210,7 +211,6 @@ export const loader = async ({ request }) => {
 
   const prisma = (await import("../db.server")).default;
 
-  // GET: Look up a reservation by confirmation code
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const shop = url.searchParams.get("shop");
@@ -219,7 +219,9 @@ export const loader = async ({ request }) => {
     const reservation = await prisma.reservation.findFirst({
       where: { confirmationCode: code, shop },
       include: {
-        bike: { select: { name: true, imageUrl: true } },
+        rentalItem: {
+          select: { name: true, imageUrl: true },
+        },
         addons: { include: { addon: { select: { name: true } } } },
       },
     });

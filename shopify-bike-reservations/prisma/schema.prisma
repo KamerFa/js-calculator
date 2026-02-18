@@ -27,55 +27,84 @@ model Session {
   emailVerified Boolean?  @default(false)
 }
 
-// ─── Motorbike Fleet ────────────────────────────────────────────────────────
+// ─── Rental Item Types (categories/templates) ───────────────────────────────
 
-model Bike {
-  id               String   @id @default(cuid())
-  shop             String
-  shopifyProductId String   // Shopify product GID e.g. "gid://shopify/Product/123"
-  name             String   // cached from Shopify for display in bookings
-  description      String?  // cached from Shopify
-  imageUrl         String?  // cached from Shopify
-  plateNumber      String?  // rental-specific: physical plate number
-  isActive         Boolean  @default(true)
-  sortOrder        Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+model RentalItemType {
+  id           String   @id @default(cuid())
+  shop         String
+  name         String
+  slug         String
+  description  String?
+  imageUrl     String?
+  customFields Json     @default("[]")
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  items        RentalItem[]
   pricingTiers PricingTier[]
-  reservations Reservation[]
+
+  @@unique([shop, slug])
+  @@index([shop])
+}
+
+// ─── Rental Items (individual rentable products) ────────────────────────────
+
+model RentalItem {
+  id                String   @id @default(cuid())
+  shop              String
+  rentalItemTypeId  String
+  shopifyProductId  String
+  name              String
+  description       String?
+  imageUrl          String?
+  customFieldValues Json     @default("{}")
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  rentalItemType RentalItemType @relation(fields: [rentalItemTypeId], references: [id], onDelete: Cascade)
+  pricingTiers   PricingTier[]
+  reservations   Reservation[]
+  blockedDates   BlockedDate[]
 
   @@unique([shop, shopifyProductId])
   @@index([shop])
+  @@index([rentalItemTypeId])
 }
 
 // ─── Pricing ────────────────────────────────────────────────────────────────
 
 model PricingTier {
-  id            String  @id @default(cuid())
-  shop          String
-  bikeId        String?
-  name          String    // e.g. "Half Day", "1.5 Days", "4 Days"
-  durationHours Float     // duration in hours: 4 = half day, 36 = 1.5 days, 96 = 4 days
-  price         Float     // price in default currency (BAM)
-  isDefault     Boolean @default(false) // default tiers apply to all bikes without custom pricing
-  sortOrder     Int     @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String  @id @default(cuid())
+  shop             String
+  rentalItemTypeId String?
+  rentalItemId     String?
+  name             String
+  durationHours    Float
+  price            Float
+  isDefault        Boolean @default(false)
+  sortOrder        Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  bike Bike? @relation(fields: [bikeId], references: [id], onDelete: Cascade)
+  rentalItemType RentalItemType? @relation(fields: [rentalItemTypeId], references: [id], onDelete: Cascade)
+  rentalItem     RentalItem?     @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
 
   @@index([shop])
-  @@index([bikeId])
+  @@index([rentalItemTypeId])
+  @@index([rentalItemId])
 }
 
 model SeasonalPricing {
   id         String   @id @default(cuid())
   shop       String
-  name       String     // e.g. "Summer Peak", "Winter Low"
+  name       String
   startDate  DateTime
   endDate    DateTime
-  multiplier Float       // e.g. 1.5 = 50% more, 0.8 = 20% discount
+  multiplier Float
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -88,10 +117,10 @@ model SeasonalPricing {
 model Addon {
   id          String  @id @default(cuid())
   shop        String
-  name        String    // e.g. "Helmet", "GPS", "Insurance"
+  name        String
   description String?
-  price       Float     // price per rental
-  priceType   String  @default("per_rental") // "per_rental" or "per_day"
+  price       Float
+  priceType   String  @default("per_rental")
   imageUrl    String?
   isActive    Boolean @default(true)
   sortOrder   Int     @default(0)
@@ -106,33 +135,33 @@ model Addon {
 // ─── Reservations ───────────────────────────────────────────────────────────
 
 model Reservation {
-  id              String   @id @default(cuid())
-  shop            String
-  bikeId          String
-  confirmationCode String  @unique
-  status          String   @default("confirmed") // confirmed, cancelled, completed, no_show
-  startDate       DateTime
-  endDate         DateTime
-  pricingTierName String?
-  subtotal        Float
-  addonTotal      Float    @default(0)
-  seasonalMultiplier Float @default(1.0)
-  totalPrice      Float
-  depositAmount   Float
-  depositPaid     Boolean  @default(false)
-  remainderPaid   Boolean  @default(false)
-  shopifyOrderId  String?
+  id               String   @id @default(cuid())
+  shop             String
+  rentalItemId     String
+  confirmationCode String   @unique
+  status           String   @default("confirmed")
+  startDate        DateTime
+  endDate          DateTime
+  pricingTierName  String?
+  subtotal         Float
+  addonTotal       Float    @default(0)
+  seasonalMultiplier Float  @default(1.0)
+  totalPrice       Float
+  depositAmount    Float
+  depositPaid      Boolean  @default(false)
+  remainderPaid    Boolean  @default(false)
+  shopifyOrderId   String?
   shopifyDraftOrderId String?
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  bike            Bike     @relation(fields: [bikeId], references: [id])
-  customerInfo    CustomerInfo?
-  addons          ReservationAddon[]
+  rentalItem   RentalItem       @relation(fields: [rentalItemId], references: [id])
+  customerInfo CustomerInfo?
+  addons       ReservationAddon[]
 
   @@index([shop])
-  @@index([bikeId])
+  @@index([rentalItemId])
   @@index([startDate, endDate])
   @@index([confirmationCode])
 }
@@ -144,9 +173,7 @@ model CustomerInfo {
   lastName      String
   email         String
   phone         String
-  licenseNumber String?
-  idNumber      String?
-  nationality   String?
+  customFields  Json   @default("{}")
   notes         String?
   createdAt     DateTime @default(now())
 
@@ -169,35 +196,39 @@ model ReservationAddon {
 // ─── App Settings ───────────────────────────────────────────────────────────
 
 model AppSettings {
-  id                 String  @id @default(cuid())
-  shop               String  @unique
-  businessName       String  @default("Bike Rentals")
-  currency           String  @default("BAM")
-  timezone           String  @default("Europe/Sarajevo")
-  depositPercentage  Float   @default(30)  // 30% deposit
-  minBookingHours    Float   @default(4)   // minimum half day
-  ownerEmail         String?
-  ownerWhatsApp      String?
-  emailNotifications Boolean @default(true)
+  id                    String  @id @default(cuid())
+  shop                  String  @unique
+  businessName          String  @default("Rentals")
+  currency              String  @default("USD")
+  timezone              String  @default("America/New_York")
+  depositPercentage     Float   @default(30)
+  minBookingHours       Float   @default(4)
+  confirmationPrefix    String  @default("RN")
+  ownerEmail            String?
+  ownerWhatsApp         String?
+  emailNotifications    Boolean @default(true)
   whatsAppNotifications Boolean @default(false)
-  pickupLocation     String?
-  pickupInstructions String?
-  cancellationPolicy String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  pickupLocation        String?
+  pickupInstructions    String?
+  cancellationPolicy    String?
+  onboardingComplete    Boolean @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
-// ─── Blocked Dates (maintenance, holidays, etc.) ────────────────────────────
+// ─── Blocked Dates ──────────────────────────────────────────────────────────
 
 model BlockedDate {
-  id        String   @id @default(cuid())
-  shop      String
-  bikeId    String?  // null = applies to all bikes
-  startDate DateTime
-  endDate   DateTime
-  reason    String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  shop          String
+  rentalItemId  String?
+  startDate     DateTime
+  endDate       DateTime
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  rentalItem RentalItem? @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
 
   @@index([shop])
-  @@index([bikeId])
+  @@index([rentalItemId])
 }

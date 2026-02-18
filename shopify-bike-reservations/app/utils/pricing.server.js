@@ -1,34 +1,48 @@
 import prisma from "../db.server";
 
 /**
- * Calculate the rental price for a bike over a given date range.
- * Finds the best matching pricing tier and applies seasonal multipliers.
+ * Calculate the rental price for an item over a given date range.
+ * Uses 3-tier pricing fallback: item-specific → type-level → shop-wide default.
  */
-export async function calculatePrice(shop, bikeId, startDate, endDate) {
+export async function calculatePrice(shop, rentalItemId, startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const durationMs = end.getTime() - start.getTime();
   const durationHours = durationMs / (1000 * 60 * 60);
 
-  // Get pricing tiers: bike-specific first, then defaults
-  const bikeTiers = await prisma.pricingTier.findMany({
-    where: { shop, bikeId },
+  // Get the item to know its type
+  const item = await prisma.rentalItem.findUnique({
+    where: { id: rentalItemId },
+    select: { rentalItemTypeId: true },
+  });
+
+  // 3-tier pricing fallback
+  const itemTiers = await prisma.pricingTier.findMany({
+    where: { shop, rentalItemId },
     orderBy: { durationHours: "asc" },
   });
+
+  const typeTiers = item?.rentalItemTypeId
+    ? await prisma.pricingTier.findMany({
+        where: { shop, rentalItemTypeId: item.rentalItemTypeId, rentalItemId: null },
+        orderBy: { durationHours: "asc" },
+      })
+    : [];
 
   const defaultTiers = await prisma.pricingTier.findMany({
-    where: { shop, bikeId: null, isDefault: true },
+    where: { shop, rentalItemTypeId: null, rentalItemId: null, isDefault: true },
     orderBy: { durationHours: "asc" },
   });
 
-  const tiers = bikeTiers.length > 0 ? bikeTiers : defaultTiers;
+  // Use first non-empty set
+  const tiers = itemTiers.length > 0 ? itemTiers : typeTiers.length > 0 ? typeTiers : defaultTiers;
 
   if (tiers.length === 0) {
-    return { subtotal: 0, seasonalMultiplier: 1, total: 0, tierName: null };
+    return { subtotal: 0, seasonalMultiplier: 1, total: 0, tierName: null, durationHours };
   }
 
-  // Find the best matching tier (closest duration that covers the rental)
-  let selectedTier = tiers[tiers.length - 1]; // default to longest tier
+  // Find the best matching tier
+  let selectedTier = tiers[tiers.length - 1];
   for (const tier of tiers) {
     if (durationHours <= tier.durationHours) {
       selectedTier = tier;
@@ -36,7 +50,7 @@ export async function calculatePrice(shop, bikeId, startDate, endDate) {
     }
   }
 
-  // If rental is longer than all tiers, calculate proportionally from the longest tier
+  // If rental is longer than all tiers, calculate proportionally
   let subtotal;
   if (durationHours > selectedTier.durationHours) {
     const ratio = durationHours / selectedTier.durationHours;
@@ -55,7 +69,6 @@ export async function calculatePrice(shop, bikeId, startDate, endDate) {
     },
   });
 
-  // Apply the highest multiplier if multiple seasonal rules overlap
   let seasonalMultiplier = 1.0;
   for (const rule of seasonalRules) {
     if (rule.multiplier > seasonalMultiplier) {

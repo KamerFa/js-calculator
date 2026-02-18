@@ -1,9 +1,9 @@
 import { json } from "@remix-run/node";
 
 /**
- * Public API: Get pricing for a bike and date range
+ * Public API: Get pricing for a rental item and date range
  * GET /api/pricing?shop=xxx&productId=gid://...&start=2024-06-01&end=2024-06-03
- * Also supports bikeId for internal lookups.
+ * Also supports itemId for internal lookups.
  */
 export const loader = async ({ request }) => {
   if (request.method === "OPTIONS") {
@@ -17,7 +17,7 @@ export const loader = async ({ request }) => {
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
     const productId = url.searchParams.get("productId");
-    const bikeId = url.searchParams.get("bikeId");
+    const itemId = url.searchParams.get("itemId");
     const startDate = url.searchParams.get("start");
     const endDate = url.searchParams.get("end");
 
@@ -25,23 +25,20 @@ export const loader = async ({ request }) => {
       return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
     }
 
-    // Resolve internal bikeId from productId if needed
-    let resolvedBikeId = bikeId;
-    if (productId && !bikeId) {
-      const bike = await prisma.bike.findUnique({
+    let resolvedItemId = itemId;
+    if (productId && !itemId) {
+      const item = await prisma.rentalItem.findUnique({
         where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
         select: { id: true },
       });
-      if (!bike) {
+      if (!item) {
         return json({ error: "Product not configured for rental" }, { status: 404, headers: corsHeaders() });
       }
-      resolvedBikeId = bike.id;
+      resolvedItemId = item.id;
     }
 
-    // If a specific bike + dates, calculate the price
-    if (resolvedBikeId && startDate && endDate) {
-      const pricing = await calculatePrice(shop, resolvedBikeId, startDate, endDate);
-
+    if (resolvedItemId && startDate && endDate) {
+      const pricing = await calculatePrice(shop, resolvedItemId, startDate, endDate);
       const settings = await prisma.appSettings.findUnique({ where: { shop } });
       const depositPct = settings?.depositPercentage ?? 30;
       const depositAmount = Math.round(pricing.total * (depositPct / 100) * 100) / 100;
@@ -51,30 +48,47 @@ export const loader = async ({ request }) => {
         depositPercentage: depositPct,
         depositAmount,
         remainingAmount: Math.round((pricing.total - depositAmount) * 100) / 100,
-        currency: settings?.currency || "BAM",
+        currency: settings?.currency || "USD",
       }, { headers: corsHeaders() });
     }
 
-    // Otherwise return available tiers
+    // Return available tiers (3-tier hierarchy)
     const defaultTiers = await prisma.pricingTier.findMany({
-      where: { shop, isDefault: true, bikeId: null },
+      where: { shop, isDefault: true, rentalItemTypeId: null, rentalItemId: null },
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, durationHours: true, price: true },
     });
 
-    let bikeTiers = [];
-    if (resolvedBikeId) {
-      bikeTiers = await prisma.pricingTier.findMany({
-        where: { shop, bikeId: resolvedBikeId },
+    let itemTiers = [];
+    let typeTiers = [];
+    if (resolvedItemId) {
+      const item = await prisma.rentalItem.findUnique({
+        where: { id: resolvedItemId },
+        select: { rentalItemTypeId: true },
+      });
+
+      itemTiers = await prisma.pricingTier.findMany({
+        where: { shop, rentalItemId: resolvedItemId },
         orderBy: { sortOrder: "asc" },
         select: { id: true, name: true, durationHours: true, price: true },
       });
+
+      if (item?.rentalItemTypeId) {
+        typeTiers = await prisma.pricingTier.findMany({
+          where: { shop, rentalItemTypeId: item.rentalItemTypeId, rentalItemId: null },
+          orderBy: { sortOrder: "asc" },
+          select: { id: true, name: true, durationHours: true, price: true },
+        });
+      }
     }
+
+    const tiers = itemTiers.length > 0 ? itemTiers : typeTiers.length > 0 ? typeTiers : defaultTiers;
 
     return json({
       defaultTiers,
-      bikeTiers: bikeTiers.length > 0 ? bikeTiers : null,
-      tiers: bikeTiers.length > 0 ? bikeTiers : defaultTiers,
+      typeTiers: typeTiers.length > 0 ? typeTiers : null,
+      itemTiers: itemTiers.length > 0 ? itemTiers : null,
+      tiers,
     }, { headers: corsHeaders() });
   } catch (err) {
     console.error("api.pricing error:", err);

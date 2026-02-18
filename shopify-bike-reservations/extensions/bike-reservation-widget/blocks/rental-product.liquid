@@ -1,13 +1,15 @@
 {% comment %}
-  General Reservation Button — works on ANY page (homepage, collections, etc.)
-  Opens a modal where the customer picks a motorbike first, then dates, then books.
+  Rental - Product Page Block
+  Place on product pages. Auto-detects the current product
+  and skips the item selection step.
 {% endcomment %}
 
-<div id="bike-reservation-trigger" class="bike-reservation-trigger">
+{% if product %}
+<div id="rental-reservation-trigger" class="rental-reservation-trigger">
   <button
     type="button"
-    class="bike-res-btn"
-    onclick="window.BikeReservation.open()"
+    class="rental-btn"
+    onclick="window.RentalReservation.open()"
     style="
       background: {{ block.settings.button_color }};
       color: {{ block.settings.text_color }};
@@ -37,39 +39,42 @@
   </button>
 </div>
 
-<!-- Reservation Modal Container -->
-<div id="bike-reservation-modal"></div>
+<div id="rental-reservation-modal"></div>
 
-<!-- Load the reservation widget JS & CSS -->
-<link rel="stylesheet" href="{{ 'reservation-modal.css' | asset_url }}">
-<script src="{{ 'reservation-modal.js' | asset_url }}" defer></script>
+<link rel="stylesheet" href="{{ 'rental-widget.css' | asset_url }}">
+<script src="{{ 'rental-widget.js' | asset_url }}" defer></script>
 <script>
-  // No productId → widget will show bike selection step first
-  window.BikeReservationConfig = {
+  window.RentalConfig = {
     shop: "{{ shop.permanent_domain }}",
     appUrl: "{{ block.settings.app_url }}",
-    currency: "{{ block.settings.currency | default: 'BAM' }}",
+    currency: "{{ block.settings.currency | default: 'USD' }}",
     locale: "{{ request.locale.iso_code | default: 'en' }}",
+    productId: "gid://shopify/Product/{{ product.id }}",
   };
 </script>
+{% else %}
+<p style="color: #999; font-size: 14px;">
+  This block is for product pages only. Use "Rental - Browse All" for other pages.
+</p>
+{% endif %}
 
 {% schema %}
 {
-  "name": "Reserve Any Bike",
+  "name": "Rental - Product Page",
   "target": "section",
   "settings": [
     {
       "type": "text",
       "id": "button_text",
       "label": "Button Text",
-      "default": "Reserve a Motorbike"
+      "default": "Reserve This Item"
     },
     {
       "type": "text",
       "id": "app_url",
       "label": "App URL",
       "default": "https://bike-reservations.onrender.com",
-      "info": "Your Shopify app URL (e.g. https://bike-reservations.onrender.com)"
+      "info": "Your Shopify app URL"
     },
     {
       "type": "color",
@@ -123,7 +128,7 @@
       "type": "text",
       "id": "currency",
       "label": "Currency Code",
-      "default": "BAM"
+      "default": "USD"
     }
   ]
 }

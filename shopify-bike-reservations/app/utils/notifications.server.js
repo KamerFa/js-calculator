@@ -4,7 +4,6 @@ import prisma from "../db.server";
  * Send email notification using nodemailer
  */
 async function sendEmail(to, subject, html) {
-  // Dynamic import to avoid issues if nodemailer is not available
   const nodemailer = await import("nodemailer");
 
   const transporter = nodemailer.default.createTransport({
@@ -18,7 +17,7 @@ async function sendEmail(to, subject, html) {
   });
 
   await transporter.sendMail({
-    from: `"Bike Reservations" <${process.env.SMTP_USER}>`,
+    from: `"Rental Reservations" <${process.env.SMTP_USER}>`,
     to,
     subject,
     html,
@@ -55,7 +54,7 @@ async function sendWhatsApp(to, message) {
 /**
  * Format reservation details into a readable HTML email
  */
-function formatReservationEmail(reservation, customer, bike, addons) {
+function formatReservationEmail(reservation, customer, rentalItem, addons, currency) {
   const startDate = new Date(reservation.startDate).toLocaleDateString("en-GB", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
@@ -63,16 +62,19 @@ function formatReservationEmail(reservation, customer, bike, addons) {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
+  const typeName = rentalItem.rentalItemType?.name || "Rental";
+
   const addonList = addons.length > 0
-    ? addons.map(a => `<li>${a.addon.name} - ${a.priceCharged} BAM</li>`).join("")
+    ? addons.map(a => `<li>${a.addon.name} - ${a.priceCharged} ${currency}</li>`).join("")
     : "<li>None</li>";
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #1a1a2e;">New Bike Reservation #${reservation.confirmationCode}</h2>
+      <h2 style="color: #1a1a2e;">New Reservation #${reservation.confirmationCode}</h2>
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin-top: 0;">Bike Details</h3>
-        <p><strong>Bike:</strong> ${bike.name}</p>
+        <h3 style="margin-top: 0;">Rental Details</h3>
+        <p><strong>Type:</strong> ${typeName}</p>
+        <p><strong>Item:</strong> ${rentalItem.name}</p>
         <p><strong>Pick-up:</strong> ${startDate}</p>
         <p><strong>Return:</strong> ${endDate}</p>
         <p><strong>Pricing Tier:</strong> ${reservation.pricingTierName || "Custom"}</p>
@@ -82,8 +84,6 @@ function formatReservationEmail(reservation, customer, bike, addons) {
         <p><strong>Name:</strong> ${customer.firstName} ${customer.lastName}</p>
         <p><strong>Email:</strong> ${customer.email}</p>
         <p><strong>Phone:</strong> ${customer.phone}</p>
-        <p><strong>License:</strong> ${customer.licenseNumber || "Not provided"}</p>
-        <p><strong>ID:</strong> ${customer.idNumber || "Not provided"}</p>
       </div>
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 16px 0;">
         <h3 style="margin-top: 0;">Add-ons</h3>
@@ -91,12 +91,12 @@ function formatReservationEmail(reservation, customer, bike, addons) {
       </div>
       <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 8px; margin: 16px 0;">
         <h3 style="margin-top: 0; color: white;">Payment Summary</h3>
-        <p>Subtotal: ${reservation.subtotal} BAM</p>
-        <p>Add-ons: ${reservation.addonTotal} BAM</p>
+        <p>Subtotal: ${reservation.subtotal} ${currency}</p>
+        <p>Add-ons: ${reservation.addonTotal} ${currency}</p>
         ${reservation.seasonalMultiplier !== 1 ? `<p>Seasonal adjustment: x${reservation.seasonalMultiplier}</p>` : ""}
-        <p style="font-size: 18px;"><strong>Total: ${reservation.totalPrice} BAM</strong></p>
-        <p>Deposit (paid online): ${reservation.depositAmount} BAM</p>
-        <p>Remaining (pay on pickup): ${(reservation.totalPrice - reservation.depositAmount).toFixed(2)} BAM</p>
+        <p style="font-size: 18px;"><strong>Total: ${reservation.totalPrice} ${currency}</strong></p>
+        <p>Deposit (paid online): ${reservation.depositAmount} ${currency}</p>
+        <p>Remaining (pay on pickup): ${(reservation.totalPrice - reservation.depositAmount).toFixed(2)} ${currency}</p>
       </div>
     </div>
   `;
@@ -105,20 +105,20 @@ function formatReservationEmail(reservation, customer, bike, addons) {
 /**
  * Format reservation details for WhatsApp
  */
-function formatReservationWhatsApp(reservation, customer, bike) {
+function formatReservationWhatsApp(reservation, customer, rentalItem, currency) {
   const startDate = new Date(reservation.startDate).toLocaleDateString("en-GB");
   const endDate = new Date(reservation.endDate).toLocaleDateString("en-GB");
 
   return [
     `*New Reservation #${reservation.confirmationCode}*`,
     ``,
-    `Bike: ${bike.name}`,
+    `Item: ${rentalItem.name}`,
     `Customer: ${customer.firstName} ${customer.lastName}`,
     `Phone: ${customer.phone}`,
     `Dates: ${startDate} - ${endDate}`,
-    `Total: ${reservation.totalPrice} BAM`,
-    `Deposit paid: ${reservation.depositAmount} BAM`,
-    `Remaining: ${(reservation.totalPrice - reservation.depositAmount).toFixed(2)} BAM`,
+    `Total: ${reservation.totalPrice} ${currency}`,
+    `Deposit: ${reservation.depositAmount} ${currency}`,
+    `Remaining: ${(reservation.totalPrice - reservation.depositAmount).toFixed(2)} ${currency}`,
   ].join("\n");
 }
 
@@ -130,7 +130,9 @@ export async function notifyNewReservation(shop, reservationId) {
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
-        bike: true,
+        rentalItem: {
+          include: { rentalItemType: { select: { name: true } } },
+        },
         customerInfo: true,
         addons: { include: { addon: true } },
       },
@@ -141,15 +143,16 @@ export async function notifyNewReservation(shop, reservationId) {
     const settings = await prisma.appSettings.findUnique({ where: { shop } });
     if (!settings) return;
 
-    const { bike, customerInfo, addons } = reservation;
+    const { rentalItem, customerInfo, addons } = reservation;
+    const currency = settings.currency || "USD";
 
     // Send email to owner
     if (settings.emailNotifications && settings.ownerEmail) {
       try {
-        const html = formatReservationEmail(reservation, customerInfo, bike, addons);
+        const html = formatReservationEmail(reservation, customerInfo, rentalItem, addons, currency);
         await sendEmail(
           settings.ownerEmail,
-          `New Reservation #${reservation.confirmationCode} - ${bike.name}`,
+          `New Reservation #${reservation.confirmationCode} - ${rentalItem.name}`,
           html
         );
       } catch (err) {
@@ -160,7 +163,7 @@ export async function notifyNewReservation(shop, reservationId) {
     // Send confirmation email to customer
     if (customerInfo.email) {
       try {
-        const html = formatReservationEmail(reservation, customerInfo, bike, addons);
+        const html = formatReservationEmail(reservation, customerInfo, rentalItem, addons, currency);
         await sendEmail(
           customerInfo.email,
           `Reservation Confirmed - #${reservation.confirmationCode}`,
@@ -174,7 +177,7 @@ export async function notifyNewReservation(shop, reservationId) {
     // Send WhatsApp to owner
     if (settings.whatsAppNotifications && settings.ownerWhatsApp) {
       try {
-        const message = formatReservationWhatsApp(reservation, customerInfo, bike);
+        const message = formatReservationWhatsApp(reservation, customerInfo, rentalItem, currency);
         await sendWhatsApp(settings.ownerWhatsApp, message);
       } catch (err) {
         console.error("Failed to send WhatsApp:", err.message);

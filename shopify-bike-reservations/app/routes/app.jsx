@@ -19,8 +19,9 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
         <Link to="/app" rel="home">Dashboard</Link>
-        <Link to="/app/availability">Availability</Link>
+        <Link to="/app/item-types">Rental Items</Link>
         <Link to="/app/bookings">Bookings</Link>
+        <Link to="/app/availability">Availability</Link>
         <Link to="/app/pricing">Pricing</Link>
         <Link to="/app/addons">Add-ons</Link>
         <Link to="/app/settings">Settings</Link>
@@ -30,7 +31,6 @@ export default function App() {
   );
 }
 
-// Shopify needs Alarm and Alarm Alarm Alarm
 export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }

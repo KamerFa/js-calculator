@@ -24,11 +24,14 @@ import prisma from "../db.server";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  const addons = await prisma.addon.findMany({
-    where: { shop: session.shop },
-    orderBy: { sortOrder: "asc" },
-  });
-  return json({ addons });
+  const [addons, settings] = await Promise.all([
+    prisma.addon.findMany({
+      where: { shop: session.shop },
+      orderBy: { sortOrder: "asc" },
+    }),
+    prisma.appSettings.findUnique({ where: { shop: session.shop } }),
+  ]);
+  return json({ addons, currency: settings?.currency || "USD" });
 };
 
 export const action = async ({ request }) => {
@@ -80,7 +83,7 @@ export const action = async ({ request }) => {
 };
 
 export default function AddonsPage() {
-  const { addons } = useLoaderData();
+  const { addons, currency } = useLoaderData();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state !== "idle";
@@ -179,7 +182,7 @@ export default function AddonsPage() {
                       </BlockStack>
                       <InlineStack gap="200">
                         <Text variant="bodyMd">
-                          {addon.price} BAM
+                          {addon.price} {currency}
                           {addon.priceType === "per_day" ? "/day" : "/rental"}
                         </Text>
                         <Badge tone={addon.isActive ? "success" : undefined}>
@@ -231,7 +234,7 @@ export default function AddonsPage() {
             />
             <FormLayout.Group>
               <TextField
-                label="Price (BAM)"
+                label="Price"
                 value={form.price}
                 onChange={(v) => setForm((s) => ({ ...s, price: v }))}
                 type="number"

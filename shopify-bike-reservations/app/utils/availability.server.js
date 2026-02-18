@@ -1,16 +1,15 @@
 import prisma from "../db.server";
 
 /**
- * Check if a specific bike is available for the given date range.
+ * Check if a specific rental item is available for the given date range.
  */
-export async function isBikeAvailable(shop, bikeId, startDate, endDate, excludeReservationId = null) {
+export async function isItemAvailable(shop, rentalItemId, startDate, endDate, excludeReservationId = null) {
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  // Check for overlapping reservations
   const whereClause = {
     shop,
-    bikeId,
+    rentalItemId,
     status: { in: ["confirmed", "pending"] },
     startDate: { lt: end },
     endDate: { gt: start },
@@ -21,16 +20,14 @@ export async function isBikeAvailable(shop, bikeId, startDate, endDate, excludeR
   }
 
   const conflicting = await prisma.reservation.findFirst({ where: whereClause });
-
   if (conflicting) return false;
 
-  // Check for blocked dates
   const blocked = await prisma.blockedDate.findFirst({
     where: {
       shop,
       OR: [
-        { bikeId },
-        { bikeId: null }, // global blocks
+        { rentalItemId },
+        { rentalItemId: null },
       ],
       startDate: { lt: end },
       endDate: { gt: start },
@@ -41,19 +38,24 @@ export async function isBikeAvailable(shop, bikeId, startDate, endDate, excludeR
 }
 
 /**
- * Get all available bikes for a given date range.
+ * Get all available rental items for a given date range.
+ * Optionally filter by rental item type.
  */
-export async function getAvailableBikes(shop, startDate, endDate) {
-  const allBikes = await prisma.bike.findMany({
-    where: { shop, isActive: true },
+export async function getAvailableItems(shop, startDate, endDate, rentalItemTypeId = null) {
+  const where = { shop, isActive: true };
+  if (rentalItemTypeId) where.rentalItemTypeId = rentalItemTypeId;
+
+  const allItems = await prisma.rentalItem.findMany({
+    where,
+    include: { rentalItemType: { select: { name: true, slug: true } } },
     orderBy: { sortOrder: "asc" },
   });
 
   const available = [];
-  for (const bike of allBikes) {
-    const isAvail = await isBikeAvailable(shop, bike.id, startDate, endDate);
+  for (const item of allItems) {
+    const isAvail = await isItemAvailable(shop, item.id, startDate, endDate);
     if (isAvail) {
-      available.push(bike);
+      available.push(item);
     }
   }
 
@@ -61,17 +63,16 @@ export async function getAvailableBikes(shop, startDate, endDate) {
 }
 
 /**
- * Get a calendar view of availability for a specific bike over a month.
- * Returns an array of dates with availability status.
+ * Get a calendar view of availability for a specific rental item over a month.
  */
-export async function getBikeCalendar(shop, bikeId, year, month) {
+export async function getItemCalendar(shop, rentalItemId, year, month) {
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 0, 23, 59, 59);
 
   const reservations = await prisma.reservation.findMany({
     where: {
       shop,
-      bikeId,
+      rentalItemId,
       status: { in: ["confirmed", "pending"] },
       startDate: { lte: endOfMonth },
       endDate: { gte: startOfMonth },
@@ -82,7 +83,7 @@ export async function getBikeCalendar(shop, bikeId, year, month) {
   const blockedDates = await prisma.blockedDate.findMany({
     where: {
       shop,
-      OR: [{ bikeId }, { bikeId: null }],
+      OR: [{ rentalItemId }, { rentalItemId: null }],
       startDate: { lte: endOfMonth },
       endDate: { gte: startOfMonth },
     },

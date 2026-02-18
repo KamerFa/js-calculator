@@ -1,9 +1,9 @@
 import { json } from "@remix-run/node";
 
 /**
- * Public API: Get availability calendar for a product
+ * Public API: Get availability calendar for a rental item
  * GET /api/availability?shop=xxx&productId=gid://...&year=2024&month=6
- * Also supports bikeId.
+ * Also supports itemId for internal lookups.
  */
 export const loader = async ({ request }) => {
   if (request.method === "OPTIONS") {
@@ -12,12 +12,12 @@ export const loader = async ({ request }) => {
 
   try {
     const prisma = (await import("../db.server")).default;
-    const { getBikeCalendar } = await import("../utils/availability.server");
+    const { getItemCalendar } = await import("../utils/availability.server");
 
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
     const productId = url.searchParams.get("productId");
-    const bikeId = url.searchParams.get("bikeId");
+    const itemId = url.searchParams.get("itemId");
     const year = parseInt(url.searchParams.get("year") || new Date().getFullYear());
     const month = parseInt(url.searchParams.get("month") || new Date().getMonth() + 1);
 
@@ -25,41 +25,43 @@ export const loader = async ({ request }) => {
       return json({ error: "shop parameter required" }, { status: 400, headers: corsHeaders() });
     }
 
-    let resolvedBikeId = bikeId;
-    if (productId && !bikeId) {
-      const bike = await prisma.bike.findUnique({
+    let resolvedItemId = itemId;
+    if (productId && !itemId) {
+      const item = await prisma.rentalItem.findUnique({
         where: { shop_shopifyProductId: { shop, shopifyProductId: productId } },
         select: { id: true },
       });
-      if (!bike) {
+      if (!item) {
         return json({ error: "Product not configured for rental" }, { status: 404, headers: corsHeaders() });
       }
-      resolvedBikeId = bike.id;
+      resolvedItemId = item.id;
     }
 
-    if (resolvedBikeId) {
-      const calendar = await getBikeCalendar(shop, resolvedBikeId, year, month);
-      return json({ bikeId: resolvedBikeId, year, month, calendar }, { headers: corsHeaders() });
+    if (resolvedItemId) {
+      const calendar = await getItemCalendar(shop, resolvedItemId, year, month);
+      return json({ itemId: resolvedItemId, year, month, calendar }, { headers: corsHeaders() });
     }
 
-    const bikes = await prisma.bike.findMany({
+    const items = await prisma.rentalItem.findMany({
       where: { shop, isActive: true },
-      select: { id: true, name: true },
+      include: { rentalItemType: { select: { name: true } } },
+      orderBy: { sortOrder: "asc" },
     });
 
     const summary = [];
-    for (const bike of bikes) {
-      const calendar = await getBikeCalendar(shop, bike.id, year, month);
+    for (const item of items) {
+      const calendar = await getItemCalendar(shop, item.id, year, month);
       const availableDays = calendar.filter((d) => d.available).length;
       summary.push({
-        bikeId: bike.id,
-        bikeName: bike.name,
+        itemId: item.id,
+        itemName: item.name,
+        typeName: item.rentalItemType?.name,
         availableDays,
         totalDays: calendar.length,
       });
     }
 
-    return json({ year, month, bikes: summary }, { headers: corsHeaders() });
+    return json({ year, month, items: summary }, { headers: corsHeaders() });
   } catch (err) {
     console.error("api.availability error:", err);
     return json({ error: "Internal server error" }, { status: 500, headers: corsHeaders() });
