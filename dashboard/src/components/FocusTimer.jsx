@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DB } from '../db';
 import { useData } from '../context/DataContext';
+import { useTranslation } from '../i18n';
 
 const PRESETS = [
   { label: '25m', seconds: 1500 },
@@ -47,6 +48,7 @@ function clearTimerState() {
 
 export default function FocusTimer() {
   const { tasks } = useData();
+  const { t } = useTranslation();
 
   // Timer state — initialized from localStorage if an active session exists
   const [phase, setPhase] = useState(() => {
@@ -308,7 +310,7 @@ export default function FocusTimer() {
           {/* Header */}
           <div className="focus-panel-header">
             <span className="focus-panel-title">
-              {phase === 'focus' ? 'Focusing' : phase === 'break' ? 'Break' : phase === 'done' ? 'Session Complete!' : 'Focus Timer'}
+              {phase === 'focus' ? t('focusTimer.focusing') : phase === 'break' ? t('focusTimer.break') : phase === 'done' ? t('focusTimer.sessionComplete') : t('focusTimer.title')}
             </span>
             <button className="focus-panel-close" onClick={() => setExpanded(false)} title="Minimize">
               {(phase === 'focus' || phase === 'break')
@@ -362,13 +364,13 @@ export default function FocusTimer() {
           {phase === 'done' && (
             <div className="focus-done">
               <div className="focus-done-icon">{'\u2705'}</div>
-              <p>Great work! Take a break?</p>
+              <p>{t('focusTimer.greatWork')}</p>
               <div className="focus-done-actions">
                 <button className="btn btn-primary" onClick={startBreak}>
-                  5m Break
+                  {t('focusTimer.fiveMinBreak')}
                 </button>
                 <button className="btn" onClick={skipBreak}>
-                  Skip
+                  {t('focusTimer.skip')}
                 </button>
               </div>
             </div>
@@ -379,13 +381,13 @@ export default function FocusTimer() {
             <div className="focus-setup">
               {/* Task picker */}
               <div className="focus-field">
-                <label>Focus on</label>
+                <label>{t('focusTimer.focusOn')}</label>
                 <select
                   className="form-select"
                   value={selectedTaskId}
                   onChange={(e) => setSelectedTaskId(e.target.value)}
                 >
-                  <option value="">No specific task</option>
+                  <option value="">{t('focusTimer.noSpecificTask')}</option>
                   {activeTasks.map((t) => (
                     <option key={t.id} value={t.id}>{t.title}</option>
                   ))}
@@ -410,7 +412,7 @@ export default function FocusTimer() {
                 <input
                   type="number"
                   className="focus-custom-input"
-                  placeholder="Min"
+                  placeholder={t('focusTimer.min')}
                   min="1"
                   max="180"
                   value={customMinutes}
@@ -430,16 +432,16 @@ export default function FocusTimer() {
                     if (mins > 0 && mins <= 180) startFocus(mins * 60);
                   }}
                 >
-                  Start
+                  {t('focusTimer.start')}
                 </button>
               </div>
 
               {/* Today's stats */}
               {todayStats.sessions > 0 && (
                 <div className="focus-today-stats">
-                  <span>{todayStats.sessions} session{todayStats.sessions !== 1 ? 's' : ''}</span>
+                  <span>{todayStats.sessions !== 1 ? t('focusTimer.sessionPlural', { count: todayStats.sessions }) : t('focusTimer.sessions', { count: todayStats.sessions })}</span>
                   <span className="focus-stats-dot" />
-                  <span>{formatDuration(todayStats.totalSeconds)} focused today</span>
+                  <span>{t('focusTimer.focusedToday', { duration: formatDuration(todayStats.totalSeconds) })}</span>
                 </div>
               )}
             </div>

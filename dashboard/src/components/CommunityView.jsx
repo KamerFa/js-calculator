@@ -4,6 +4,7 @@ import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
 import StatusDot from './StatusDot';
+import { useTranslation } from '../i18n';
 
 const REACTION_EMOJIS = [
   '\u2764\uFE0F', // red heart
@@ -26,30 +27,9 @@ const REACTION_EMOJIS = [
   '\u2615', // coffee
 ];
 
-const TWEET_TEMPLATES = [
-  "Danas radim na... \uD83D\uDCAA",
-  "Uspjesno zavrsio/la... \uD83C\uDF89",
-  "Trebam pomoc oko... \uD83E\uDD14",
-  "Pozdrav svima! \uD83D\uDC4B",
-];
+const TWEET_TEMPLATE_COUNT = 4;
 
-const MUSLIM_QUOTES = [
-  { text: "One day our suffering will turn into the strength of those who do not forget.", author: "Alija Izetbegovic" },
-  { text: "I'm for truth, no matter who tells it. I'm for justice, no matter who it is for or against.", author: "Malcolm X" },
-  { text: "The man who views the world at 50 the same as he did at 20 has wasted 30 years of his life.", author: "Muhammad Ali" },
-  { text: "Do not let your difficulties fill you with anxiety; after all, it is only in the darkest nights that stars shine more brightly.", author: "Imam Ali ibn Abi Talib" },
-  { text: "The strongest among you is the one who controls his anger.", author: "Prophet Muhammad (PBUH)" },
-  { text: "If justice is done to others, even against your own interests, it will bring you eternal glory.", author: "Omar ibn al-Khattab" },
-  { text: "Raise your words, not your voice. It is rain that grows flowers, not thunder.", author: "Rumi" },
-  { text: "People who are really strong lift others up. People who are really powerful bring others together.", author: "Malcolm X" },
-  { text: "Nations are not defeated by invasion; they are defeated by the loss of their inner self.", author: "Muhammad Iqbal" },
-  { text: "When you see oppression, you are no longer a bystander \u2014 you are a participant.", author: "Alija Izetbegovic" },
-  { text: "Help your brother, whether he is an oppressor or he is oppressed. If he is the oppressor, prevent him from oppressing; that is your help to him.", author: "Prophet Muhammad (PBUH)" },
-  { text: "Silence in the face of injustice is a silent agreement to the injustice.", author: "Imam Ali ibn Abi Talib" },
-  { text: "The wound is the place where the Light enters you.", author: "Rumi" },
-  { text: "A people without the knowledge of their past history, origin, and culture is like a tree without roots.", author: "Malcolm X" },
-  { text: "Do not be people without minds of your own, saying that if others treat you well you will treat them well. Instead, accustom yourselves to do good if people do good and not to do wrong if they do evil.", author: "Prophet Muhammad (PBUH)" },
-];
+const QUOTE_COUNT = 30;
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -282,6 +262,13 @@ function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, o
 }
 
 export default function CommunityView({ user, onProjectClick, onReload, onUserClick }) {
+  const { t } = useTranslation();
+  const quotes = Array.from({ length: QUOTE_COUNT }, (_, i) => ({
+    text: t(`wisdom.quote_${i}`),
+    author: t(`wisdom.author_${i}`),
+  }));
+  const tweetTemplates = Array.from({ length: TWEET_TEMPLATE_COUNT }, (_, i) => t(`community.tweetTemplate_${i}`));
+
   const [tweets, setTweets] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -298,7 +285,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
   );
   const [quoteIndex, setQuoteIndex] = useState(() => {
     const day = Math.floor(Date.now() / 86400000);
-    return day % MUSLIM_QUOTES.length;
+    return day % QUOTE_COUNT;
   });
 
   const tweetRef = useRef(null);
@@ -409,15 +396,15 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
     localStorage.setItem('quotes_banner_dismissed', '1');
   };
 
-  const quote = MUSLIM_QUOTES[quoteIndex];
+  const quote = quotes[quoteIndex];
 
   return (
     <div>
       <div className="page-header">
         <div className="page-header-row">
           <div>
-            <h1>Community</h1>
-            <p className="subtitle">See what everyone is up to</p>
+            <h1>{t('community.title')}</h1>
+            <p className="subtitle">{t('community.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -426,12 +413,12 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
       {!dismissedQuotes && (
         <div className="quotes-banner">
           <button className="quotes-banner-close" onClick={dismissQuotesBanner}>&times;</button>
-          <div className="quotes-banner-label">Words of Wisdom</div>
+          <div className="quotes-banner-label">{t('wisdom.label')}</div>
           <p className="quotes-banner-text">&ldquo;{quote.text}&rdquo;</p>
           <span className="quotes-banner-author">&mdash; {quote.author}</span>
           <div className="quotes-banner-nav">
-            <button onClick={() => setQuoteIndex((i) => (i - 1 + MUSLIM_QUOTES.length) % MUSLIM_QUOTES.length)}>&larr; Prev</button>
-            <button onClick={() => setQuoteIndex((i) => (i + 1) % MUSLIM_QUOTES.length)}>Next &rarr;</button>
+            <button onClick={() => setQuoteIndex((i) => (i - 1 + quotes.length) % quotes.length)}>&larr; {t('wisdom.prev')}</button>
+            <button onClick={() => setQuoteIndex((i) => (i + 1) % quotes.length)}>{t('wisdom.next')} &rarr;</button>
           </div>
         </div>
       )}
@@ -442,20 +429,20 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           <button className="ramadan-banner-close" onClick={dismissBanner}>&times;</button>
           <div className="ramadan-banner-icon">&#9770;</div>
           <div className="ramadan-banner-content">
-            <h3>Ramadan Mubarak! Join {ramadanProject.memberCount} others tracking their ibadah</h3>
+            <h3>{t('banners.ramadanTitle', { count: ramadanProject.memberCount })}</h3>
             <p className="ramadan-quote">
-              "To seek trouble - this is not courage, this is madness. Courage is the willingness of man to sensibly face the troubles he cannot avoid."
-              <span className="ramadan-quote-author"> - Alija Izetbegovic</span>
+              "{t('banners.ramadanQuote')}"
+              <span className="ramadan-quote-author"> - {t('banners.ramadanQuoteAuthor')}</span>
             </p>
             <p className="ramadan-subtitle">
-              ...and skipping Suhoor is definitely seeking trouble. Don't be that person.
+              {t('banners.ramadanSubtitle')}
             </p>
             {!ramadanProject.isMember ? (
               <button className="btn btn-primary btn-sm" onClick={() => handleJoin(ramadanProject.id)}>
-                Join Ramadan
+                {t('banners.joinRamadan')}
               </button>
             ) : (
-              <span className="ramadan-joined-tag">You're in! MashAllah</span>
+              <span className="ramadan-joined-tag">{t('banners.ramadanJoined')}</span>
             )}
           </div>
         </div>
@@ -467,16 +454,16 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           <button className="ramadan-banner-close" onClick={dismissDhikrBanner}>&times;</button>
           <div className="ramadan-banner-icon">&#128988;</div>
           <div className="ramadan-banner-content">
-            <h3>Dhikr &amp; Duas &mdash; Daily remembrance for your soul</h3>
+            <h3>{t('banners.dhikrTitle')}</h3>
             <p className="ramadan-subtitle">
-              Track your daily, weekly &amp; monthly adhkar and duas. Join {dhikrProject.memberCount || ''} others on this journey.
+              {t('banners.dhikrSubtitle', { count: dhikrProject.memberCount || '' })}
             </p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button className="btn btn-primary btn-sm" onClick={() => handleJoin(dhikrProject.id)}>
-                Join
+                {t('banners.dhikrJoin')}
               </button>
               <button className="btn btn-sm" style={{ background: '#1B5E20', color: '#fff' }} onClick={() => { handleJoin(dhikrProject.id); localStorage.setItem('dhikr_toast_enabled', '1'); dismissDhikrBanner(); }}>
-                Join &amp; Enable Reminders
+                {t('banners.dhikrJoinReminders')}
               </button>
             </div>
           </div>
@@ -486,17 +473,17 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
       {/* Tabs */}
       <div className="filter-bar">
         <button className={`chip${tab === 'feed' ? ' active' : ''}`} onClick={() => setTab('feed')}>
-          Feed
+          {t('community.feed')}
         </button>
         <button className={`chip${tab === 'projects' ? ' active' : ''}`} onClick={() => setTab('projects')}>
-          Public Projects
+          {t('community.projects')}
         </button>
       </div>
 
       {loading && (
         <div className="loading-spinner-wrapper">
           <div className="loading-spinner" />
-          <span>Loading...</span>
+          <span>{t('common.loading')}</span>
         </div>
       )}
 
@@ -553,12 +540,12 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
                   disabled={!tweetBody.trim() || posting}
                   onClick={handlePost}
                 >
-                  Tweet
+                  {t('community.post')}
                 </button>
               </div>
               {showTemplates && (
                 <div className="tweet-templates">
-                  {TWEET_TEMPLATES.map((tmpl, i) => (
+                  {tweetTemplates.map((tmpl, i) => (
                     <button
                       key={i}
                       className="tweet-template-btn"
@@ -575,7 +562,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
           {/* Tweet Feed */}
           <div className="tweet-feed">
             {tweets.length === 0 && (
-              <div className="empty-state">No tweets yet. Be the first to post!</div>
+              <div className="empty-state">{t('community.noPosts')}</div>
             )}
             {tweets.map((tw) => (
               <TweetCard
@@ -599,7 +586,7 @@ export default function CommunityView({ user, onProjectClick, onReload, onUserCl
       {!loading && tab === 'projects' && (
         <div className="community-projects-grid">
           {projects.length === 0 && (
-            <div className="empty-state">No public projects yet.</div>
+            <div className="empty-state">{t('community.noProjects')}</div>
           )}
           {projects.map((p) => (
             <div className="community-project-card" key={p.id}>
