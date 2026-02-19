@@ -209,6 +209,11 @@ export default function FocusTimer() {
       playTone(660, now, 0.5);
       playTone(880, now + 0.25, 0.6);
     } catch { /* ignore */ }
+
+    // Vibrate on devices that support it (phones)
+    try {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+    } catch { /* ignore */ }
   };
 
   const startFocus = async (duration) => {
