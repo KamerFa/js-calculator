@@ -30,7 +30,7 @@ function CompletionHeatmap({ history }) {
   );
 }
 
-export default function TaskDetailModal({ open, task, projects, notes, onClose, onEdit, onProjectClick, onNoteClick }) {
+export default function TaskDetailModal({ open, task, projects, notes, onClose, onEdit, onDelete, onProjectClick, onNoteClick }) {
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -188,6 +188,10 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
           <ItemComments targetType="task" targetId={task.id} />
         </div>
         <div className="modal-footer">
+          {onDelete && (
+            <button className="btn btn-danger" onClick={() => { onClose(); onDelete(task); }}>Delete</button>
+          )}
+          <span style={{ flex: 1 }} />
           <button className="btn" onClick={onClose}>Close</button>
           <button className="btn btn-primary" onClick={() => { onClose(); onEdit(task); }}>Edit</button>
         </div>

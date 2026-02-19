@@ -12,12 +12,12 @@ import ImportProjectModal from './ImportProjectModal';
 
 export default function ModalHost() {
   const { user } = useAuth();
-  const { projects, tasks, notes, reload, saveTask, saveProject, saveNote, deleteNote, importProject } = useData();
+  const { projects, tasks, notes, reload, saveTask, saveProject, saveNote, deleteNote, deleteTask, importProject } = useData();
   const {
     taskModal, closeTaskModal,
     projectModal, closeProjectModal,
     noteModal, closeNoteModal,
-    confirm, closeConfirm,
+    confirm, closeConfirm, openConfirm,
     taskDetail, closeTaskDetail, openTaskModal, openNoteModal,
     shareModal, closeShareModal,
     importModal, closeImportModal,
@@ -91,6 +91,12 @@ export default function ModalHost() {
         notes={notes}
         onClose={closeTaskDetail}
         onEdit={(t) => openTaskModal(t)}
+        onDelete={(t) => {
+          closeTaskDetail();
+          openConfirm(`Delete "${t.title}"?`, async () => {
+            await deleteTask(t.id);
+          });
+        }}
         onNoteClick={(n) => { closeTaskDetail(); openNoteModal(n); }}
         onProjectClick={(id) => navigate(`/project/${id}`)}
       />
