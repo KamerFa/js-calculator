@@ -6,6 +6,7 @@ services:
     name: shopify-rental-app
     runtime: node
     plan: starter
+    rootDir: .
     buildCommand: npm install && npx prisma generate && cd web && npm install && npm run build
     startCommand: npx prisma migrate deploy && npm start
     envVars:
