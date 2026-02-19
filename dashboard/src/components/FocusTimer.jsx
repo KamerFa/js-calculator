@@ -89,6 +89,7 @@ export default function FocusTimer() {
   const [customMinutes, setCustomMinutes] = useState('');
   const intervalRef = useRef(null);
   const panelRef = useRef(null);
+  const audioCtxRef = useRef(null);
 
   // Handle case where timer expired while page was closed
   useEffect(() => {
@@ -186,23 +187,35 @@ export default function FocusTimer() {
     setSessionId(null);
     loadStats();
 
-    // Play a subtle sound
+    // Play a completion chime (two-tone)
     try {
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 830;
-      osc.type = 'sine';
-      gain.gain.value = 0.15;
-      osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-      osc.stop(ctx.currentTime + 0.8);
+      const ctx = audioCtxRef.current || new AudioContext();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      const playTone = (freq, startAt, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.18, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+        osc.start(startAt);
+        osc.stop(startAt + duration);
+      };
+
+      const now = ctx.currentTime;
+      playTone(660, now, 0.5);
+      playTone(880, now + 0.25, 0.6);
     } catch { /* ignore */ }
   };
 
   const startFocus = async (duration) => {
+    // Init AudioContext on user gesture so completion sound works later
+    if (!audioCtxRef.current) {
+      try { audioCtxRef.current = new AudioContext(); } catch { /* ignore */ }
+    }
     const dur = duration || 1500;
     setTotalDuration(dur);
     setTimeLeft(dur);
