@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "NODE_ENV=development node server/index.js",
     "start": "node server/index.js",
+    "render-start": "npx prisma migrate deploy && node server/index.js",
     "build": "cd web && npm run build",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate deploy",
