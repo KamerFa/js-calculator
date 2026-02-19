@@ -1,0 +1,57 @@
+{% comment %}
+  Rental Widget — Theme App Extension block
+  Renders on product pages for rentable products.
+  Two style modes: inherit theme (default) or standalone.
+{% endcomment %}
+
+<div
+  id="rental-widget-{{ product.id }}"
+  class="rental-widget"
+  data-product-id="{{ product.id }}"
+  data-shop="{{ shop.permanent_domain }}"
+  data-proxy-url="{{ shop.url }}/apps/rentals"
+  data-inherit-theme="{{ block.settings.inherit_theme }}"
+  data-primary-color="{{ block.settings.primary_color }}"
+  data-border-radius="{{ block.settings.border_radius }}"
+>
+  <div class="rental-widget__loading">
+    <span class="rental-widget__spinner"></span>
+    Loading rental options…
+  </div>
+</div>
+
+{{ 'rental-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'rental-widget.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Rent This Item",
+  "target": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "inherit_theme",
+      "label": "Inherit theme styles",
+      "default": true,
+      "info": "When enabled, the widget picks up your theme's typography, colors, and spacing."
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary color (standalone mode)",
+      "default": "#000000"
+    },
+    {
+      "type": "text",
+      "id": "border_radius",
+      "label": "Border radius (standalone mode)",
+      "default": "4px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Rent This Item"
+    }
+  ]
+}
+{% endschema %}

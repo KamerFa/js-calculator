@@ -1,0 +1,8 @@
+[extension]
+type = "theme"
+name = "Rental Widget"
+handle = "rental-widget"
+
+[[extension.targeting]]
+module = "./blocks/rental-widget.liquid"
+target = "section"

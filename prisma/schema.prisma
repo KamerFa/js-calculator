@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Shopify session storage (required by @shopify/shopify-app-session-storage-prisma)
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String?
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+}
+
+// Products configured for rental
+model RentalProduct {
+  id              String    @id @default(uuid())
+  shop            String
+  shopifyProductId String
+  shopifyVariantId String?
+  title           String
+  imageUrl        String?
+  active          Boolean   @default(true)
+  hourlyRate      Decimal?  @db.Decimal(10, 2)
+  dailyRate       Decimal?  @db.Decimal(10, 2)
+  weeklyRate      Decimal?  @db.Decimal(10, 2)
+  depositAmount   Decimal   @default(0) @db.Decimal(10, 2)
+  quantityTotal   Int       @default(1)
+  minDuration     Int       @default(1)
+  maxDuration     Int       @default(30)
+  durationUnit    String    @default("days")
+  bufferTime      Int       @default(0)
+  bufferUnit      String    @default("hours")
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  inventoryUnits   InventoryUnit[]
+  reservationItems ReservationItem[]
+
+  @@unique([shop, shopifyProductId])
+  @@index([shop])
+  @@map("rental_products")
+}
+
+// Individual trackable units of a rental product
+model InventoryUnit {
+  id              String    @id @default(uuid())
+  rentalProductId String
+  label           String
+  status          String    @default("available")
+  conditionNotes  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  rentalProduct    RentalProduct     @relation(fields: [rentalProductId], references: [id], onDelete: Cascade)
+  reservationItems ReservationItem[]
+
+  @@map("inventory_units")
+}
+
+// A rental reservation / booking
+model Reservation {
+  id                String    @id @default(uuid())
+  shop              String
+  shopifyOrderId    String?
+  shopifyOrderName  String?
+  customerId        String?
+  customerName      String?
+  customerEmail     String?
+  customerPhone     String?
+  status            String    @default("reserved")
+  totalPrice        Decimal   @default(0) @db.Decimal(10, 2)
+  depositTotal      Decimal   @default(0) @db.Decimal(10, 2)
+  depositPaid       Boolean   @default(false)
+  notes             String?
+  conditionOnReturn String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  items         ReservationItem[]
+  statusHistory StatusHistory[]
+  customer      Customer?       @relation(fields: [customerId], references: [id])
+
+  @@index([shop])
+  @@index([status])
+  @@index([shopifyOrderId])
+  @@map("reservations")
+}
+
+// Individual items within a reservation
+model ReservationItem {
+  id              String    @id @default(uuid())
+  reservationId   String
+  rentalProductId String
+  inventoryUnitId String?
+  startDate       DateTime
+  endDate         DateTime
+  duration        Int
+  durationUnit    String    @default("days")
+  unitPrice       Decimal   @db.Decimal(10, 2)
+  linePrice       Decimal   @db.Decimal(10, 2)
+  deposit         Decimal   @default(0) @db.Decimal(10, 2)
+  quantity        Int       @default(1)
+  createdAt       DateTime  @default(now())
+
+  reservation   Reservation    @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  rentalProduct RentalProduct  @relation(fields: [rentalProductId], references: [id])
+  inventoryUnit InventoryUnit? @relation(fields: [inventoryUnitId], references: [id])
+
+  @@map("reservation_items")
+}
+
+// Customer records synced from Shopify
+model Customer {
+  id              String    @id @default(uuid())
+  shop            String
+  shopifyCustomerId String
+  email           String?
+  firstName       String?
+  lastName        String?
+  phone           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  reservations Reservation[]
+
+  @@unique([shop, shopifyCustomerId])
+  @@map("customers")
+}
+
+// Audit log for reservation status changes
+model StatusHistory {
+  id            String    @id @default(uuid())
+  reservationId String
+  fromStatus    String?
+  toStatus      String
+  note          String?
+  changedBy     String?
+  createdAt     DateTime  @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("status_history")
+}
+
+// Blackout dates when rentals are unavailable
+model BlackoutDate {
+  id        String    @id @default(uuid())
+  shop      String
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  createdAt DateTime  @default(now())
+
+  @@index([shop])
+  @@map("blackout_dates")
+}
+
+// Per-shop app settings
+model AppSettings {
+  id                  String    @id @default(uuid())
+  shop                String    @unique
+  businessName        String?
+  timezone            String    @default("America/New_York")
+  businessHoursStart  String    @default("09:00")
+  businessHoursEnd    String    @default("17:00")
+  businessDays        String    @default("1,2,3,4,5")
+  defaultDurationUnit String    @default("days")
+  defaultMinDuration  Int       @default(1)
+  defaultMaxDuration  Int       @default(30)
+  defaultBufferTime   Int       @default(2)
+  defaultBufferUnit   String    @default("hours")
+  depositPolicy       String    @default("optional")
+  defaultDepositPct   Int       @default(0)
+  widgetInheritTheme  Boolean   @default(true)
+  widgetPrimaryColor  String    @default("#000000")
+  widgetBorderRadius  String    @default("4px")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("app_settings")
+}

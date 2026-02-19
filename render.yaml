@@ -1,0 +1,36 @@
+# Render.com deployment blueprint
+# See https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: shopify-rental-app
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npx prisma generate && cd web && npm install && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SHOPIFY_API_KEY
+        sync: false
+      - key: SHOPIFY_API_SECRET
+        sync: false
+      - key: SCOPES
+        value: read_products,write_products,read_orders,write_orders,read_customers
+      - key: HOST
+        fromService:
+          type: web
+          name: shopify-rental-app
+          property: host
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shopify-rental-db
+          property: connectionString
+      - key: PORT
+        value: 3000
+
+databases:
+  - name: shopify-rental-db
+    plan: starter
+    databaseName: shopify_rental
+    postgresMajorVersion: 16
