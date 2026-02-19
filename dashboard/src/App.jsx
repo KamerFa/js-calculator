@@ -8,6 +8,7 @@ import LoginPage from './components/LoginPage';
 import Sidebar from './components/Sidebar';
 import ModalHost from './components/ModalHost';
 import radioAudio from './radioAudio';
+import FocusTimer from './components/FocusTimer';
 
 // ── Pages ────────────────────────────────────────────────
 import TasksPage from './pages/TasksPage';
@@ -363,6 +364,7 @@ export default function App() {
         </Routes>
 
         {!isRadioPage && <RadioMiniPlayer />}
+        <FocusTimer />
         <NotificationBell />
       </main>
 

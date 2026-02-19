@@ -18,6 +18,7 @@ import messageRoutes from './routes/messages.js';
 import commentRoutes from './routes/comments.js';
 import radioRoutes from './routes/radio.js';
 import newsRoutes from './routes/news.js';
+import focusRoutes from './routes/focus.js';
 import pool from './db.js';
 import { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones } from './scheduled.js';
 
@@ -48,6 +49,7 @@ app.use('/api/messages', authMiddleware, messageRoutes);
 app.use('/api/comments', authMiddleware, commentRoutes);
 app.use('/api/radio', authMiddleware, radioRoutes);
 app.use('/api/news', authMiddleware, newsRoutes);
+app.use('/api/focus', authMiddleware, focusRoutes);
 
 // ── File uploads (screenshots + avatars) ──────────────────────
 const upload = multer({

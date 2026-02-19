@@ -349,6 +349,34 @@ const DB = {
   async getArticle(url) {
     return api(`/news/article?url=${encodeURIComponent(url)}`);
   },
+
+  // ── Focus Timer ─────────────────────────────────────────────
+  async startFocusSession(taskId, duration) {
+    return api('/focus/start', {
+      method: 'POST',
+      body: JSON.stringify({ taskId, duration }),
+    });
+  },
+
+  async completeFocusSession(id) {
+    return api(`/focus/${id}/complete`, { method: 'POST' });
+  },
+
+  async cancelFocusSession(id) {
+    return api(`/focus/${id}`, { method: 'DELETE' });
+  },
+
+  async getFocusToday() {
+    return api('/focus/today');
+  },
+
+  async getFocusForTask(taskId) {
+    return api(`/focus/task/${taskId}`);
+  },
+
+  async getFocusHistory() {
+    return api('/focus/history');
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

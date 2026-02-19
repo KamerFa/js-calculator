@@ -171,6 +171,20 @@ async function initDB() {
   // Notification preferences on users
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_preferences TEXT NOT NULL DEFAULT '{}'`);
 
+  // Focus sessions (Pomodoro timer)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS focus_sessions (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      task_id      TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+      duration     INTEGER NOT NULL DEFAULT 1500,
+      started_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ,
+      session_date TEXT NOT NULL
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_focus_sessions_user ON focus_sessions(user_id, session_date)`);
+
   // Notifications
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notifications (

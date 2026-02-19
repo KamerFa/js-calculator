@@ -34,6 +34,7 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [focusStats, setFocusStats] = useState(null);
 
   const isRecurring = task && task.recurrence && task.recurrence !== 'none';
 
@@ -47,6 +48,17 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
       .then(setHistory)
       .catch(() => setHistory([]))
       .finally(() => setLoadingHistory(false));
+  }, [open, task?.id]);
+
+  // Load focus stats for this task
+  useEffect(() => {
+    if (!open || !task) {
+      setFocusStats(null);
+      return;
+    }
+    DB.getFocusForTask(task.id)
+      .then(setFocusStats)
+      .catch(() => setFocusStats(null));
   }, [open, task?.id]);
 
   if (!open || !task) return null;
@@ -121,6 +133,23 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Focus time stats */}
+          {focusStats && focusStats.sessions > 0 && (
+            <div className="focus-stats-section" style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 8 }}>Focus Time:</span>
+              <div className="completion-stats-row">
+                <div className="stat-box">
+                  <div className="stat-value">{focusStats.sessions}</div>
+                  <div className="stat-label">Sessions</div>
+                </div>
+                <div className="stat-box">
+                  <div className="stat-value">{Math.floor(focusStats.totalSeconds / 3600) > 0 ? `${Math.floor(focusStats.totalSeconds / 3600)}h ${Math.floor((focusStats.totalSeconds % 3600) / 60)}m` : `${Math.floor(focusStats.totalSeconds / 60)}m`}</div>
+                  <div className="stat-label">Total Focused</div>
+                </div>
+              </div>
             </div>
           )}
 
