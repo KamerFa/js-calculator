@@ -22,14 +22,14 @@ import {
 } from "@shopify/polaris";
 import { ImageIcon } from "@shopify/polaris-icons";
 import { useApiQuery, useAppFetch } from "../hooks/useApi";
-import { ResourcePicker } from "@shopify/app-bridge-react";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 export default function ProductsPage() {
   const { data, loading, error, refetch } = useApiQuery("/api/products");
   const appFetch = useAppFetch();
+  const shopify = useAppBridge();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [showPicker, setShowPicker] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configProduct, setConfigProduct] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -46,36 +46,36 @@ export default function ProductsPage() {
     bufferUnit: "hours",
   });
 
-  const handleProductSelected = useCallback(
-    async (selection) => {
-      setShowPicker(false);
-      if (!selection?.selection?.length) return;
+  const openResourcePicker = useCallback(async () => {
+    const selected = await shopify.resourcePicker({
+      type: "product",
+      multiple: false,
+    });
+    if (!selected?.length) return;
 
-      const product = selection.selection[0];
-      setConfigProduct({
-        shopifyProductId: String(product.id).replace("gid://shopify/Product/", ""),
-        title: product.title,
-        imageUrl: product.images?.[0]?.originalSrc || null,
-        shopifyVariantId: product.variants?.[0]?.id
-          ? String(product.variants[0].id).replace("gid://shopify/ProductVariant/", "")
-          : null,
-      });
-      setConfigForm({
-        dailyRate: "",
-        weeklyRate: "",
-        hourlyRate: "",
-        depositAmount: "0",
-        quantityTotal: "1",
-        minDuration: "1",
-        maxDuration: "30",
-        durationUnit: "days",
-        bufferTime: "0",
-        bufferUnit: "hours",
-      });
-      setShowConfigModal(true);
-    },
-    []
-  );
+    const product = selected[0];
+    setConfigProduct({
+      shopifyProductId: String(product.id).replace("gid://shopify/Product/", ""),
+      title: product.title,
+      imageUrl: product.images?.[0]?.originalSrc || null,
+      shopifyVariantId: product.variants?.[0]?.id
+        ? String(product.variants[0].id).replace("gid://shopify/ProductVariant/", "")
+        : null,
+    });
+    setConfigForm({
+      dailyRate: "",
+      weeklyRate: "",
+      hourlyRate: "",
+      depositAmount: "0",
+      quantityTotal: "1",
+      minDuration: "1",
+      maxDuration: "30",
+      durationUnit: "days",
+      bufferTime: "0",
+      bufferUnit: "hours",
+    });
+    setShowConfigModal(true);
+  }, [shopify]);
 
   const handleSaveConfig = useCallback(async () => {
     setSaving(true);
@@ -142,7 +142,7 @@ export default function ProductsPage() {
       heading="No rental products configured"
       action={{
         content: "Add rental product",
-        onAction: () => setShowPicker(true),
+        onAction: openResourcePicker,
       }}
       image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
     >
@@ -192,7 +192,7 @@ export default function ProductsPage() {
       title="Rental Products"
       primaryAction={{
         content: "Add product",
-        onAction: () => setShowPicker(true),
+        onAction: openResourcePicker,
       }}
     >
       <Layout>
@@ -216,17 +216,6 @@ export default function ProductsPage() {
           </Card>
         </Layout.Section>
       </Layout>
-
-      {showPicker && (
-        <ResourcePicker
-          resourceType="Product"
-          open={showPicker}
-          onSelection={handleProductSelected}
-          onCancel={() => setShowPicker(false)}
-          showVariants={false}
-          allowMultiple={false}
-        />
-      )}
 
       {showConfigModal && (
         <Modal

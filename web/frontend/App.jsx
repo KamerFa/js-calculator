@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import { NavigationMenu } from "@shopify/app-bridge-react";
+import { NavMenu } from "@shopify/app-bridge-react";
 import { Frame } from "@shopify/polaris";
 import DashboardPage from "./pages/DashboardPage";
 import ProductsPage from "./pages/ProductsPage";
@@ -12,15 +12,13 @@ import SettingsPage from "./pages/SettingsPage";
 export default function App() {
   return (
     <Frame>
-      <NavigationMenu
-        navigationLinks={[
-          { label: "Dashboard", destination: "/" },
-          { label: "Products", destination: "/products" },
-          { label: "Reservations", destination: "/reservations" },
-          { label: "Calendar", destination: "/calendar" },
-          { label: "Settings", destination: "/settings" },
-        ]}
-      />
+      <NavMenu>
+        <a href="/" rel="home">Dashboard</a>
+        <a href="/products">Products</a>
+        <a href="/reservations">Reservations</a>
+        <a href="/calendar">Calendar</a>
+        <a href="/settings">Settings</a>
+      </NavMenu>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/products" element={<ProductsPage />} />

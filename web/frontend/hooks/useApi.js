@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuthenticatedFetch } from "@shopify/app-bridge-react";
 
 /**
  * Hook to make authenticated API calls to the app backend.
+ * App Bridge v4 automatically authenticates fetch requests when embedded.
  */
 export function useAppFetch() {
-  const fetch = useAuthenticatedFetch();
-
   const appFetch = useCallback(
     async (url, options = {}) => {
       const response = await fetch(url, {
@@ -21,7 +19,7 @@ export function useAppFetch() {
 
       return response.json();
     },
-    [fetch]
+    []
   );
 
   return appFetch;
