@@ -23,7 +23,11 @@
     "community": "Community",
     "profile": "Profile",
     "settings": "Settings",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "workspace": "Workspace",
+    "social": "Social",
+    "media": "Media",
+    "more": "More"
   },
   "tasks": {
     "title": "Tasks",

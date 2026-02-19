@@ -23,7 +23,11 @@
     "community": "Zajednica",
     "profile": "Profil",
     "settings": "Postavke",
-    "notifications": "Obavještenja"
+    "notifications": "Obavještenja",
+    "workspace": "Radni prostor",
+    "social": "Društveno",
+    "media": "Mediji",
+    "more": "Više"
   },
   "tasks": {
     "title": "Zadaci",

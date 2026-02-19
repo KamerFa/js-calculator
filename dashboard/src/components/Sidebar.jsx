@@ -1,31 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews, IconCalendar, IconCommunity } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
 import StatusDot, { CustomStatusBadge } from './StatusDot';
 import StatusPicker from './StatusPicker';
 import { DB } from '../db';
-
-function IconCalendar() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-function IconCommunity() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
 
 function IconDownload() {
   return (
@@ -116,20 +97,21 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     : pathname.slice(1).split('/')[0] || 'tasks';
   const currentProjectId = pathname.startsWith('/project/') ? pathname.split('/')[2] : null;
 
-  // Accordion state
-  const [accordionOpen, setAccordionOpen] = useState(() => {
+  // Accordion state — only projects needs collapsing
+  const [projectsOpen, setProjectsOpen] = useState(() => {
     try {
       const saved = localStorage.getItem('sidebar_accordions');
-      return saved ? JSON.parse(saved) : { tasks: true, projects: true };
+      const parsed = saved ? JSON.parse(saved) : { projects: true };
+      return parsed.projects !== false;
     } catch {
-      return { tasks: true, projects: true };
+      return true;
     }
   });
 
-  const toggleAccordion = (key) => {
-    setAccordionOpen((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem('sidebar_accordions', JSON.stringify(next));
+  const toggleProjects = () => {
+    setProjectsOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('sidebar_accordions', JSON.stringify({ projects: next }));
       return next;
     });
   };
@@ -200,93 +182,97 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
           Dashboard
         </div>
 
-        {/* Tasks section - accordion */}
-        <button className="sidebar-accordion-toggle" onClick={() => toggleAccordion('tasks')}>
-          <IconChevron open={accordionOpen.tasks} />
-          <span>{t('sidebar.tasks')}</span>
-        </button>
-        {accordionOpen.tasks && (
-          <ul className="sidebar-nav">
-            <li>
-              <a
-                href="/"
-                className={view === 'tasks' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/'); }}
-              >
-                <IconCheck />
-                {t('tasks.allTasks')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/calendar"
-                className={view === 'calendar' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/calendar'); }}
-              >
-                <IconCalendar />
-                {t('sidebar.calendar')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/notes"
-                className={view === 'notes' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/notes'); }}
-              >
-                <IconFile />
-                {t('sidebar.notes')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/community"
-                className={view === 'community' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/community'); }}
-              >
-                <IconCommunity />
-                {t('sidebar.community')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/users"
-                className={view === 'users' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/users'); }}
-              >
-                <IconUsers />
-                {t('community.users')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/radio"
-                className={view === 'radio' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/radio'); }}
-              >
-                <IconRadio />
-                Radio
-              </a>
-            </li>
-            <li>
-              <a
-                href="/news"
-                className={view === 'news' ? 'active' : ''}
-                onClick={(e) => { e.preventDefault(); nav('/news'); }}
-              >
-                <IconNews />
-                News
-              </a>
-            </li>
-          </ul>
-        )}
+        {/* ── Workspace section ── */}
+        <div className="sidebar-section-label">{t('sidebar.workspace') || 'Workspace'}</div>
+        <ul className="sidebar-nav">
+          <li>
+            <a
+              href="/"
+              className={view === 'tasks' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/'); }}
+            >
+              <IconCheck />
+              {t('tasks.allTasks')}
+            </a>
+          </li>
+          <li>
+            <a
+              href="/calendar"
+              className={view === 'calendar' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/calendar'); }}
+            >
+              <IconCalendar />
+              {t('sidebar.calendar')}
+            </a>
+          </li>
+          <li>
+            <a
+              href="/notes"
+              className={view === 'notes' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/notes'); }}
+            >
+              <IconFile />
+              {t('sidebar.notes')}
+            </a>
+          </li>
+        </ul>
 
+        {/* ── Social section ── */}
+        <div className="sidebar-section-label">{t('sidebar.social') || 'Social'}</div>
+        <ul className="sidebar-nav">
+          <li>
+            <a
+              href="/community"
+              className={view === 'community' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/community'); }}
+            >
+              <IconCommunity />
+              {t('sidebar.community')}
+            </a>
+          </li>
+          <li>
+            <a
+              href="/users"
+              className={view === 'users' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/users'); }}
+            >
+              <IconUsers />
+              {t('community.users')}
+            </a>
+          </li>
+          <li>
+            <a
+              href="/news"
+              className={view === 'news' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/news'); }}
+            >
+              <IconNews />
+              News
+            </a>
+          </li>
+        </ul>
 
-        {/* Projects section - accordion */}
-        <button className="sidebar-accordion-toggle" onClick={() => toggleAccordion('projects')}>
-          <IconChevron open={accordionOpen.projects} />
+        {/* ── Media section ── */}
+        <div className="sidebar-section-label">{t('sidebar.media') || 'Media'}</div>
+        <ul className="sidebar-nav">
+          <li>
+            <a
+              href="/radio"
+              className={view === 'radio' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/radio'); }}
+            >
+              <IconRadio />
+              Radio
+            </a>
+          </li>
+        </ul>
+
+        {/* ── Projects section — collapsible accordion ── */}
+        <button className="sidebar-accordion-toggle" onClick={toggleProjects}>
+          <IconChevron open={projectsOpen} />
           <span>{t('sidebar.projects')}</span>
         </button>
-        {accordionOpen.projects && (
+        {projectsOpen && (
           <>
             <ul className="sidebar-nav">
               {projects.map((project) => {
