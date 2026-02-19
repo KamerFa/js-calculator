@@ -169,4 +169,147 @@ router.get('/sources', (_req, res) => {
   res.json(NEWS_SOURCES.map((s) => ({ id: s.id, name: s.name, category: s.category })));
 });
 
+// GET /api/news/article — proxy-fetch article and extract readable content
+router.get('/article', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'URL required' });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; DashboardReader/1.0)',
+        'Accept': 'text/html',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const html = await response.text();
+
+    // Extract readable content
+    const content = extractArticleContent(html, url);
+    res.json(content);
+  } catch (err) {
+    res.status(502).json({ error: 'Could not fetch article', detail: err.message });
+  }
+});
+
+/**
+ * Extract readable article content from raw HTML.
+ * Lightweight reader-mode: finds <article> or main content block,
+ * strips scripts/styles/nav, returns clean HTML + metadata.
+ */
+function extractArticleContent(html, url) {
+  // Extract metadata
+  const title = extractMeta(html, 'og:title')
+    || extractTagContent(html, 'title')
+    || '';
+  const image = extractMeta(html, 'og:image') || '';
+  const siteName = extractMeta(html, 'og:site_name') || '';
+  const description = extractMeta(html, 'og:description')
+    || extractMeta(html, 'description')
+    || '';
+  const author = extractMeta(html, 'author')
+    || extractMeta(html, 'article:author')
+    || extractMetaName(html, 'author')
+    || '';
+  const publishedTime = extractMeta(html, 'article:published_time')
+    || extractMeta(html, 'datePublished')
+    || '';
+
+  // Try to extract article body
+  let body = '';
+
+  // Priority 1: <article> tag
+  const articleMatch = html.match(/<article[\s>]([\s\S]*?)<\/article>/i);
+  if (articleMatch) {
+    body = articleMatch[1];
+  }
+
+  // Priority 2: role="main" or id="main-content" or class containing "article-body"
+  if (!body) {
+    const mainPatterns = [
+      /role=["']main["'][^>]*>([\s\S]*?)<\/(?:div|main|section)>/i,
+      /class=["'][^"']*article[_-]?body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+      /class=["'][^"']*story[_-]?body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+      /class=["'][^"']*post[_-]?content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+      /class=["'][^"']*entry[_-]?content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+      /class=["'][^"']*article[_-]?content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    ];
+    for (const pattern of mainPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1].length > 200) {
+        body = match[1];
+        break;
+      }
+    }
+  }
+
+  // Priority 3: largest block of <p> tags
+  if (!body || body.length < 200) {
+    const pTags = html.match(/<p[\s>][\s\S]*?<\/p>/gi) || [];
+    if (pTags.length > 0) {
+      body = pTags.join('\n');
+    }
+  }
+
+  // Clean the body HTML
+  body = cleanHTML(body);
+
+  return { title, image, siteName, description, author, publishedTime, body, url };
+}
+
+function extractMeta(html, property) {
+  // og:xxx or article:xxx
+  const re = new RegExp(`<meta[^>]+(?:property|name)=["'](?:og:|article:)?${property}["'][^>]+content=["']([^"']*)["']`, 'i');
+  const m = html.match(re);
+  if (m) return m[1];
+  // Reversed attribute order
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["'](?:og:|article:)?${property}["']`, 'i');
+  const m2 = html.match(re2);
+  return m2 ? m2[1] : '';
+}
+
+function extractMetaName(html, name) {
+  const re = new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']*)["']`, 'i');
+  const m = html.match(re);
+  return m ? m[1] : '';
+}
+
+function extractTagContent(html, tag) {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
+  const m = html.match(re);
+  return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
+}
+
+function cleanHTML(html) {
+  if (!html) return '';
+  return html
+    // Remove scripts, styles, iframes, forms, nav, aside
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<form[\s\S]*?<\/form>/gi, '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+    .replace(/<header[\s\S]*?<\/header>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    .replace(/<button[\s\S]*?<\/button>/gi, '')
+    .replace(/<input[^>]*>/gi, '')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+    // Remove data attributes and event handlers
+    .replace(/\s+on\w+="[^"]*"/gi, '')
+    .replace(/\s+data-[\w-]+="[^"]*"/gi, '')
+    // Remove class/id/style attributes (keep src, href, alt)
+    .replace(/\s+(class|id|style|role|aria-[\w-]+)="[^"]*"/gi, '')
+    // Remove empty tags
+    .replace(/<(div|span|section)\s*>\s*<\/\1>/gi, '')
+    // Normalize whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export default router;

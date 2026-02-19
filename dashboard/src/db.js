@@ -345,6 +345,10 @@ const DB = {
   async getNewsSources() {
     return api('/news/sources');
   },
+
+  async getArticle(url) {
+    return api(`/news/article?url=${encodeURIComponent(url)}`);
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

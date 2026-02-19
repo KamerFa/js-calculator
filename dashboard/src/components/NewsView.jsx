@@ -47,6 +47,15 @@ function IconNewspaper() {
   );
 }
 
+function IconArrowLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
 const SOURCE_COLORS = {
   bbc: '#bb1919',
   reuters: '#ff8800',
@@ -67,6 +76,118 @@ const SOURCE_COLORS = {
   blic: '#1d4e89',
 };
 
+// ── Article Reader Panel ─────────────────────────────────
+function ArticleReader({ article, onClose }) {
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!article) return;
+    setLoading(true);
+    setError(null);
+    DB.getArticle(article.link)
+      .then((data) => setContent(data))
+      .catch((err) => setError(err.message || 'Failed to load article'))
+      .finally(() => setLoading(false));
+  }, [article?.link]);
+
+  if (!article) return null;
+
+  return (
+    <div className="article-reader">
+      <div className="article-reader-toolbar">
+        <button className="article-reader-back" onClick={onClose}>
+          <IconArrowLeft />
+          <span>Back to news</span>
+        </button>
+        <a
+          href={article.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="article-reader-external"
+        >
+          Open original <IconExternalLink />
+        </a>
+      </div>
+
+      <div className="article-reader-content">
+        {loading && (
+          <div className="article-reader-loading">
+            <div className="news-loading-spinner" />
+            <p>Loading article...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="article-reader-error">
+            <p>Could not load article content.</p>
+            <p style={{ fontSize: 12, color: 'var(--text-3)' }}>{error}</p>
+            <a
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+              style={{ marginTop: 12, display: 'inline-block' }}
+            >
+              Open in new tab <IconExternalLink />
+            </a>
+          </div>
+        )}
+
+        {!loading && content && (
+          <>
+            {content.image && (
+              <div className="article-reader-hero">
+                <img src={content.image} alt="" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
+              </div>
+            )}
+
+            <div className="article-reader-meta">
+              <span
+                className="news-card-source"
+                style={{ color: SOURCE_COLORS[article.sourceId] || 'var(--muted)', fontSize: 13 }}
+              >
+                {content.siteName || article.sourceName}
+              </span>
+              {content.author && (
+                <span className="article-reader-author">{content.author}</span>
+              )}
+              {(content.publishedTime || article.pubDate) && (
+                <span className="article-reader-date">
+                  {new Date(content.publishedTime || article.pubDate).toLocaleDateString('en-US', {
+                    month: 'long', day: 'numeric', year: 'numeric',
+                  })}
+                </span>
+              )}
+            </div>
+
+            <h1 className="article-reader-title">{content.title || article.title}</h1>
+
+            {content.body ? (
+              <div
+                className="article-reader-body"
+                dangerouslySetInnerHTML={{ __html: content.body }}
+              />
+            ) : (
+              <div className="article-reader-body">
+                <p>{content.description || article.description}</p>
+                <p style={{ marginTop: 16, color: 'var(--text-3)', fontStyle: 'italic' }}>
+                  Full content could not be extracted.{' '}
+                  <a href={article.link} target="_blank" rel="noopener noreferrer">
+                    Read on {article.sourceName} <IconExternalLink />
+                  </a>
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main NewsView ────────────────────────────────────────
 export default function NewsView() {
   const [articles, setArticles] = useState([]);
   const [sources, setSources] = useState([]);
@@ -76,6 +197,7 @@ export default function NewsView() {
   const [activeSource, setActiveSource] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'list'
+  const [readingArticle, setReadingArticle] = useState(null);
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -125,7 +247,24 @@ export default function NewsView() {
     }
   };
 
+  const handleArticleClick = (e, article) => {
+    e.preventDefault();
+    setReadingArticle(article);
+  };
+
   const uniqueCategories = [...new Set(sources.map((s) => s.category))];
+
+  // If reading an article, show the reader panel
+  if (readingArticle) {
+    return (
+      <div className="news-view">
+        <ArticleReader
+          article={readingArticle}
+          onClose={() => setReadingArticle(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="news-view">
@@ -244,6 +383,7 @@ export default function NewsView() {
               target="_blank"
               rel="noopener noreferrer"
               className="news-card"
+              onClick={(e) => handleArticleClick(e, article)}
             >
               {viewMode === 'cards' && article.image && (
                 <div className="news-card-image">
