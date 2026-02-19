@@ -7299,6 +7299,66 @@ body {
   color: var(--accent);
 }
 
+/* Custom time input */
+.focus-custom-time {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.focus-custom-input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  min-width: 0;
+}
+
+.focus-custom-input::placeholder {
+  color: var(--text-3);
+}
+
+.focus-custom-input:focus {
+  border-color: var(--accent);
+}
+
+/* Hide number spinners */
+.focus-custom-input::-webkit-inner-spin-button,
+.focus-custom-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.focus-custom-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.focus-custom-go {
+  padding: 7px 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.focus-custom-go:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.focus-custom-go:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Today's stats (bottom of setup) */
 .focus-today-stats {
   display: flex;

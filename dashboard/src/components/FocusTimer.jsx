@@ -86,6 +86,7 @@ export default function FocusTimer() {
 
   // UI state
   const [expanded, setExpanded] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('');
   const intervalRef = useRef(null);
   const panelRef = useRef(null);
 
@@ -384,6 +385,35 @@ export default function FocusTimer() {
                     {p.label}
                   </button>
                 ))}
+              </div>
+
+              {/* Custom duration */}
+              <div className="focus-custom-time">
+                <input
+                  type="number"
+                  className="focus-custom-input"
+                  placeholder="Min"
+                  min="1"
+                  max="180"
+                  value={customMinutes}
+                  onChange={(e) => setCustomMinutes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const mins = parseInt(customMinutes, 10);
+                      if (mins > 0 && mins <= 180) startFocus(mins * 60);
+                    }
+                  }}
+                />
+                <button
+                  className="focus-custom-go"
+                  disabled={!customMinutes || parseInt(customMinutes, 10) < 1 || parseInt(customMinutes, 10) > 180}
+                  onClick={() => {
+                    const mins = parseInt(customMinutes, 10);
+                    if (mins > 0 && mins <= 180) startFocus(mins * 60);
+                  }}
+                >
+                  Start
+                </button>
               </div>
 
               {/* Today's stats */}
