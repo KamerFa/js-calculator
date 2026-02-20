@@ -1,4 +1,5 @@
 const express = require("express");
+const fs = require("fs");
 const compression = require("compression");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -71,16 +72,26 @@ if (isProd) {
 
 // All other routes: serve the embedded app shell (SPA fallback)
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
+  const apiKey = process.env.SHOPIFY_API_KEY || "";
+
   if (isProd) {
-    return res.sendFile(path.join(__dirname, "../web/dist/index.html"));
+    // Inject SHOPIFY_API_KEY at runtime so the build doesn't need it baked in
+    const htmlPath = path.join(__dirname, "../web/dist/index.html");
+    const rawHtml = fs.readFileSync(htmlPath, "utf-8");
+    const html = rawHtml
+      .replace(/%SHOPIFY_API_KEY%/g, apiKey)
+      .replace(/content=""(\s*\/>)\s*<!--\s*shopify-api-key\s*-->/i, `content="${apiKey}"$1`);
+    res.set("Content-Type", "text/html");
+    return res.send(html);
   }
+
   // In dev, serve a minimal HTML that loads the dev frontend
   res.set("Content-Type", "text/html");
   res.send(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="shopify-api-key" content="${process.env.SHOPIFY_API_KEY}" />
+  <meta name="shopify-api-key" content="${apiKey}" />
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 </head>
 <body>
