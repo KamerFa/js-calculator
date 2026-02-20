@@ -4,13 +4,19 @@ const prisma = require("./db");
 
 const sessionStorage = new PrismaSessionStorage(prisma);
 
+// Parse HOST robustly — handle with/without protocol and trailing slash
+const rawHost = (process.env.HOST || "").replace(/\/+$/, "");
+const hasProtocol = rawHost.includes("://");
+const hostScheme = hasProtocol ? rawHost.split("://")[0] : "https";
+const hostName = hasProtocol ? rawHost.split("://")[1] : rawHost || "localhost:3000";
+
 const shopify = shopifyApp({
   api: {
     apiKey: process.env.SHOPIFY_API_KEY,
     apiSecretKey: process.env.SHOPIFY_API_SECRET,
     scopes: (process.env.SCOPES || "").split(","),
-    hostScheme: process.env.HOST?.split("://")[0] || "https",
-    hostName: process.env.HOST?.replace(/https?:\/\//, "") || "localhost:3000",
+    hostScheme,
+    hostName,
   },
   auth: {
     path: "/api/auth",

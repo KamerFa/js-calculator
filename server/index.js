@@ -90,6 +90,14 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
 </html>`);
 });
 
+// Global error handler — catches unhandled errors from middleware
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled error:", err);
+  res.status(err.statusCode || 500).json({
+    error: isProd ? "Internal server error" : err.message,
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Rental app server running on port ${PORT}`);
 });

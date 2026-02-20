@@ -1,8 +1,5 @@
-[extension]
-type = "theme"
+api_version = "2024-04"
+
+type = "theme_app_extension"
 name = "Rental Widget"
 handle = "rental-widget"
-
-[[extension.targeting]]
-module = "./blocks/rental-widget.liquid"
-target = "section"
