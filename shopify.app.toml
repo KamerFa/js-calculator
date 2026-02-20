@@ -2,7 +2,7 @@
 # See https://shopify.dev/docs/apps/tools/cli/configuration
 
 name = "Rental Manager"
-client_id = ""
+client_id = "43eac048c0ebb373096487e209b1893a"
 application_url = "https://shopify-rental.onrender.com"
 embedded = true
 
