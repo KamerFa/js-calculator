@@ -88,8 +88,31 @@ if (isProd) {
 }
 
 // All other routes: serve the embedded app shell (SPA fallback)
-app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, next) => {
+// NOTE: We intentionally do NOT use ensureInstalledOnShop() here.
+// That middleware tries server-side auth redirects (/exitiframe → /api/auth
+// → accounts.shopify.com) which cannot work inside an iframe due to
+// cross-origin and frame-ancestors CSP restrictions.
+// Instead, App Bridge v4 CDN handles authentication entirely client-side
+// via session tokens + postMessage to Shopify admin.  API routes are still
+// protected by validateAuthenticatedSession (verifyRequest).
+app.use("/*", async (req, res, next) => {
   try {
+    // Set frame-ancestors CSP so only this shop's admin can embed the app
+    const shop = shopify.api.utils.sanitizeShop(req.query.shop || "");
+    if (shop) {
+      res.setHeader(
+        "Content-Security-Policy",
+        `frame-ancestors https://${shop} https://admin.shopify.com https://*.spin.dev;`
+      );
+    } else {
+      // No specific shop — allow any Shopify admin to frame (safe because
+      // all sensitive data is behind authenticated API routes)
+      res.setHeader(
+        "Content-Security-Policy",
+        "frame-ancestors https://*.myshopify.com https://admin.shopify.com https://*.spin.dev;"
+      );
+    }
+
     if (isProd) {
       if (!prodHtml) {
         return res.status(500).send("App HTML not found. The frontend build may have failed.");
