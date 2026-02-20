@@ -69,7 +69,7 @@ export function MentionDropdown({ mentions, onSelect }) {
           ) : (
             <span className="mention-option-avatar mention-option-placeholder">{u.username.charAt(0).toUpperCase()}</span>
           )}
-          <span>@{u.username}</span>
+          <span className="mention-option-name">@{u.username}</span>
         </button>
       ))}
     </div>

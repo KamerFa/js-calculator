@@ -356,6 +356,17 @@ async function initDB() {
   await pool.query(`ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS thread_only BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS thread_only BOOLEAN NOT NULL DEFAULT false`);
 
+  // ── Typing indicators ──
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS typing_indicators (
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      target_type TEXT NOT NULL,
+      target_id   TEXT NOT NULL,
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, target_type, target_id)
+    )
+  `);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

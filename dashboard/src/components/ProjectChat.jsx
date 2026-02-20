@@ -19,16 +19,16 @@ function timeAgo(iso) {
 }
 
 function renderBody(body, onUserClick) {
-  // Split body by @mentions and render them as clickable links
   const parts = body.split(/(@\w+)/g);
   return parts.map((part, i) => {
     if (part.startsWith('@')) {
       const username = part.slice(1);
+      const isGroupMention = username === 'chat';
       return (
         <span
           key={i}
-          className="chat-mention"
-          onClick={() => onUserClick && onUserClick(username)}
+          className={`chat-mention${isGroupMention ? ' group' : ''}`}
+          onClick={() => !isGroupMention && onUserClick?.(username)}
         >
           {part}
         </span>
@@ -150,9 +150,15 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
     inputRef.current?.focus();
   };
 
-  const filteredMembers = (members || []).filter(
-    (m) => m.username.toLowerCase().includes(mentionFilter) && m.userId !== user?.id
-  );
+  const filteredMembers = (() => {
+    const list = (members || []).filter(
+      (m) => m.username.toLowerCase().includes(mentionFilter) && m.userId !== user?.id
+    );
+    if ('chat'.includes(mentionFilter)) {
+      return [{ userId: '__chat__', username: 'chat', isGroupMention: true }, ...list];
+    }
+    return list;
+  })();
 
   if (!open) {
     return (
@@ -278,7 +284,19 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
           <div className="mention-dropdown">
             {filteredMembers.slice(0, 8).map((m) => (
               <button key={m.userId} className="mention-option" onClick={() => insertMention(m.username)}>
-                @{m.username}
+                {m.isGroupMention ? (
+                  <span className="mention-option-avatar mention-option-group">@</span>
+                ) : resolveAvatarUrl(m.avatarUrl) ? (
+                  <img src={resolveAvatarUrl(m.avatarUrl)} alt="" className="mention-option-avatar" />
+                ) : (
+                  <span className="mention-option-avatar mention-option-placeholder">
+                    {m.username.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="mention-option-name">
+                  @{m.username}
+                  {m.isGroupMention && <span className="mention-option-hint"> — notify everyone</span>}
+                </span>
               </button>
             ))}
           </div>

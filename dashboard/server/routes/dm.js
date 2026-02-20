@@ -247,6 +247,15 @@ router.get('/:userId', async (req, res) => {
   );
   const otherReadAt = cursorRows[0]?.last_read_at || null;
 
+  // Check if other user is typing
+  const { rows: typingRows } = await pool.query(
+    `SELECT 1 FROM typing_indicators
+     WHERE user_id = $1 AND target_type = 'dm' AND target_id = $2
+       AND updated_at > NOW() - INTERVAL '4 seconds'`,
+    [otherId, userId]
+  );
+  const isOtherTyping = typingRows.length > 0;
+
   res.json({
     messages: mainFeedRows.reverse().map((r) => ({
       id: r.id,
@@ -264,7 +273,19 @@ router.get('/:userId', async (req, res) => {
       replyCount: replyCountMap[r.id] || 0,
     })),
     otherReadAt,
+    isOtherTyping,
   });
+});
+
+// ── POST typing indicator for DM ─────────────────────────────
+router.post('/:userId/typing', async (req, res) => {
+  await pool.query(
+    `INSERT INTO typing_indicators (user_id, target_type, target_id, updated_at)
+     VALUES ($1, 'dm', $2, NOW())
+     ON CONFLICT (user_id, target_type, target_id) DO UPDATE SET updated_at = NOW()`,
+    [req.userId, req.params.userId]
+  );
+  res.json({ ok: true });
 });
 
 // ── POST send a DM ──────────────────────────────────────────

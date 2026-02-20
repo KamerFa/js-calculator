@@ -60,11 +60,12 @@ function renderBody(body, onUserClick) {
   return parts.map((part, i) => {
     if (part.startsWith('@')) {
       const username = part.slice(1);
+      const isGroupMention = username === 'chat';
       return (
         <span
           key={i}
-          className="chat-mention"
-          onClick={() => onUserClick?.(username)}
+          className={`chat-mention${isGroupMention ? ' group' : ''}`}
+          onClick={() => !isGroupMention && onUserClick?.(username)}
         >
           {part}
         </span>
@@ -112,6 +113,10 @@ export default function MessagesView({ user, onUserClick }) {
   const [showThreadReactPickerForMsg, setShowThreadReactPickerForMsg] = useState(null);
   const threadEndRef = useRef(null);
   const threadInputRef = useRef(null);
+
+  // Typing indicator state
+  const [typingUsers, setTypingUsers] = useState([]);
+  const typingTimeoutRef = useRef(null);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -186,19 +191,28 @@ export default function MessagesView({ user, onUserClick }) {
     try {
       if (selectedConv.type === 'dm') {
         const data = await DB.getDMs(selectedConv.id);
-        // New response format: { messages, otherReadAt }
+        // Response format: { messages, otherReadAt, isOtherTyping }
         if (data.messages) {
           setMessages(data.messages);
           setOtherReadAt(data.otherReadAt || null);
+          const partnerConv = conversations.find(c => c.type === 'dm' && c.userId === selectedConv.id);
+          setTypingUsers(data.isOtherTyping ? [partnerConv?.username].filter(Boolean) : []);
         } else {
-          // Backwards compat with old array format
           setMessages(data);
           setOtherReadAt(null);
+          setTypingUsers([]);
         }
         await DB.markDMRead(selectedConv.id);
       } else {
         const data = await DB.getProjectMessages(selectedConv.id);
-        setMessages(data);
+        // Response format: { messages, typingUsers }
+        if (data.messages) {
+          setMessages(data.messages);
+          setTypingUsers(data.typingUsers || []);
+        } else {
+          setMessages(data);
+          setTypingUsers([]);
+        }
         setOtherReadAt(null);
         await DB.markProjectChatRead(selectedConv.id);
       }
@@ -216,14 +230,21 @@ export default function MessagesView({ user, onUserClick }) {
     }
   }, [selectedConv?.type, selectedConv?.id]);
 
-  // Load channel members for project conversations (for @mentions)
+  // Load taggable users for @mentions (project members or DM partner)
   useEffect(() => {
     if (selectedConv?.type === 'project') {
       DB.getProjectMembers(selectedConv.id).then(setChannelMembers).catch(() => {});
+    } else if (selectedConv?.type === 'dm') {
+      const partner = conversations.find(c => c.type === 'dm' && c.userId === selectedConv.id);
+      if (partner) {
+        setChannelMembers([{ userId: partner.userId, username: partner.username, avatarUrl: partner.avatarUrl }]);
+      } else {
+        setChannelMembers([]);
+      }
     } else {
       setChannelMembers([]);
     }
-  }, [selectedConv?.type, selectedConv?.id]);
+  }, [selectedConv?.type, selectedConv?.id, conversations]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -355,22 +376,33 @@ export default function MessagesView({ user, onUserClick }) {
     setShowFriendPicker(true);
   };
 
+  // Send typing signal (throttled to 1 per 3s)
+  const sendTypingSignal = () => {
+    if (typingTimeoutRef.current) return;
+    if (selectedConv?.type === 'dm') {
+      DB.sendTypingDM(selectedConv.id).catch(() => {});
+    } else if (selectedConv?.type === 'project') {
+      DB.sendTypingProject(selectedConv.id).catch(() => {});
+    }
+    typingTimeoutRef.current = setTimeout(() => { typingTimeoutRef.current = null; }, 3000);
+  };
+
   // @Mention input handling
   const handleInputChange = (e) => {
     const val = e.target.value;
     setBody(val);
 
-    if (selectedConv?.type === 'project') {
-      const cursor = e.target.selectionStart;
-      const textUpToCursor = val.slice(0, cursor);
-      const mentionMatch = textUpToCursor.match(/@(\w*)$/);
-      if (mentionMatch) {
-        setShowMentions(true);
-        setMentionFilter(mentionMatch[1].toLowerCase());
-      } else {
-        setShowMentions(false);
-      }
+    const cursor = e.target.selectionStart;
+    const textUpToCursor = val.slice(0, cursor);
+    const mentionMatch = textUpToCursor.match(/@(\w*)$/);
+    if (mentionMatch) {
+      setShowMentions(true);
+      setMentionFilter(mentionMatch[1].toLowerCase());
+    } else {
+      setShowMentions(false);
     }
+
+    if (val.trim().length > 0) sendTypingSignal();
   };
 
   const insertMention = (username) => {
@@ -386,9 +418,16 @@ export default function MessagesView({ user, onUserClick }) {
     inputRef.current?.focus();
   };
 
-  const filteredMembers = (channelMembers || []).filter(
-    (m) => m.username.toLowerCase().includes(mentionFilter) && m.userId !== user?.id
-  );
+  const filteredMembers = (() => {
+    const members = (channelMembers || []).filter(
+      (m) => m.username.toLowerCase().includes(mentionFilter) && m.userId !== user?.id
+    );
+    // Add @chat option for project channels
+    if (selectedConv?.type === 'project' && 'chat'.includes(mentionFilter)) {
+      return [{ userId: '__chat__', username: 'chat', isGroupMention: true }, ...members];
+    }
+    return members;
+  })();
 
   // Thread panel: send reply
   const handleThreadSend = async () => {
@@ -781,12 +820,36 @@ export default function MessagesView({ user, onUserClick }) {
               )}
             </div>
 
+            {typingUsers.length > 0 && (
+              <div className="typing-indicator">
+                <span className="typing-dots"><span /><span /><span /></span>
+                <span className="typing-text">
+                  {typingUsers.length === 1
+                    ? `${typingUsers[0]} is typing`
+                    : `${typingUsers.slice(0, 2).join(', ')} ${typingUsers.length > 2 ? `and ${typingUsers.length - 2} more ` : ''}are typing`
+                  }
+                </span>
+              </div>
+            )}
+
             <div className="messages-compose-wrap">
               {showMentions && filteredMembers.length > 0 && (
                 <div className="mention-dropdown">
                   {filteredMembers.slice(0, 8).map((m) => (
                     <button key={m.userId} className="mention-option" onClick={() => insertMention(m.username)}>
-                      @{m.username}
+                      {m.isGroupMention ? (
+                        <span className="mention-option-avatar mention-option-group">@</span>
+                      ) : resolveAvatarUrl(m.avatarUrl) ? (
+                        <img src={resolveAvatarUrl(m.avatarUrl)} alt="" className="mention-option-avatar" />
+                      ) : (
+                        <span className="mention-option-avatar mention-option-placeholder">
+                          {m.username.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="mention-option-name">
+                        @{m.username}
+                        {m.isGroupMention && <span className="mention-option-hint"> — notify everyone</span>}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -796,7 +859,7 @@ export default function MessagesView({ user, onUserClick }) {
                   ref={inputRef}
                   className="form-input messages-input"
                   type="text"
-                  placeholder={selectedConv?.type === 'project' ? t('messages.typeMessageMention') : t('messages.typeMessage')}
+                  placeholder={t('messages.typeMessageMention')}
                   value={body}
                   onChange={handleInputChange}
                   onKeyDown={(e) => {

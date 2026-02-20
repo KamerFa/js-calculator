@@ -87,21 +87,52 @@ router.get('/:projectId', async (req, res) => {
     for (const r of replyCounts) replyCountMap[r.reply_to_id] = r.count;
   }
 
-  res.json(mainFeedRows.reverse().map((r) => ({
-    id: r.id,
-    body: r.body,
-    userId: r.user_id,
-    username: r.username,
-    avatarUrl: r.avatar_url || null,
-    mentions: r.mentions || [],
-    createdAt: r.created_at,
-    reactions: reactMap[r.id] || {},
-    replyToId: r.reply_to_id || null,
-    replyTo: r.reply_to_id
-      ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
-      : null,
-    replyCount: replyCountMap[r.id] || 0,
-  })));
+  // Check who is typing in this project
+  const { rows: typingRows } = await pool.query(
+    `SELECT u.username FROM typing_indicators ti
+     JOIN users u ON u.id = ti.user_id
+     WHERE ti.target_type = 'project' AND ti.target_id = $1
+       AND ti.user_id != $2
+       AND ti.updated_at > NOW() - INTERVAL '4 seconds'`,
+    [req.params.projectId, req.userId]
+  );
+  const typingUsers = typingRows.map(r => r.username);
+
+  res.json({
+    messages: mainFeedRows.reverse().map((r) => ({
+      id: r.id,
+      body: r.body,
+      userId: r.user_id,
+      username: r.username,
+      avatarUrl: r.avatar_url || null,
+      mentions: r.mentions || [],
+      createdAt: r.created_at,
+      reactions: reactMap[r.id] || {},
+      replyToId: r.reply_to_id || null,
+      replyTo: r.reply_to_id
+        ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
+        : null,
+      replyCount: replyCountMap[r.id] || 0,
+    })),
+    typingUsers,
+  });
+});
+
+// ── POST typing indicator for project ─────────────────────────
+router.post('/:projectId/typing', async (req, res) => {
+  const { rows: memberCheck } = await pool.query(
+    'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2',
+    [req.params.projectId, req.userId]
+  );
+  if (memberCheck.length === 0) return res.status(403).json({ error: 'Not a member' });
+
+  await pool.query(
+    `INSERT INTO typing_indicators (user_id, target_type, target_id, updated_at)
+     VALUES ($1, 'project', $2, NOW())
+     ON CONFLICT (user_id, target_type, target_id) DO UPDATE SET updated_at = NOW()`,
+    [req.userId, req.params.projectId]
+  );
+  res.json({ ok: true });
 });
 
 // ── POST toggle reaction on a project message ─────────────
@@ -262,9 +293,21 @@ router.post('/:projectId', async (req, res) => {
   );
 
   // Notify mentioned users
-  if (mentions.length > 0) {
-    const actor = await getUsername(req.userId);
-    const preview = body.trim().slice(0, 60) + (body.trim().length > 60 ? '...' : '');
+  const actor = await getUsername(req.userId);
+  const preview = body.trim().slice(0, 60) + (body.trim().length > 60 ? '...' : '');
+  const hasChatMention = mentionedUsernames.includes('chat');
+
+  if (hasChatMention) {
+    // @chat — notify all project members except sender
+    const { rows: allMembers } = await pool.query(
+      `SELECT user_id FROM project_members WHERE project_id = $1 AND user_id != $2`,
+      [req.params.projectId, req.userId]
+    );
+    for (const m of allMembers) {
+      await notify(m.user_id, req.userId, 'project_invite',
+        `${actor} mentioned @chat: "${preview}"`, 'project', req.params.projectId);
+    }
+  } else if (mentions.length > 0) {
     const { rows: mentionedUsers } = await pool.query(
       `SELECT id FROM users WHERE LOWER(username) = ANY($1)`,
       [mentions.map((m) => m.toLowerCase())]

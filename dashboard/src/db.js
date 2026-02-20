@@ -210,6 +210,10 @@ const DB = {
     return api(`/messages/${projectId}/thread/${parentId}`);
   },
 
+  async sendTypingProject(projectId) {
+    return api(`/messages/${projectId}/typing`, { method: 'POST' });
+  },
+
   async deleteProjectMessage(projectId, messageId) {
     return api(`/messages/${projectId}/${messageId}`, { method: 'DELETE' });
   },
@@ -401,6 +405,10 @@ const DB = {
 
   async getDMThread(userId, parentId) {
     return api(`/dm/${userId}/thread/${parentId}`);
+  },
+
+  async sendTypingDM(userId) {
+    return api(`/dm/${userId}/typing`, { method: 'POST' });
   },
 
   async deleteDM(messageId) {

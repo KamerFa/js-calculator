@@ -2413,39 +2413,16 @@ body {
 /* ── Tweet @mentions ─────────────────────────────────── */
 .tweet-mention {
   color: var(--accent);
+  background: var(--accent-bg);
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s;
+  border-radius: 3px;
+  padding: 1px 3px;
+  margin: 0 1px;
+  transition: background 0.15s ease;
 }
 .tweet-mention:hover {
   text-decoration: underline;
-}
-
-/* ── Mention dropdown avatars ────────────────────────── */
-.mention-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.mention-option-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--accent-bg);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-.mention-option-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
 }
 
 /* ============================================================
@@ -4873,11 +4850,31 @@ body {
 
 .chat-mention {
   color: var(--accent);
+  background: var(--accent-bg);
   font-weight: 600;
   cursor: pointer;
+  border-radius: 3px;
+  padding: 1px 3px;
+  margin: 0 1px;
+  transition: background 0.15s ease;
 }
 .chat-mention:hover {
   text-decoration: underline;
+}
+.msg-bubble.mine .chat-mention {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+}
+.msg-bubble.mine .chat-mention:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+.chat-mention.group {
+  background: var(--accent);
+  color: #fff;
+  cursor: default;
+}
+.msg-bubble.mine .chat-mention.group {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .project-chat-compose {
@@ -4890,36 +4887,6 @@ body {
 }
 .chat-input {
   flex: 1;
-}
-
-.mention-dropdown {
-  position: absolute;
-  bottom: 100%;
-  left: 16px;
-  right: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  z-index: 100;
-  max-height: 200px;
-  overflow-y: auto;
-}
-.mention-option {
-  display: block;
-  width: 100%;
-  border: none;
-  background: none;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-family: var(--font-body);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-.mention-option:hover {
-  background: var(--accent-bg);
-  color: var(--accent);
 }
 
 /* ── Item Comments (tasks, projects, notes) ──────── */
@@ -5617,6 +5584,7 @@ body {
 }
 
 /* ── Mention dropdown (shared) ──────────────────────────── */
+/* ── Mention dropdown (consolidated) ─────────────────── */
 .mention-dropdown {
   position: absolute;
   bottom: 100%;
@@ -5625,19 +5593,26 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
   z-index: 100;
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  padding: 4px 0;
+  animation: mentionIn 0.12s ease;
+}
+
+@keyframes mentionIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .mention-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 7px 12px;
   background: none;
   border: none;
   font-size: 13px;
@@ -5645,17 +5620,19 @@ body {
   cursor: pointer;
   text-align: left;
   font-family: var(--font-body);
+  transition: background 0.12s ease;
 }
 
 .mention-option:hover {
-  background: var(--bg);
+  background: var(--accent-bg);
 }
 
 .mention-option-avatar {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .mention-option-placeholder {
@@ -5664,8 +5641,33 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
+}
+
+.mention-option-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.mention-option:hover .mention-option-name {
+  color: var(--accent);
+}
+
+.mention-option-group {
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mention-option-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 400;
 }
 
 /* ── User Menu Popup ─────────────────────────────── */
@@ -7643,6 +7645,43 @@ body {
   color: var(--accent);
 }
 
+/* ── Typing indicator ── */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 2px;
+  min-height: 22px;
+}
+
+.typing-text {
+  font-size: 12px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.typing-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
 /* ── Thread panel ── */
 .thread-panel {
   width: 380px;
@@ -7934,6 +7973,9 @@ body {
   .friend-picker-modal {
     width: calc(100% - 32px);
   }
+
+  .mention-dropdown { max-height: 180px; }
+  .mention-option { padding: 10px 12px; }
 }
 
 
