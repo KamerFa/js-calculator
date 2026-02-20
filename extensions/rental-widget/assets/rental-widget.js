@@ -1,25 +1,68 @@
 (function () {
   "use strict";
 
-  document.querySelectorAll(".rental-widget").forEach(initWidget);
+  function init() {
+    var widgets = document.querySelectorAll(".rental-widget");
+    if (widgets.length === 0) return;
+    widgets.forEach(initWidget);
+  }
+
+  // Ensure DOM is fully parsed before initializing
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 
   function initWidget(container) {
-    const productId = container.dataset.productId;
-    const shop = container.dataset.shop;
-    const proxyUrl = container.dataset.proxyUrl;
-    const inheritTheme = container.dataset.inheritTheme === "true";
-    const primaryColor = container.dataset.primaryColor || "#000000";
-    const borderRadius = container.dataset.borderRadius || "4px";
+    // Skip if already initialized
+    if (container.dataset.initialized) return;
+    container.dataset.initialized = "true";
+
+    var productId = container.dataset.productId;
+    var shop = container.dataset.shop;
+    var proxyUrl = container.dataset.proxyUrl;
+    var inheritTheme = container.dataset.inheritTheme === "true";
+    var primaryColor = container.dataset.primaryColor || "#000000";
+    var borderRadius = container.dataset.borderRadius || "4px";
 
     if (!inheritTheme) {
       container.style.setProperty("--rw-primary", primaryColor);
       container.style.setProperty("--rw-border-radius", borderRadius);
     }
 
-    // Fetch product rental config
-    fetch(proxyUrl + "/product/" + productId + "?shop=" + encodeURIComponent(shop))
-      .then(function (r) { return r.json(); })
+    if (!proxyUrl || !productId || !shop) {
+      container.innerHTML = '<div class="rental-widget__error">Widget configuration error — missing data attributes.</div>';
+      return;
+    }
+
+    // Timeout: if loading takes more than 10s, show error
+    var loadingTimeout = setTimeout(function () {
+      if (container.querySelector(".rental-widget__loading")) {
+        container.innerHTML =
+          '<div class="rental-widget__error">' +
+          "Unable to load rental options. The app proxy may not be configured. " +
+          "Please check your Shopify Partner Dashboard &rarr; App setup &rarr; App proxy." +
+          "</div>";
+      }
+    }, 10000);
+
+    // Fetch product rental config via app proxy
+    var url = proxyUrl + "/product/" + productId + "?shop=" + encodeURIComponent(shop);
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) {
+          throw new Error("HTTP " + r.status + " from " + url);
+        }
+        var ct = (r.headers.get("content-type") || "");
+        if (ct.indexOf("application/json") === -1) {
+          throw new Error("Expected JSON but got " + ct + " — app proxy may not be configured.");
+        }
+        return r.json();
+      })
       .then(function (data) {
+        clearTimeout(loadingTimeout);
+
         if (!data.rentable) {
           container.setAttribute("data-rentable", "false");
           container.innerHTML = "";
@@ -40,8 +83,13 @@
         renderWidget(container, data.product, data.settings || {}, proxyUrl, shop);
       })
       .catch(function (err) {
+        clearTimeout(loadingTimeout);
         console.error("Rental widget error:", err);
-        container.innerHTML = '<div class="rental-widget__error">Unable to load rental options.</div>';
+        container.innerHTML =
+          '<div class="rental-widget__error">' +
+          "Unable to load rental options. " +
+          (err.message || "Please try refreshing the page.") +
+          "</div>";
       });
   }
 
@@ -144,7 +192,10 @@
           shop: shop,
         }),
       })
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           if (data.error) {
             errorDiv.textContent = data.error;
@@ -224,7 +275,10 @@
             endDate: state.endDate,
             shop: shop,
           }),
-        }).then(function (r) { return r.json(); }),
+        }).then(function (r) {
+          if (!r.ok) throw new Error("Availability check failed: HTTP " + r.status);
+          return r.json();
+        }),
         fetch(proxyUrl + "/price", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -233,7 +287,10 @@
             startDate: state.startDate,
             endDate: state.endDate,
           }),
-        }).then(function (r) { return r.json(); }),
+        }).then(function (r) {
+          if (!r.ok) throw new Error("Price check failed: HTTP " + r.status);
+          return r.json();
+        }),
       ])
         .then(function (results) {
           var avail = results[0];
