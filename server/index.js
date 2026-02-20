@@ -67,7 +67,7 @@ app.use("/api/settings", verifyRequest, settingsRoutes);
 
 // Serve frontend in production
 if (isProd) {
-  app.use(express.static(path.join(__dirname, "../web/dist")));
+  app.use(express.static(path.join(__dirname, "../web/dist"), { index: false }));
 }
 
 // All other routes: serve the embedded app shell (SPA fallback)
