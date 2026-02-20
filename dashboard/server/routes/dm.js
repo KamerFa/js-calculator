@@ -192,6 +192,40 @@ router.get('/:userId', async (req, res) => {
 
   const { rows } = await pool.query(query, params);
 
+  // Enrich with reactions
+  const msgIds = rows.map(r => r.id);
+  let reactMap = {};
+  if (msgIds.length > 0) {
+    const { rows: reactionRows } = await pool.query(
+      `SELECT mr.message_id, mr.emoji, mr.user_id, u.username
+       FROM message_reactions mr
+       JOIN users u ON u.id = mr.user_id
+       WHERE mr.message_id = ANY($1) AND mr.message_type = 'dm'`,
+      [msgIds]
+    );
+    for (const r of reactionRows) {
+      if (!reactMap[r.message_id]) reactMap[r.message_id] = {};
+      if (!reactMap[r.message_id][r.emoji]) reactMap[r.message_id][r.emoji] = [];
+      reactMap[r.message_id][r.emoji].push({ userId: r.user_id, username: r.username });
+    }
+  }
+
+  // Enrich with reply-to info
+  const replyIds = rows.filter(r => r.reply_to_id).map(r => r.reply_to_id);
+  let replyMap = {};
+  if (replyIds.length > 0) {
+    const { rows: replyRows } = await pool.query(
+      `SELECT dm.id, dm.body, dm.sender_id, u.username
+       FROM direct_messages dm
+       JOIN users u ON u.id = dm.sender_id
+       WHERE dm.id = ANY($1)`,
+      [replyIds]
+    );
+    for (const r of replyRows) {
+      replyMap[r.id] = { id: r.id, body: r.body.slice(0, 100), senderId: r.sender_id, username: r.username };
+    }
+  }
+
   res.json(rows.reverse().map((r) => ({
     id: r.id,
     body: r.body,
@@ -200,6 +234,11 @@ router.get('/:userId', async (req, res) => {
     username: r.username,
     avatarUrl: r.avatar_url || null,
     createdAt: r.created_at,
+    reactions: reactMap[r.id] || {},
+    replyToId: r.reply_to_id || null,
+    replyTo: r.reply_to_id
+      ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
+      : null,
   })));
 });
 
@@ -207,7 +246,7 @@ router.get('/:userId', async (req, res) => {
 router.post('/:userId', async (req, res) => {
   const userId = req.userId;
   const otherId = req.params.userId;
-  const { body } = req.body;
+  const { body, replyToId } = req.body;
 
   if (!body?.trim() || body.trim().length > 2000) {
     return res.status(400).json({ error: 'Message must be 1-2000 characters' });
@@ -230,9 +269,9 @@ router.post('/:userId', async (req, res) => {
 
   const id = uid();
   await pool.query(
-    `INSERT INTO direct_messages (id, sender_id, receiver_id, body)
-     VALUES ($1, $2, $3, $4)`,
-    [id, userId, otherId, body.trim()]
+    `INSERT INTO direct_messages (id, sender_id, receiver_id, body, reply_to_id)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [id, userId, otherId, body.trim(), replyToId || null]
   );
 
   // Update sender's read cursor (they've read up to now)
@@ -276,6 +315,44 @@ router.put('/:userId/read', async (req, res) => {
      ON CONFLICT (user_id, other_user_id) DO UPDATE SET last_read_at = NOW()`,
     [req.userId, req.params.userId]
   );
+  res.json({ ok: true });
+});
+
+// ── POST toggle reaction on a DM ──────────────────────────
+router.post('/react/:messageId', async (req, res) => {
+  const { emoji } = req.body;
+  if (!emoji) return res.status(400).json({ error: 'Emoji required' });
+
+  // Verify the message exists and user is a participant
+  const { rows: msg } = await pool.query(
+    'SELECT sender_id, receiver_id FROM direct_messages WHERE id = $1',
+    [req.params.messageId]
+  );
+  if (msg.length === 0) return res.status(404).json({ error: 'Message not found' });
+  if (msg[0].sender_id !== req.userId && msg[0].receiver_id !== req.userId) {
+    return res.status(403).json({ error: 'Not a participant' });
+  }
+
+  // Toggle: if exists remove, otherwise add
+  const { rows: existing } = await pool.query(
+    `SELECT id FROM message_reactions
+     WHERE message_id = $1 AND message_type = 'dm' AND user_id = $2 AND emoji = $3`,
+    [req.params.messageId, req.userId, emoji]
+  );
+  if (existing.length > 0) {
+    await pool.query('DELETE FROM message_reactions WHERE id = $1', [existing[0].id]);
+  } else {
+    await pool.query(
+      `INSERT INTO message_reactions (id, message_id, message_type, user_id, emoji)
+       VALUES ($1, $2, 'dm', $3, $4)`,
+      [uid(), req.params.messageId, req.userId, emoji]
+    );
+    // Notify the other user
+    const otherId = msg[0].sender_id === req.userId ? msg[0].receiver_id : msg[0].sender_id;
+    const actor = await getUsername(req.userId);
+    await notify(otherId, req.userId, 'message_reaction',
+      `${actor} reacted ${emoji} to your message`, 'dm', req.params.messageId);
+  }
   res.json({ ok: true });
 });
 

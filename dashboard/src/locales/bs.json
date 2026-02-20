@@ -379,6 +379,12 @@
     "noFriends": "Dodaj prijatelje da počneš dopisivanje",
     "deleteMessage": "Obriši poruku",
     "back": "Nazad",
-    "you": "Ti"
+    "you": "Ti",
+    "replyTo": "Odgovaraš na",
+    "reply": "Odgovori",
+    "react": "Reaguj",
+    "deleted": "[obrisano]",
+    "messageSounds": "Zvukovi poruka",
+    "messageSoundsDesc": "Pusti zvuk notifikacije kada stignu nove poruke"
   }
 }

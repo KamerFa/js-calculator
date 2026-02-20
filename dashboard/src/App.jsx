@@ -100,12 +100,14 @@ const NOTIF_ICONS = {
   friend_request: '\uD83E\uDD1D',
   friend_accepted: '\uD83C\uDF89',
   profile_comment: '\uD83D\uDCDD',
+  message_reaction: '\u2764\uFE0F',
+  direct_message: '\uD83D\uDCAC',
 };
 
 const NOTIF_FILTER_CATEGORIES = {
   all: () => true,
   tasks: (n) => ['task_created', 'task_completed', 'task_status', 'task_reminder', 'task_overdue', 'streak_milestone'].includes(n.type),
-  social: (n) => ['tweet_reaction', 'tweet_comment', 'comment_upvote', 'friend_request', 'friend_accepted', 'profile_comment'].includes(n.type),
+  social: (n) => ['tweet_reaction', 'tweet_comment', 'comment_upvote', 'friend_request', 'friend_accepted', 'profile_comment', 'message_reaction', 'direct_message'].includes(n.type),
   projects: (n) => ['project_join', 'project_leave', 'project_invite', 'project_removed'].includes(n.type),
 };
 

@@ -7465,6 +7465,152 @@ body {
   opacity: 1;
 }
 
+/* ── Message action buttons (reply + react) ── */
+.msg-react-btn,
+.msg-reply-btn {
+  display: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: inherit;
+  opacity: 0.5;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.msg-bubble:hover .msg-react-btn,
+.msg-bubble:hover .msg-reply-btn {
+  display: inline;
+}
+
+.msg-react-btn:hover,
+.msg-reply-btn:hover {
+  opacity: 1;
+}
+
+/* Chat action buttons (ProjectChat) */
+.chat-react-btn,
+.chat-reply-btn {
+  display: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: inherit;
+  opacity: 0.5;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.chat-msg-header:hover .chat-react-btn,
+.chat-msg-header:hover .chat-reply-btn {
+  display: inline;
+}
+
+.chat-react-btn:hover,
+.chat-reply-btn:hover {
+  opacity: 1;
+}
+
+/* ── Reaction picker within message bubble ── */
+.msg-react-picker {
+  bottom: calc(100% + 4px);
+  right: 0;
+  left: auto;
+}
+
+.msg-row.mine .msg-react-picker {
+  left: auto;
+  right: 0;
+}
+
+/* ── Reaction chips row below bubble ── */
+.msg-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+/* ── Reply preview above bubble ── */
+.msg-reply-preview {
+  padding: 4px 10px;
+  margin-bottom: 2px;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg-2, rgba(0,0,0,0.04));
+  font-size: 11px;
+  cursor: pointer;
+  max-width: 250px;
+  overflow: hidden;
+}
+
+.msg-reply-preview:hover {
+  background: var(--bg-3, rgba(0,0,0,0.07));
+}
+
+.msg-reply-author {
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.msg-reply-text {
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* ── Compose reply banner ── */
+.compose-reply-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background: var(--bg-2, rgba(42, 92, 170, 0.06));
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.compose-reply-cancel {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-3);
+  padding: 0 4px;
+}
+
+.compose-reply-cancel:hover {
+  color: var(--danger, #e74c3c);
+}
+
+/* ── Compose wrap ── */
+.messages-compose-wrap {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.messages-compose-wrap .messages-compose {
+  border-top: none;
+}
+
+/* ── Message highlight on scroll-to ── */
+@keyframes msg-flash {
+  0% { background: rgba(42, 92, 170, 0.15); }
+  100% { background: transparent; }
+}
+
+.msg-highlight {
+  animation: msg-flash 2s ease-out;
+  border-radius: 8px;
+}
+
 /* ── Compose bar ── */
 .messages-compose {
   display: flex;

@@ -334,6 +334,24 @@ async function initDB() {
     )
   `);
 
+  // ── Message reactions (unified for DMs + project messages) ──
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS message_reactions (
+      id           TEXT PRIMARY KEY,
+      message_id   TEXT NOT NULL,
+      message_type TEXT NOT NULL CHECK (message_type IN ('dm', 'project')),
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      emoji        TEXT NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(message_id, message_type, user_id, emoji)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_message_reactions_msg ON message_reactions(message_id, message_type)`);
+
+  // ── Reply-to columns ──
+  await pool.query(`ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS reply_to_id TEXT`);
+  await pool.query(`ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS reply_to_id TEXT`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

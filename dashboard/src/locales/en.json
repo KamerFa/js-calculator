@@ -379,6 +379,12 @@
     "noFriends": "Add friends to start messaging",
     "deleteMessage": "Delete message",
     "back": "Back",
-    "you": "You"
+    "you": "You",
+    "replyTo": "Replying to",
+    "reply": "Reply",
+    "react": "React",
+    "deleted": "[deleted]",
+    "messageSounds": "Message sounds",
+    "messageSoundsDesc": "Play a notification sound when new messages arrive"
   }
 }

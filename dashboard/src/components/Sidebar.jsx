@@ -7,6 +7,7 @@ import { getProjectStatus } from '../projectStatus';
 import StatusDot, { CustomStatusBadge } from './StatusDot';
 import StatusPicker from './StatusPicker';
 import { DB } from '../db';
+import { initMessageSoundContext, playMessageSound } from '../messageSound';
 
 function IconDownload() {
   return (
@@ -91,14 +92,29 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     }).catch(() => {});
   }, [user]);
 
-  // Poll unread message count
+  // Poll unread message count + sound notification
+  const prevUnreadMsgRef = useRef(0);
   useEffect(() => {
     if (!user) return;
-    const load = () => DB.getUnreadMessageCount().then(d => setUnreadMessages(d.total || 0)).catch(() => {});
+    // Init AudioContext on first user interaction
+    const initAudio = () => {
+      initMessageSoundContext();
+      document.removeEventListener('click', initAudio);
+    };
+    document.addEventListener('click', initAudio);
+    const load = () => DB.getUnreadMessageCount().then(d => {
+      const newTotal = d.total || 0;
+      // Play sound if unread count increased and user is not on messages page
+      if (newTotal > prevUnreadMsgRef.current && prevUnreadMsgRef.current >= 0 && !pathname.startsWith('/messages')) {
+        playMessageSound();
+      }
+      prevUnreadMsgRef.current = newTotal;
+      setUnreadMessages(newTotal);
+    }).catch(() => {});
     load();
     const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+    return () => { clearInterval(interval); document.removeEventListener('click', initAudio); };
+  }, [user, pathname]);
 
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 

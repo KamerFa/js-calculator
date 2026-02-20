@@ -39,6 +39,40 @@ router.get('/:projectId', async (req, res) => {
 
   const { rows } = await pool.query(query, params);
 
+  // Enrich with reactions
+  const msgIds = rows.map(r => r.id);
+  let reactMap = {};
+  if (msgIds.length > 0) {
+    const { rows: reactionRows } = await pool.query(
+      `SELECT mr.message_id, mr.emoji, mr.user_id, u.username
+       FROM message_reactions mr
+       JOIN users u ON u.id = mr.user_id
+       WHERE mr.message_id = ANY($1) AND mr.message_type = 'project'`,
+      [msgIds]
+    );
+    for (const r of reactionRows) {
+      if (!reactMap[r.message_id]) reactMap[r.message_id] = {};
+      if (!reactMap[r.message_id][r.emoji]) reactMap[r.message_id][r.emoji] = [];
+      reactMap[r.message_id][r.emoji].push({ userId: r.user_id, username: r.username });
+    }
+  }
+
+  // Enrich with reply-to info
+  const replyIds = rows.filter(r => r.reply_to_id).map(r => r.reply_to_id);
+  let replyMap = {};
+  if (replyIds.length > 0) {
+    const { rows: replyRows } = await pool.query(
+      `SELECT pm.id, pm.body, pm.user_id, u.username
+       FROM project_messages pm
+       JOIN users u ON u.id = pm.user_id
+       WHERE pm.id = ANY($1)`,
+      [replyIds]
+    );
+    for (const r of replyRows) {
+      replyMap[r.id] = { id: r.id, body: r.body.slice(0, 100), userId: r.user_id, username: r.username };
+    }
+  }
+
   res.json(rows.reverse().map((r) => ({
     id: r.id,
     body: r.body,
@@ -47,7 +81,55 @@ router.get('/:projectId', async (req, res) => {
     avatarUrl: r.avatar_url || null,
     mentions: r.mentions || [],
     createdAt: r.created_at,
+    reactions: reactMap[r.id] || {},
+    replyToId: r.reply_to_id || null,
+    replyTo: r.reply_to_id
+      ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
+      : null,
   })));
+});
+
+// ── POST toggle reaction on a project message ─────────────
+router.post('/:projectId/react/:messageId', async (req, res) => {
+  const { emoji } = req.body;
+  if (!emoji) return res.status(400).json({ error: 'Emoji required' });
+
+  // Check membership
+  const { rows: memberCheck } = await pool.query(
+    'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2',
+    [req.params.projectId, req.userId]
+  );
+  if (memberCheck.length === 0) return res.status(403).json({ error: 'Not a member' });
+
+  // Verify message exists in this project
+  const { rows: msg } = await pool.query(
+    'SELECT user_id FROM project_messages WHERE id = $1 AND project_id = $2',
+    [req.params.messageId, req.params.projectId]
+  );
+  if (msg.length === 0) return res.status(404).json({ error: 'Message not found' });
+
+  // Toggle
+  const { rows: existing } = await pool.query(
+    `SELECT id FROM message_reactions
+     WHERE message_id = $1 AND message_type = 'project' AND user_id = $2 AND emoji = $3`,
+    [req.params.messageId, req.userId, emoji]
+  );
+  if (existing.length > 0) {
+    await pool.query('DELETE FROM message_reactions WHERE id = $1', [existing[0].id]);
+  } else {
+    await pool.query(
+      `INSERT INTO message_reactions (id, message_id, message_type, user_id, emoji)
+       VALUES ($1, $2, 'project', $3, $4)`,
+      [uid(), req.params.messageId, req.userId, emoji]
+    );
+    // Notify message author
+    if (msg[0].user_id !== req.userId) {
+      const actor = await getUsername(req.userId);
+      await notify(msg[0].user_id, req.userId, 'message_reaction',
+        `${actor} reacted ${emoji} to your message`, 'project_message', req.params.messageId);
+    }
+  }
+  res.json({ ok: true });
 });
 
 // ── POST new message ────────────────────────────────────────
@@ -86,11 +168,12 @@ router.post('/:projectId', async (req, res) => {
     }
   }
 
+  const replyToId = req.body.replyToId || null;
   const id = uid();
   await pool.query(
-    `INSERT INTO project_messages (id, project_id, user_id, body, mentions)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [id, req.params.projectId, req.userId, body.trim(), mentions]
+    `INSERT INTO project_messages (id, project_id, user_id, body, mentions, reply_to_id)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [id, req.params.projectId, req.userId, body.trim(), mentions, replyToId]
   );
 
   // Notify mentioned users

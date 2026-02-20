@@ -4,7 +4,12 @@ import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import StatusDot from './StatusDot';
-import { IconMessage, IconArrowLeft, IconSend, IconPlus } from './Icons';
+import { IconMessage, IconArrowLeft, IconSend, IconPlus, IconReply } from './Icons';
+import { initMessageSoundContext, playMessageSound } from '../messageSound';
+
+const REACTION_EMOJIS = [
+  '\u2764\uFE0F','😂','🙏','🔥','👍','😢','👏','😍','🤯','🚀','🎉','🤔','✅','💯','👀','🤡','💩','☕',
+];
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -63,13 +68,63 @@ export default function MessagesView({ user, onUserClick }) {
   const [friendSearch, setFriendSearch] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [replyTo, setReplyTo] = useState(null);
+  const [showReactPickerForMsg, setShowReactPickerForMsg] = useState(null);
+  const [reactorsPopup, setReactorsPopup] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const prevUnreadRef = useRef({});
+  const selectedConvRef = useRef(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    selectedConvRef.current = selectedConv;
+  }, [selectedConv]);
+
+  // Init AudioContext on first user interaction
+  useEffect(() => {
+    const init = () => {
+      initMessageSoundContext();
+      document.removeEventListener('click', init);
+      document.removeEventListener('keydown', init);
+    };
+    document.addEventListener('click', init);
+    document.addEventListener('keydown', init);
+    return () => {
+      document.removeEventListener('click', init);
+      document.removeEventListener('keydown', init);
+    };
+  }, []);
 
   // Load conversations
   const loadConversations = async () => {
     try {
       const data = await DB.getConversations();
+
+      // Detect new messages for sound notification
+      if (!loading) {
+        const sc = selectedConvRef.current;
+        for (const conv of data) {
+          const key = conv.type === 'dm' ? `dm-${conv.userId}` : `proj-${conv.projectId}`;
+          const prevUnread = prevUnreadRef.current[key] || 0;
+          const isActiveConv = sc && (
+            (conv.type === 'dm' && sc.type === 'dm' && conv.userId === sc.id) ||
+            (conv.type === 'project' && sc.type === 'project' && conv.projectId === sc.id)
+          );
+          if (conv.unreadCount > prevUnread && !isActiveConv) {
+            playMessageSound();
+            break; // only play once per poll cycle
+          }
+        }
+      }
+      // Update prev unread tracking
+      const newMap = {};
+      for (const conv of data) {
+        const key = conv.type === 'dm' ? `dm-${conv.userId}` : `proj-${conv.projectId}`;
+        newMap[key] = conv.unreadCount;
+      }
+      prevUnreadRef.current = newMap;
+
       setConversations(data);
     } catch { /* ignore */ }
     setLoading(false);
@@ -126,16 +181,29 @@ export default function MessagesView({ user, onUserClick }) {
     if (selectedConv) inputRef.current?.focus();
   }, [selectedConv?.type, selectedConv?.id]);
 
+  // Close react picker on outside click
+  useEffect(() => {
+    if (!showReactPickerForMsg) return;
+    const handleClick = (e) => {
+      if (!e.target.closest('.msg-react-picker') && !e.target.closest('.msg-react-btn')) {
+        setShowReactPickerForMsg(null);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showReactPickerForMsg]);
+
   const handleSend = async () => {
     if (!body.trim() || sending || !selectedConv) return;
     setSending(true);
     try {
       if (selectedConv.type === 'dm') {
-        await DB.sendDM(selectedConv.id, body.trim());
+        await DB.sendDM(selectedConv.id, body.trim(), replyTo?.id);
       } else {
-        await DB.postProjectMessage(selectedConv.id, body.trim());
+        await DB.postProjectMessage(selectedConv.id, body.trim(), replyTo?.id);
       }
       setBody('');
+      setReplyTo(null);
       await loadMessages();
       await loadConversations();
     } finally {
@@ -152,7 +220,30 @@ export default function MessagesView({ user, onUserClick }) {
     await loadMessages();
   };
 
+  const handleReact = async (msgId, emoji) => {
+    try {
+      if (selectedConv.type === 'dm') {
+        await DB.reactToDM(msgId, emoji);
+      } else {
+        await DB.reactToProjectMessage(selectedConv.id, msgId, emoji);
+      }
+      setShowReactPickerForMsg(null);
+      await loadMessages();
+    } catch { /* ignore */ }
+  };
+
+  const scrollToMessage = (msgId) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('msg-highlight');
+      setTimeout(() => el.classList.remove('msg-highlight'), 2000);
+    }
+  };
+
   const handleSelectConv = (conv) => {
+    setReplyTo(null);
+    setShowReactPickerForMsg(null);
     if (conv.type === 'dm') {
       setSelectedConv({ type: 'dm', id: conv.userId });
     } else {
@@ -289,7 +380,7 @@ export default function MessagesView({ user, onUserClick }) {
         ) : (
           <>
             <div className="messages-header">
-              <button className="messages-back-btn" onClick={() => setSelectedConv(null)}>
+              <button className="messages-back-btn" onClick={() => { setSelectedConv(null); setReplyTo(null); }}>
                 <IconArrowLeft />
               </button>
               <div className="messages-header-info">
@@ -324,7 +415,7 @@ export default function MessagesView({ user, onUserClick }) {
                 const showDate = shouldShowDateSep(messages, idx);
 
                 return (
-                  <div key={msg.id}>
+                  <div key={msg.id} id={`msg-${msg.id}`}>
                     {showDate && (
                       <div className="messages-date-sep">
                         <span>{dateSeparatorLabel(msg.createdAt, t)}</span>
@@ -346,15 +437,70 @@ export default function MessagesView({ user, onUserClick }) {
                             {msg.username}
                           </span>
                         )}
+                        {msg.replyTo && (
+                          <div className="msg-reply-preview" onClick={() => scrollToMessage(msg.replyTo.id)}>
+                            <span className="msg-reply-author">{msg.replyTo.username}</span>
+                            <span className="msg-reply-text">{msg.replyTo.body}</span>
+                          </div>
+                        )}
                         <div className={`msg-bubble${isMine ? ' mine' : ''}`}>
                           <span className="msg-text">{msg.body}</span>
                           <span className="msg-time">{formatTime(msg.createdAt)}</span>
+                          <button
+                            className="msg-reply-btn"
+                            onClick={() => { setReplyTo({ id: msg.id, body: msg.body, username: msg.username || user?.username }); inputRef.current?.focus(); }}
+                            title={t('messages.reply')}
+                          >
+                            <IconReply size={11} />
+                          </button>
+                          <button
+                            className="msg-react-btn"
+                            onClick={(e) => { e.stopPropagation(); setShowReactPickerForMsg(showReactPickerForMsg === msg.id ? null : msg.id); }}
+                            title={t('messages.react')}
+                          >+</button>
                           {isMine && (
                             <button className="msg-delete" onClick={() => handleDelete(msg.id)} title={t('messages.deleteMessage')}>
                               &times;
                             </button>
                           )}
+                          {showReactPickerForMsg === msg.id && (
+                            <div className="react-picker msg-react-picker">
+                              {REACTION_EMOJIS.map((e) => (
+                                <button key={e} className="react-picker-emoji" onClick={() => handleReact(msg.id, e)}>{e}</button>
+                              ))}
+                            </div>
+                          )}
                         </div>
+                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                          <div className="msg-reactions">
+                            {Object.entries(msg.reactions).map(([emoji, users]) => {
+                              const isMineReaction = users.some(u => u.userId === user?.id);
+                              return (
+                                <div key={emoji} className="reaction-chip-wrapper" style={{ position: 'relative' }}>
+                                  <button
+                                    className={`reaction-chip${isMineReaction ? ' mine' : ''}`}
+                                    onClick={() => handleReact(msg.id, emoji)}
+                                    onMouseEnter={() => setReactorsPopup({ msgId: msg.id, emoji, users })}
+                                    onMouseLeave={() => setReactorsPopup(null)}
+                                  >
+                                    {emoji} {users.length}
+                                  </button>
+                                  {reactorsPopup?.msgId === msg.id && reactorsPopup?.emoji === emoji && (
+                                    <div className="reactors-popup">
+                                      <div className="reactors-popup-title">{emoji} Reacted by</div>
+                                      {users.map(u => (
+                                        <div key={u.userId} className="reactors-popup-user"
+                                          onClick={() => onUserClick && onUserClick(u.username)}>
+                                          @{u.username}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -363,25 +509,33 @@ export default function MessagesView({ user, onUserClick }) {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="messages-compose">
-              <input
-                ref={inputRef}
-                className="form-input messages-input"
-                type="text"
-                placeholder={t('messages.typeMessage')}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                maxLength={selectedConv?.type === 'dm' ? 2000 : 1000}
-              />
-              <button className="messages-send-btn" disabled={!body.trim() || sending} onClick={handleSend}>
-                <IconSend />
-              </button>
+            <div className="messages-compose-wrap">
+              {replyTo && (
+                <div className="compose-reply-banner">
+                  <span>{t('messages.replyTo')} <strong>{replyTo.username}</strong>: {replyTo.body.slice(0, 50)}{replyTo.body.length > 50 ? '...' : ''}</span>
+                  <button className="compose-reply-cancel" onClick={() => setReplyTo(null)}>&times;</button>
+                </div>
+              )}
+              <div className="messages-compose">
+                <input
+                  ref={inputRef}
+                  className="form-input messages-input"
+                  type="text"
+                  placeholder={t('messages.typeMessage')}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  maxLength={selectedConv?.type === 'dm' ? 2000 : 1000}
+                />
+                <button className="messages-send-btn" disabled={!body.trim() || sending} onClick={handleSend}>
+                  <IconSend />
+                </button>
+              </div>
             </div>
           </>
         )}

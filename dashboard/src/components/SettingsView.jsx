@@ -33,6 +33,7 @@ const NOTIF_TYPES = [
   { key: 'tweet_reaction', label: 'Tweet reactions', desc: 'When someone reacts to your post' },
   { key: 'tweet_comment', label: 'Tweet comments', desc: 'When someone comments on your post' },
   { key: 'friend_request', label: 'Friend requests', desc: 'When someone sends you a friend request' },
+  { key: 'message_reaction', label: 'Message reactions', desc: 'When someone reacts to your message' },
 ];
 
 export default function SettingsView({ user }) {
@@ -44,6 +45,7 @@ export default function SettingsView({ user }) {
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [notifPrefs, setNotifPrefs] = useState({});
   const [notifLoaded, setNotifLoaded] = useState(false);
+  const [msgSoundEnabled, setMsgSoundEnabled] = useState(() => localStorage.getItem('msg_sound_muted') !== '1');
 
   useEffect(() => {
     DB.getProfile().then((p) => {
@@ -219,6 +221,27 @@ export default function SettingsView({ user }) {
               </label>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3 className="settings-section-title">Sound</h3>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-info">
+              <span className="settings-row-label">Message sounds</span>
+              <span className="settings-row-desc">Play a notification sound when new messages arrive</span>
+            </div>
+            <label className="toggle-row" onClick={() => {
+              const next = !msgSoundEnabled;
+              setMsgSoundEnabled(next);
+              localStorage.setItem('msg_sound_muted', next ? '0' : '1');
+            }}>
+              <span className={`toggle-switch${msgSoundEnabled ? ' on' : ''}`}>
+                <span className="toggle-knob" />
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 

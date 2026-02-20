@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { DB } from '../db';
 import { resolveAvatarUrl } from '../avatarUtils';
+import { IconReply } from './Icons';
+
+const REACTION_EMOJIS = [
+  '\u2764\uFE0F','😂','🙏','🔥','👍','😢','👏','😍','🤯','🚀','🎉','🤔','✅','💯','👀','🤡','💩','☕',
+];
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -39,6 +44,9 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
   const [sending, setSending] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [showReactPickerForMsg, setShowReactPickerForMsg] = useState(null);
+  const [reactorsPopup, setReactorsPopup] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -66,12 +74,25 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
     }
   }, [messages, open]);
 
+  // Close react picker on outside click
+  useEffect(() => {
+    if (!showReactPickerForMsg) return;
+    const handleClick = (e) => {
+      if (!e.target.closest('.msg-react-picker') && !e.target.closest('.chat-react-btn')) {
+        setShowReactPickerForMsg(null);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showReactPickerForMsg]);
+
   const handleSend = async () => {
     if (!body.trim() || sending) return;
     setSending(true);
     try {
-      await DB.postProjectMessage(projectId, body.trim());
+      await DB.postProjectMessage(projectId, body.trim(), replyTo?.id);
       setBody('');
+      setReplyTo(null);
       await loadMessages();
     } finally {
       setSending(false);
@@ -81,6 +102,23 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
   const handleDelete = async (messageId) => {
     await DB.deleteProjectMessage(projectId, messageId);
     await loadMessages();
+  };
+
+  const handleReact = async (msgId, emoji) => {
+    try {
+      await DB.reactToProjectMessage(projectId, msgId, emoji);
+      setShowReactPickerForMsg(null);
+      await loadMessages();
+    } catch { /* ignore */ }
+  };
+
+  const scrollToMessage = (msgId) => {
+    const el = document.getElementById(`pchat-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('msg-highlight');
+      setTimeout(() => el.classList.remove('msg-highlight'), 2000);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -146,32 +184,96 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
         {messages.length === 0 && (
           <div className="chat-empty">No messages yet. Start the conversation!</div>
         )}
-        {messages.map((msg) => (
-          <div key={msg.id} className={`chat-message${msg.userId === user?.id ? ' mine' : ''}`}>
-            <div className="chat-msg-avatar" onClick={() => onUserClick && onUserClick(msg.username)} style={{ cursor: 'pointer' }}>
-              {resolveAvatarUrl(msg.avatarUrl)
-                ? <img src={resolveAvatarUrl(msg.avatarUrl)} alt="" className="chat-msg-avatar-img" />
-                : msg.username.charAt(0).toUpperCase()
-              }
-            </div>
-            <div className="chat-msg-content">
-              <div className="chat-msg-header">
-                <span className="chat-msg-username" onClick={() => onUserClick && onUserClick(msg.username)}>
-                  @{msg.username}
-                </span>
-                <span className="chat-msg-time">{timeAgo(msg.createdAt)}</span>
-                {msg.userId === user?.id && (
-                  <button className="chat-msg-delete" onClick={() => handleDelete(msg.id)}>&times;</button>
+        {messages.map((msg) => {
+          const isMine = msg.userId === user?.id;
+          return (
+            <div key={msg.id} id={`pchat-${msg.id}`} className={`chat-message${isMine ? ' mine' : ''}`}>
+              <div className="chat-msg-avatar" onClick={() => onUserClick && onUserClick(msg.username)} style={{ cursor: 'pointer' }}>
+                {resolveAvatarUrl(msg.avatarUrl)
+                  ? <img src={resolveAvatarUrl(msg.avatarUrl)} alt="" className="chat-msg-avatar-img" />
+                  : msg.username.charAt(0).toUpperCase()
+                }
+              </div>
+              <div className="chat-msg-content">
+                <div className="chat-msg-header">
+                  <span className="chat-msg-username" onClick={() => onUserClick && onUserClick(msg.username)}>
+                    @{msg.username}
+                  </span>
+                  <span className="chat-msg-time">{timeAgo(msg.createdAt)}</span>
+                  <button
+                    className="chat-reply-btn"
+                    onClick={() => { setReplyTo({ id: msg.id, body: msg.body, username: msg.username }); inputRef.current?.focus(); }}
+                    title="Reply"
+                  >
+                    <IconReply size={11} />
+                  </button>
+                  <button
+                    className="chat-react-btn"
+                    onClick={(e) => { e.stopPropagation(); setShowReactPickerForMsg(showReactPickerForMsg === msg.id ? null : msg.id); }}
+                    title="React"
+                  >+</button>
+                  {isMine && (
+                    <button className="chat-msg-delete" onClick={() => handleDelete(msg.id)}>&times;</button>
+                  )}
+                </div>
+                {msg.replyTo && (
+                  <div className="msg-reply-preview" onClick={() => scrollToMessage(msg.replyTo.id)} style={{ marginBottom: 4 }}>
+                    <span className="msg-reply-author">{msg.replyTo.username}</span>
+                    <span className="msg-reply-text">{msg.replyTo.body}</span>
+                  </div>
+                )}
+                <p className="chat-msg-body">{renderBody(msg.body, onUserClick)}</p>
+                {showReactPickerForMsg === msg.id && (
+                  <div className="react-picker msg-react-picker" style={{ position: 'absolute', zIndex: 100 }}>
+                    {REACTION_EMOJIS.map((e) => (
+                      <button key={e} className="react-picker-emoji" onClick={() => handleReact(msg.id, e)}>{e}</button>
+                    ))}
+                  </div>
+                )}
+                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                  <div className="msg-reactions">
+                    {Object.entries(msg.reactions).map(([emoji, users]) => {
+                      const isMineReaction = users.some(u => u.userId === user?.id);
+                      return (
+                        <div key={emoji} className="reaction-chip-wrapper" style={{ position: 'relative' }}>
+                          <button
+                            className={`reaction-chip${isMineReaction ? ' mine' : ''}`}
+                            onClick={() => handleReact(msg.id, emoji)}
+                            onMouseEnter={() => setReactorsPopup({ msgId: msg.id, emoji, users })}
+                            onMouseLeave={() => setReactorsPopup(null)}
+                          >
+                            {emoji} {users.length}
+                          </button>
+                          {reactorsPopup?.msgId === msg.id && reactorsPopup?.emoji === emoji && (
+                            <div className="reactors-popup">
+                              <div className="reactors-popup-title">{emoji} Reacted by</div>
+                              {users.map(u => (
+                                <div key={u.userId} className="reactors-popup-user"
+                                  onClick={() => onUserClick && onUserClick(u.username)}>
+                                  @{u.username}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-              <p className="chat-msg-body">{renderBody(msg.body, onUserClick)}</p>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
       <div className="project-chat-compose">
+        {replyTo && (
+          <div className="compose-reply-banner">
+            <span>Replying to <strong>{replyTo.username}</strong>: {replyTo.body.slice(0, 40)}{replyTo.body.length > 40 ? '...' : ''}</span>
+            <button className="compose-reply-cancel" onClick={() => setReplyTo(null)}>&times;</button>
+          </div>
+        )}
         {showMentions && filteredMembers.length > 0 && (
           <div className="mention-dropdown">
             {filteredMembers.slice(0, 8).map((m) => (

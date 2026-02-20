@@ -199,10 +199,10 @@ const DB = {
     return api(`/messages/${projectId}${qs}`);
   },
 
-  async postProjectMessage(projectId, body) {
+  async postProjectMessage(projectId, body, replyToId) {
     return api(`/messages/${projectId}`, {
       method: 'POST',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, replyToId: replyToId || undefined }),
     });
   },
 
@@ -388,10 +388,10 @@ const DB = {
     return api(`/dm/${userId}${qs}`);
   },
 
-  async sendDM(userId, body) {
+  async sendDM(userId, body, replyToId) {
     return api(`/dm/${userId}`, {
       method: 'POST',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, replyToId: replyToId || undefined }),
     });
   },
 
@@ -401,6 +401,20 @@ const DB = {
 
   async markDMRead(userId) {
     return api(`/dm/${userId}/read`, { method: 'PUT' });
+  },
+
+  async reactToDM(messageId, emoji) {
+    return api(`/dm/react/${messageId}`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji }),
+    });
+  },
+
+  async reactToProjectMessage(projectId, messageId, emoji) {
+    return api(`/messages/${projectId}/react/${messageId}`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji }),
+    });
   },
 
   async markProjectChatRead(projectId) {
