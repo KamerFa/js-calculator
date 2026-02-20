@@ -97,21 +97,12 @@ if (isProd) {
 // protected by validateAuthenticatedSession (verifyRequest).
 app.use("/*", async (req, res, next) => {
   try {
-    // Set frame-ancestors CSP so only this shop's admin can embed the app
-    const shop = shopify.api.utils.sanitizeShop(req.query.shop || "");
-    if (shop) {
-      res.setHeader(
-        "Content-Security-Policy",
-        `frame-ancestors https://${shop} https://admin.shopify.com https://*.spin.dev;`
-      );
-    } else {
-      // No specific shop — allow any Shopify admin to frame (safe because
-      // all sensitive data is behind authenticated API routes)
-      res.setHeader(
-        "Content-Security-Policy",
-        "frame-ancestors https://*.myshopify.com https://admin.shopify.com https://*.spin.dev;"
-      );
-    }
+    // Allow Shopify admin to embed this app in an iframe.
+    // All sensitive data is behind authenticated API routes (verifyRequest).
+    res.setHeader(
+      "Content-Security-Policy",
+      "frame-ancestors https://*.myshopify.com https://admin.shopify.com https://*.spin.dev;"
+    );
 
     if (isProd) {
       if (!prodHtml) {
