@@ -45,6 +45,7 @@ app.use(
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
     crossOriginResourcePolicy: false,
+    frameguard: false, // Allow Shopify admin to embed app in iframe
   })
 );
 
