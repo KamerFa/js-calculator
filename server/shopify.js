@@ -1,4 +1,4 @@
-const { shopifyApp, LATEST_API_VERSION } = require("@shopify/shopify-app-express");
+const { shopifyApp } = require("@shopify/shopify-app-express");
 const { PrismaSessionStorage } = require("@shopify/shopify-app-session-storage-prisma");
 const prisma = require("./db");
 
@@ -17,7 +17,7 @@ const shopify = shopifyApp({
     scopes: (process.env.SCOPES || "").split(","),
     hostScheme,
     hostName,
-    apiVersion: LATEST_API_VERSION,
+    apiVersion: "2025-04",
   },
   auth: {
     path: "/api/auth",
