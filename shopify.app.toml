@@ -3,7 +3,7 @@
 
 name = "Rental Manager"
 client_id = ""
-application_url = "https://your-app.onrender.com"
+application_url = "https://shopify-rental.onrender.com"
 embedded = true
 
 [access_scopes]
@@ -11,7 +11,7 @@ scopes = "read_products,write_products,read_orders,write_orders,read_customers"
 
 [auth]
 redirect_urls = [
-  "https://your-app.onrender.com/api/auth/callback",
+  "https://shopify-rental.onrender.com/api/auth/callback",
   "https://localhost:3000/api/auth/callback"
 ]
 
@@ -19,12 +19,12 @@ redirect_urls = [
 api_version = "2024-04"
 
   [webhooks.privacy_compliance]
-  customer_data_request_url = "https://your-app.onrender.com/api/webhooks/gdpr/customers-data-request"
-  customer_deletion_url = "https://your-app.onrender.com/api/webhooks/gdpr/customers-redact"
-  shop_deletion_url = "https://your-app.onrender.com/api/webhooks/gdpr/shop-redact"
+  customer_data_request_url = "https://shopify-rental.onrender.com/api/webhooks/gdpr/customers-data-request"
+  customer_deletion_url = "https://shopify-rental.onrender.com/api/webhooks/gdpr/customers-redact"
+  shop_deletion_url = "https://shopify-rental.onrender.com/api/webhooks/gdpr/shop-redact"
 
 [app_proxy]
-url = "https://your-app.onrender.com/api/storefront"
+url = "https://shopify-rental.onrender.com/api/storefront"
 subpath = "rentals"
 prefix = "apps"
 
