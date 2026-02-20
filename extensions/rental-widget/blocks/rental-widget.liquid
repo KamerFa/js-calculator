@@ -23,6 +23,21 @@
 {{ 'rental-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'rental-widget.js' | asset_url }}" defer></script>
 
+<script>
+  // Fallback: if the external JS doesn't initialize the widget within 8s, show a helpful error
+  (function() {
+    var widgetEl = document.getElementById('rental-widget-{{ product.id }}');
+    if (!widgetEl) return;
+    setTimeout(function() {
+      if (widgetEl.querySelector('.rental-widget__loading')) {
+        widgetEl.innerHTML = '<div class="rental-widget__error" style="padding:1em;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;border-radius:4px;">' +
+          'Rental widget failed to load. Please ensure the theme extension is deployed and the app proxy is configured.' +
+          '</div>';
+      }
+    }, 8000);
+  })();
+</script>
+
 {% schema %}
 {
   "name": "Rent This Item",
