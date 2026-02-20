@@ -65,29 +65,43 @@ app.use("/api/reservations", verifyRequest, reservationRoutes);
 app.use("/api/calendar", verifyRequest, calendarRoutes);
 app.use("/api/settings", verifyRequest, settingsRoutes);
 
-// Serve frontend in production
+// Serve frontend static assets in production (JS, CSS, images — NOT index.html)
 if (isProd) {
   app.use(express.static(path.join(__dirname, "../web/dist"), { index: false }));
 }
 
-// All other routes: serve the embedded app shell (SPA fallback)
-app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
-  const apiKey = process.env.SHOPIFY_API_KEY || "";
-
-  if (isProd) {
-    // Inject SHOPIFY_API_KEY at runtime so the build doesn't need it baked in
+// Pre-read and cache the production HTML at startup so every request doesn't hit disk
+let prodHtml = null;
+if (isProd) {
+  try {
     const htmlPath = path.join(__dirname, "../web/dist/index.html");
+    const apiKey = process.env.SHOPIFY_API_KEY || "";
     const rawHtml = fs.readFileSync(htmlPath, "utf-8");
-    const html = rawHtml
+    prodHtml = rawHtml
       .replace(/%SHOPIFY_API_KEY%/g, apiKey)
       .replace(/content=""(\s*\/>)\s*<!--\s*shopify-api-key\s*-->/i, `content="${apiKey}"$1`);
-    res.set("Content-Type", "text/html");
-    return res.send(html);
+    console.log(`Loaded production HTML (${prodHtml.length} bytes), API key injected: ${apiKey ? "yes" : "NO — SHOPIFY_API_KEY is not set!"}`);
+  } catch (err) {
+    console.error("FATAL: Could not read web/dist/index.html —", err.message);
+    console.error("Did the frontend build run? Check your build command.");
   }
+}
 
-  // In dev, serve a minimal HTML that loads the dev frontend
-  res.set("Content-Type", "text/html");
-  res.send(`<!DOCTYPE html>
+// All other routes: serve the embedded app shell (SPA fallback)
+app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, next) => {
+  try {
+    if (isProd) {
+      if (!prodHtml) {
+        return res.status(500).send("App HTML not found. The frontend build may have failed.");
+      }
+      res.set("Content-Type", "text/html");
+      return res.send(prodHtml);
+    }
+
+    // In dev, serve a minimal HTML that loads the dev frontend
+    const apiKey = process.env.SHOPIFY_API_KEY || "";
+    res.set("Content-Type", "text/html");
+    res.send(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -99,6 +113,10 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
   <script type="module" src="/frontend/main.jsx"></script>
 </body>
 </html>`);
+  } catch (err) {
+    console.error("Error serving app shell:", err);
+    next(err);
+  }
 });
 
 // Global error handler — catches unhandled errors from middleware
