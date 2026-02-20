@@ -24,6 +24,7 @@
     "profile": "Profil",
     "settings": "Postavke",
     "notifications": "Obavještenja",
+    "messages": "Poruke",
     "workspace": "Radni prostor",
     "social": "Društveno",
     "media": "Mediji",
@@ -359,5 +360,25 @@
     "sessions": "{count} sesija",
     "sessionPlural": "{count} sesija",
     "focusedToday": "{duration} fokusirano danas"
+  },
+  "messages": {
+    "title": "Poruke",
+    "newMessage": "Nova poruka",
+    "searchConversations": "Pretraži razgovore...",
+    "noConversations": "Nema razgovora još. Dodaj prijatelje da počneš dopisivanje!",
+    "noMessages": "Nema poruka još. Reci selam!",
+    "typeMessage": "Napiši poruku...",
+    "send": "Pošalji",
+    "today": "Danas",
+    "yesterday": "Jučer",
+    "online": "na mreži",
+    "away": "odsutan",
+    "offline": "nedostupan",
+    "selectConversation": "Odaberi razgovor za početak dopisivanja",
+    "chooseFriend": "Odaberi prijatelja za poruku",
+    "noFriends": "Dodaj prijatelje da počneš dopisivanje",
+    "deleteMessage": "Obriši poruku",
+    "back": "Nazad",
+    "you": "Ti"
   }
 }

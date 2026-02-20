@@ -136,4 +136,23 @@ router.delete('/:projectId/:messageId', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── PUT mark project channel as read ────────────────────────
+router.put('/:projectId/read', async (req, res) => {
+  const { rows: memberCheck } = await pool.query(
+    'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2',
+    [req.params.projectId, req.userId]
+  );
+  if (memberCheck.length === 0) {
+    return res.status(403).json({ error: 'Not a member of this project' });
+  }
+
+  await pool.query(
+    `INSERT INTO project_message_read_cursors (user_id, project_id, last_read_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (user_id, project_id) DO UPDATE SET last_read_at = NOW()`,
+    [req.userId, req.params.projectId]
+  );
+  res.json({ ok: true });
+});
+
 export default router;

@@ -24,6 +24,7 @@
     "profile": "Profile",
     "settings": "Settings",
     "notifications": "Notifications",
+    "messages": "Messages",
     "workspace": "Workspace",
     "social": "Social",
     "media": "Media",
@@ -359,5 +360,25 @@
     "sessions": "{count} session",
     "sessionPlural": "{count} sessions",
     "focusedToday": "{duration} focused today"
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "New Message",
+    "searchConversations": "Search conversations...",
+    "noConversations": "No conversations yet. Add friends to start chatting!",
+    "noMessages": "No messages yet. Say hello!",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "online": "online",
+    "away": "away",
+    "offline": "offline",
+    "selectConversation": "Select a conversation to start chatting",
+    "chooseFriend": "Choose a friend to message",
+    "noFriends": "Add friends to start messaging",
+    "deleteMessage": "Delete message",
+    "back": "Back",
+    "you": "You"
   }
 }

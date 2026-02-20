@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews, IconCalendar, IconCommunity } from './Icons';
+import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews, IconCalendar, IconCommunity, IconMessage } from './Icons';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
@@ -77,6 +77,8 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
   const [myStatus, setMyStatus] = useState({ presence: 'active', statusEmoji: null, statusText: null });
   const userMenuRef = useRef(null);
 
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
   // Load own status from profile
   useEffect(() => {
     if (!user) return;
@@ -88,6 +90,16 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
       });
     }).catch(() => {});
   }, [user]);
+
+  // Poll unread message count
+  useEffect(() => {
+    if (!user) return;
+    const load = () => DB.getUnreadMessageCount().then(d => setUnreadMessages(d.total || 0)).catch(() => {});
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 
   // Derive current view and project id from URL
@@ -228,6 +240,17 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
             >
               <IconCommunity />
               {t('sidebar.community')}
+            </a>
+          </li>
+          <li>
+            <a
+              href="/messages"
+              className={view === 'messages' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/messages'); }}
+            >
+              <IconMessage />
+              {t('sidebar.messages')}
+              {unreadMessages > 0 && <span className="sidebar-unread-badge">{unreadMessages}</span>}
             </a>
           </li>
           <li>

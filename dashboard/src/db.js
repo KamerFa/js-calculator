@@ -377,6 +377,39 @@ const DB = {
   async getFocusHistory() {
     return api('/focus/history');
   },
+
+  // ── Direct Messages ────────────────────────────────────────
+  async getConversations() {
+    return api('/dm/conversations');
+  },
+
+  async getDMs(userId, before) {
+    const qs = before ? `?before=${encodeURIComponent(before)}` : '';
+    return api(`/dm/${userId}${qs}`);
+  },
+
+  async sendDM(userId, body) {
+    return api(`/dm/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  async deleteDM(messageId) {
+    return api(`/dm/${messageId}`, { method: 'DELETE' });
+  },
+
+  async markDMRead(userId) {
+    return api(`/dm/${userId}/read`, { method: 'PUT' });
+  },
+
+  async markProjectChatRead(projectId) {
+    return api(`/messages/${projectId}/read`, { method: 'PUT' });
+  },
+
+  async getUnreadMessageCount() {
+    return api('/dm/unread-total');
+  },
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

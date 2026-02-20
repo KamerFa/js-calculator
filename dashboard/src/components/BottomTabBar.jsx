@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { IconCheck, IconFile, IconCalendar, IconCommunity, IconMore, IconUsers, IconNews, IconRadio, IconFolder, IconUser, IconSettings, IconLogout } from './Icons';
+import { IconCheck, IconFile, IconCalendar, IconCommunity, IconMore, IconUsers, IconNews, IconRadio, IconFolder, IconUser, IconSettings, IconLogout, IconMessage } from './Icons';
 import { useTranslation } from '../i18n';
 
 const PRIMARY_TABS = [
@@ -63,6 +63,13 @@ export default function BottomTabBar({ onOpenSidebar, onLogout }) {
         <div className="bottom-sheet">
           <div className="bottom-sheet-handle" />
           <div className="bottom-sheet-grid">
+            <button
+              className={`bottom-sheet-item${pathname.startsWith('/messages') ? ' active' : ''}`}
+              onClick={() => handleSheetNav('/messages')}
+            >
+              <IconMessage />
+              <span>{t('sidebar.messages') || 'Messages'}</span>
+            </button>
             <button
               className={`bottom-sheet-item${pathname === '/users' ? ' active' : ''}`}
               onClick={() => handleSheetNav('/users')}

@@ -300,6 +300,40 @@ async function initDB() {
     )
   `);
 
+  // ── Direct messages ──────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS direct_messages (
+      id           TEXT PRIMARY KEY,
+      sender_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body         TEXT NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_dm_pair ON direct_messages(LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id), created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_dm_sender ON direct_messages(sender_id, created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_dm_receiver ON direct_messages(receiver_id, created_at DESC)`);
+
+  // DM read cursors (unread tracking)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS dm_read_cursors (
+      user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      other_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      last_read_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, other_user_id)
+    )
+  `);
+
+  // Project message read cursors (unread tracking for channels)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_message_read_cursors (
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      last_read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, project_id)
+    )
+  `);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);
