@@ -385,6 +385,11 @@
     "react": "Reaguj",
     "deleted": "[obrisano]",
     "messageSounds": "Zvukovi poruka",
-    "messageSoundsDesc": "Pusti zvuk notifikacije kada stignu nove poruke"
+    "messageSoundsDesc": "Pusti zvuk notifikacije kada stignu nove poruke",
+    "thread": "Nit",
+    "replies": "odgovora",
+    "typeReply": "Odgovori...",
+    "alsoSendToChannel": "Pošalji i u kanal",
+    "typeMessageMention": "Napiši poruku... Koristi @korisnik za tag"
   }
 }

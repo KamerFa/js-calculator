@@ -352,6 +352,10 @@ async function initDB() {
   await pool.query(`ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS reply_to_id TEXT`);
   await pool.query(`ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS reply_to_id TEXT`);
 
+  // ── Thread-only flag (Slack-style threads) ──
+  await pool.query(`ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS thread_only BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS thread_only BOOLEAN NOT NULL DEFAULT false`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

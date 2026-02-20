@@ -199,11 +199,15 @@ const DB = {
     return api(`/messages/${projectId}${qs}`);
   },
 
-  async postProjectMessage(projectId, body, replyToId) {
+  async postProjectMessage(projectId, body, replyToId, threadOnly) {
     return api(`/messages/${projectId}`, {
       method: 'POST',
-      body: JSON.stringify({ body, replyToId: replyToId || undefined }),
+      body: JSON.stringify({ body, replyToId: replyToId || undefined, threadOnly: threadOnly || undefined }),
     });
+  },
+
+  async getProjectThread(projectId, parentId) {
+    return api(`/messages/${projectId}/thread/${parentId}`);
   },
 
   async deleteProjectMessage(projectId, messageId) {
@@ -388,11 +392,15 @@ const DB = {
     return api(`/dm/${userId}${qs}`);
   },
 
-  async sendDM(userId, body, replyToId) {
+  async sendDM(userId, body, replyToId, threadOnly) {
     return api(`/dm/${userId}`, {
       method: 'POST',
-      body: JSON.stringify({ body, replyToId: replyToId || undefined }),
+      body: JSON.stringify({ body, replyToId: replyToId || undefined, threadOnly: threadOnly || undefined }),
     });
+  },
+
+  async getDMThread(userId, parentId) {
+    return api(`/dm/${userId}/thread/${parentId}`);
   },
 
   async deleteDM(messageId) {

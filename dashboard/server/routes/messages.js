@@ -39,8 +39,11 @@ router.get('/:projectId', async (req, res) => {
 
   const { rows } = await pool.query(query, params);
 
+  // Filter out thread-only replies from main feed
+  const mainFeedRows = rows.filter(r => !r.reply_to_id || !r.thread_only);
+
   // Enrich with reactions
-  const msgIds = rows.map(r => r.id);
+  const msgIds = mainFeedRows.map(r => r.id);
   let reactMap = {};
   if (msgIds.length > 0) {
     const { rows: reactionRows } = await pool.query(
@@ -58,7 +61,7 @@ router.get('/:projectId', async (req, res) => {
   }
 
   // Enrich with reply-to info
-  const replyIds = rows.filter(r => r.reply_to_id).map(r => r.reply_to_id);
+  const replyIds = mainFeedRows.filter(r => r.reply_to_id).map(r => r.reply_to_id);
   let replyMap = {};
   if (replyIds.length > 0) {
     const { rows: replyRows } = await pool.query(
@@ -73,7 +76,18 @@ router.get('/:projectId', async (req, res) => {
     }
   }
 
-  res.json(rows.reverse().map((r) => ({
+  // Reply counts per message
+  let replyCountMap = {};
+  if (msgIds.length > 0) {
+    const { rows: replyCounts } = await pool.query(
+      `SELECT reply_to_id, COUNT(*)::int AS count FROM project_messages
+       WHERE reply_to_id = ANY($1) GROUP BY reply_to_id`,
+      [msgIds]
+    );
+    for (const r of replyCounts) replyCountMap[r.reply_to_id] = r.count;
+  }
+
+  res.json(mainFeedRows.reverse().map((r) => ({
     id: r.id,
     body: r.body,
     userId: r.user_id,
@@ -86,6 +100,7 @@ router.get('/:projectId', async (req, res) => {
     replyTo: r.reply_to_id
       ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
       : null,
+    replyCount: replyCountMap[r.id] || 0,
   })));
 });
 
@@ -132,6 +147,75 @@ router.post('/:projectId/react/:messageId', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── GET thread for a project message ────────────────────────
+router.get('/:projectId/thread/:parentId', async (req, res) => {
+  // Check membership
+  const { rows: memberCheck } = await pool.query(
+    'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2',
+    [req.params.projectId, req.userId]
+  );
+  if (memberCheck.length === 0) {
+    return res.status(403).json({ error: 'Not a member of this project' });
+  }
+
+  // Fetch parent message
+  const { rows: parentRows } = await pool.query(
+    `SELECT pm.*, u.username, u.avatar_url
+     FROM project_messages pm
+     JOIN users u ON u.id = pm.user_id
+     WHERE pm.id = $1 AND pm.project_id = $2`,
+    [req.params.parentId, req.params.projectId]
+  );
+  if (parentRows.length === 0) {
+    return res.status(404).json({ error: 'Parent message not found' });
+  }
+
+  // Fetch all replies
+  const { rows: replies } = await pool.query(
+    `SELECT pm.*, u.username, u.avatar_url
+     FROM project_messages pm
+     JOIN users u ON u.id = pm.user_id
+     WHERE pm.reply_to_id = $1 AND pm.project_id = $2
+     ORDER BY pm.created_at ASC`,
+    [req.params.parentId, req.params.projectId]
+  );
+
+  // Enrich with reactions
+  const allIds = [req.params.parentId, ...replies.map(r => r.id)];
+  let reactMap = {};
+  if (allIds.length > 0) {
+    const { rows: reactionRows } = await pool.query(
+      `SELECT mr.message_id, mr.emoji, mr.user_id, u.username
+       FROM message_reactions mr
+       JOIN users u ON u.id = mr.user_id
+       WHERE mr.message_id = ANY($1) AND mr.message_type = 'project'`,
+      [allIds]
+    );
+    for (const r of reactionRows) {
+      if (!reactMap[r.message_id]) reactMap[r.message_id] = {};
+      if (!reactMap[r.message_id][r.emoji]) reactMap[r.message_id][r.emoji] = [];
+      reactMap[r.message_id][r.emoji].push({ userId: r.user_id, username: r.username });
+    }
+  }
+
+  const mapMsg = (r) => ({
+    id: r.id,
+    body: r.body,
+    userId: r.user_id,
+    username: r.username,
+    avatarUrl: r.avatar_url || null,
+    mentions: r.mentions || [],
+    createdAt: r.created_at,
+    reactions: reactMap[r.id] || {},
+    replyToId: r.reply_to_id || null,
+  });
+
+  res.json({
+    parent: mapMsg(parentRows[0]),
+    replies: replies.map(mapMsg),
+  });
+});
+
 // ── POST new message ────────────────────────────────────────
 router.post('/:projectId', async (req, res) => {
   const { body } = req.body;
@@ -169,11 +253,12 @@ router.post('/:projectId', async (req, res) => {
   }
 
   const replyToId = req.body.replyToId || null;
+  const threadOnly = !!req.body.threadOnly;
   const id = uid();
   await pool.query(
-    `INSERT INTO project_messages (id, project_id, user_id, body, mentions, reply_to_id)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [id, req.params.projectId, req.userId, body.trim(), mentions, replyToId]
+    `INSERT INTO project_messages (id, project_id, user_id, body, mentions, reply_to_id, thread_only)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [id, req.params.projectId, req.userId, body.trim(), mentions, replyToId, threadOnly]
   );
 
   // Notify mentioned users

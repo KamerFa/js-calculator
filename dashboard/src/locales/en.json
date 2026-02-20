@@ -385,6 +385,11 @@
     "react": "React",
     "deleted": "[deleted]",
     "messageSounds": "Message sounds",
-    "messageSoundsDesc": "Play a notification sound when new messages arrive"
+    "messageSoundsDesc": "Play a notification sound when new messages arrive",
+    "thread": "Thread",
+    "replies": "replies",
+    "typeReply": "Reply...",
+    "alsoSendToChannel": "Also send to channel",
+    "typeMessageMention": "Type a message... Use @username to tag"
   }
 }

@@ -192,8 +192,11 @@ router.get('/:userId', async (req, res) => {
 
   const { rows } = await pool.query(query, params);
 
+  // Filter out thread-only replies from main feed
+  const mainFeedRows = rows.filter(r => !r.reply_to_id || !r.thread_only);
+
   // Enrich with reactions
-  const msgIds = rows.map(r => r.id);
+  const msgIds = mainFeedRows.map(r => r.id);
   let reactMap = {};
   if (msgIds.length > 0) {
     const { rows: reactionRows } = await pool.query(
@@ -211,7 +214,7 @@ router.get('/:userId', async (req, res) => {
   }
 
   // Enrich with reply-to info
-  const replyIds = rows.filter(r => r.reply_to_id).map(r => r.reply_to_id);
+  const replyIds = mainFeedRows.filter(r => r.reply_to_id).map(r => r.reply_to_id);
   let replyMap = {};
   if (replyIds.length > 0) {
     const { rows: replyRows } = await pool.query(
@@ -226,27 +229,49 @@ router.get('/:userId', async (req, res) => {
     }
   }
 
-  res.json(rows.reverse().map((r) => ({
-    id: r.id,
-    body: r.body,
-    senderId: r.sender_id,
-    receiverId: r.receiver_id,
-    username: r.username,
-    avatarUrl: r.avatar_url || null,
-    createdAt: r.created_at,
-    reactions: reactMap[r.id] || {},
-    replyToId: r.reply_to_id || null,
-    replyTo: r.reply_to_id
-      ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
-      : null,
-  })));
+  // Reply counts per message (all replies, not just visible ones)
+  let replyCountMap = {};
+  if (msgIds.length > 0) {
+    const { rows: replyCounts } = await pool.query(
+      `SELECT reply_to_id, COUNT(*)::int AS count FROM direct_messages
+       WHERE reply_to_id = ANY($1) GROUP BY reply_to_id`,
+      [msgIds]
+    );
+    for (const r of replyCounts) replyCountMap[r.reply_to_id] = r.count;
+  }
+
+  // Get other user's read cursor for seen/delivered
+  const { rows: cursorRows } = await pool.query(
+    `SELECT last_read_at FROM dm_read_cursors WHERE user_id = $1 AND other_user_id = $2`,
+    [otherId, userId]
+  );
+  const otherReadAt = cursorRows[0]?.last_read_at || null;
+
+  res.json({
+    messages: mainFeedRows.reverse().map((r) => ({
+      id: r.id,
+      body: r.body,
+      senderId: r.sender_id,
+      receiverId: r.receiver_id,
+      username: r.username,
+      avatarUrl: r.avatar_url || null,
+      createdAt: r.created_at,
+      reactions: reactMap[r.id] || {},
+      replyToId: r.reply_to_id || null,
+      replyTo: r.reply_to_id
+        ? (replyMap[r.reply_to_id] || { id: r.reply_to_id, body: '[deleted]', username: '' })
+        : null,
+      replyCount: replyCountMap[r.id] || 0,
+    })),
+    otherReadAt,
+  });
 });
 
 // ── POST send a DM ──────────────────────────────────────────
 router.post('/:userId', async (req, res) => {
   const userId = req.userId;
   const otherId = req.params.userId;
-  const { body, replyToId } = req.body;
+  const { body, replyToId, threadOnly } = req.body;
 
   if (!body?.trim() || body.trim().length > 2000) {
     return res.status(400).json({ error: 'Message must be 1-2000 characters' });
@@ -269,9 +294,9 @@ router.post('/:userId', async (req, res) => {
 
   const id = uid();
   await pool.query(
-    `INSERT INTO direct_messages (id, sender_id, receiver_id, body, reply_to_id)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [id, userId, otherId, body.trim(), replyToId || null]
+    `INSERT INTO direct_messages (id, sender_id, receiver_id, body, reply_to_id, thread_only)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [id, userId, otherId, body.trim(), replyToId || null, !!threadOnly]
   );
 
   // Update sender's read cursor (they've read up to now)
@@ -354,6 +379,89 @@ router.post('/react/:messageId', async (req, res) => {
       `${actor} reacted ${emoji} to your message`, 'dm', req.params.messageId);
   }
   res.json({ ok: true });
+});
+
+// ── GET thread for a parent DM ───────────────────────────────
+router.get('/:userId/thread/:parentId', async (req, res) => {
+  const userId = req.userId;
+  const otherId = req.params.userId;
+  const parentId = req.params.parentId;
+
+  // Check friendship
+  const { rows: fr } = await pool.query(
+    `SELECT status FROM friendships WHERE
+     ((user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1))
+     AND status = 'accepted'`,
+    [userId, otherId]
+  );
+  if (fr.length === 0) {
+    return res.status(403).json({ error: 'Must be friends to view messages' });
+  }
+
+  // Fetch parent message
+  const { rows: parentRows } = await pool.query(
+    `SELECT dm.*, u.username, u.avatar_url
+     FROM direct_messages dm
+     JOIN users u ON u.id = dm.sender_id
+     WHERE dm.id = $1`,
+    [parentId]
+  );
+  if (parentRows.length === 0) {
+    return res.status(404).json({ error: 'Parent message not found' });
+  }
+
+  // Fetch all replies
+  const { rows: replies } = await pool.query(
+    `SELECT dm.*, u.username, u.avatar_url
+     FROM direct_messages dm
+     JOIN users u ON u.id = dm.sender_id
+     WHERE dm.reply_to_id = $1
+     ORDER BY dm.created_at ASC`,
+    [parentId]
+  );
+
+  // Enrich with reactions
+  const allIds = [parentId, ...replies.map(r => r.id)];
+  let reactMap = {};
+  if (allIds.length > 0) {
+    const { rows: reactionRows } = await pool.query(
+      `SELECT mr.message_id, mr.emoji, mr.user_id, u.username
+       FROM message_reactions mr
+       JOIN users u ON u.id = mr.user_id
+       WHERE mr.message_id = ANY($1) AND mr.message_type = 'dm'`,
+      [allIds]
+    );
+    for (const r of reactionRows) {
+      if (!reactMap[r.message_id]) reactMap[r.message_id] = {};
+      if (!reactMap[r.message_id][r.emoji]) reactMap[r.message_id][r.emoji] = [];
+      reactMap[r.message_id][r.emoji].push({ userId: r.user_id, username: r.username });
+    }
+  }
+
+  // Get other user's read cursor
+  const { rows: cursorRows } = await pool.query(
+    `SELECT last_read_at FROM dm_read_cursors WHERE user_id = $1 AND other_user_id = $2`,
+    [otherId, userId]
+  );
+  const otherReadAt = cursorRows[0]?.last_read_at || null;
+
+  const mapMsg = (r) => ({
+    id: r.id,
+    body: r.body,
+    senderId: r.sender_id,
+    receiverId: r.receiver_id,
+    username: r.username,
+    avatarUrl: r.avatar_url || null,
+    createdAt: r.created_at,
+    reactions: reactMap[r.id] || {},
+    replyToId: r.reply_to_id || null,
+  });
+
+  res.json({
+    parent: mapMsg(parentRows[0]),
+    replies: replies.map(mapMsg),
+    otherReadAt,
+  });
 });
 
 // ── DELETE own DM ────────────────────────────────────────────
