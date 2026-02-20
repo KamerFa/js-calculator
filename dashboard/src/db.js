@@ -218,6 +218,59 @@ const DB = {
     return api(`/messages/${projectId}/${messageId}`, { method: 'DELETE' });
   },
 
+  // ── Groups ─────────────────────────────────────────────────
+  async createGroup(name, color, memberIds) {
+    return api('/groups', {
+      method: 'POST',
+      body: JSON.stringify({ name, color, memberIds }),
+    });
+  },
+
+  async getGroupMessages(groupId) {
+    return api(`/groups/${groupId}/messages`);
+  },
+
+  async postGroupMessage(groupId, body, replyToId, threadOnly) {
+    return api(`/groups/${groupId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body, replyToId: replyToId || undefined, threadOnly: threadOnly || undefined }),
+    });
+  },
+
+  async deleteGroupMessage(groupId, messageId) {
+    return api(`/groups/${groupId}/messages/${messageId}`, { method: 'DELETE' });
+  },
+
+  async reactToGroupMessage(groupId, messageId, emoji) {
+    return api(`/groups/${groupId}/react/${messageId}`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji }),
+    });
+  },
+
+  async getGroupMembers(groupId) {
+    return api(`/groups/${groupId}/members`);
+  },
+
+  async addGroupMember(groupId, userId) {
+    return api(`/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  async getGroupThread(groupId, parentId) {
+    return api(`/groups/${groupId}/thread/${parentId}`);
+  },
+
+  async sendTypingGroup(groupId) {
+    return api(`/groups/${groupId}/typing`, { method: 'POST' });
+  },
+
+  async markGroupRead(groupId) {
+    return api(`/groups/${groupId}/read`, { method: 'PUT' });
+  },
+
   // ── Notifications ──────────────────────────────────────────
   async getNotifications() {
     return api('/notifications');

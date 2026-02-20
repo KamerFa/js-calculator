@@ -367,6 +367,46 @@ async function initDB() {
     )
   `);
 
+  // ── Group chats ──
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_chats (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      color       TEXT NOT NULL DEFAULT '#2a5caa',
+      creator_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_members (
+      id        TEXT PRIMARY KEY,
+      group_id  TEXT NOT NULL REFERENCES group_chats(id) ON DELETE CASCADE,
+      user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role      TEXT NOT NULL DEFAULT 'member',
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(group_id, user_id)
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_messages (
+      id          TEXT PRIMARY KEY,
+      group_id    TEXT NOT NULL REFERENCES group_chats(id) ON DELETE CASCADE,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body        TEXT NOT NULL,
+      reply_to_id TEXT,
+      thread_only BOOLEAN NOT NULL DEFAULT false,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_message_read_cursors (
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      group_id    TEXT NOT NULL REFERENCES group_chats(id) ON DELETE CASCADE,
+      last_read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, group_id)
+    )
+  `);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

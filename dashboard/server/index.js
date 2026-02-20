@@ -20,6 +20,7 @@ import radioRoutes from './routes/radio.js';
 import newsRoutes from './routes/news.js';
 import focusRoutes from './routes/focus.js';
 import dmRoutes from './routes/dm.js';
+import groupRoutes from './routes/groups.js';
 import pool from './db.js';
 import { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones } from './scheduled.js';
 
@@ -52,6 +53,7 @@ app.use('/api/radio', authMiddleware, radioRoutes);
 app.use('/api/news', authMiddleware, newsRoutes);
 app.use('/api/focus', authMiddleware, focusRoutes);
 app.use('/api/dm', authMiddleware, dmRoutes);
+app.use('/api/groups', authMiddleware, groupRoutes);
 
 // ── File uploads (screenshots + avatars) ──────────────────────
 const upload = multer({

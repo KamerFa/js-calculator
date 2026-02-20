@@ -69,7 +69,44 @@ router.get('/conversations', async (req, res) => {
     ORDER BY lp.created_at DESC
   `, [userId]);
 
-  // 3) Merge and sort
+  // 3) Group conversations: latest message per group
+  const { rows: groupConvs } = await pool.query(`
+    WITH my_groups AS (
+      SELECT gm.group_id FROM group_members gm WHERE gm.user_id = $1
+    ),
+    latest_gm AS (
+      SELECT DISTINCT ON (mg.group_id)
+        mg.group_id,
+        msg.id, msg.body, msg.user_id AS sender_id, msg.created_at,
+        u.username AS sender_username
+      FROM my_groups mg
+      JOIN group_messages msg ON msg.group_id = mg.group_id
+      JOIN users u ON u.id = msg.user_id
+      ORDER BY mg.group_id, msg.created_at DESC
+    )
+    SELECT lg.*, g.name AS group_name, g.color AS group_color,
+      (SELECT COUNT(*) FROM group_messages gm2
+       WHERE gm2.group_id = lg.group_id
+         AND gm2.created_at > COALESCE(
+           (SELECT last_read_at FROM group_message_read_cursors WHERE user_id = $1 AND group_id = lg.group_id),
+           '1970-01-01T00:00:00Z'::timestamptz
+         )
+         AND gm2.user_id != $1
+      )::int AS unread_count
+    FROM latest_gm lg
+    JOIN group_chats g ON g.id = lg.group_id
+    ORDER BY lg.created_at DESC
+  `, [userId]);
+
+  // Also get groups with no messages yet (newly created)
+  const { rows: emptyGroups } = await pool.query(`
+    SELECT g.id AS group_id, g.name AS group_name, g.color AS group_color, g.created_at
+    FROM group_chats g
+    JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
+    WHERE NOT EXISTS (SELECT 1 FROM group_messages msg WHERE msg.group_id = g.id)
+  `, [userId]);
+
+  // 4) Merge and sort
   const conversations = [];
 
   for (const dm of dmConvs) {
@@ -102,6 +139,36 @@ router.get('/conversations', async (req, res) => {
         username: pc.sender_username,
       },
       unreadCount: pc.unread_count,
+    });
+  }
+
+  for (const gc of groupConvs) {
+    conversations.push({
+      type: 'group',
+      groupId: gc.group_id,
+      groupName: gc.group_name,
+      groupColor: gc.group_color,
+      lastMessage: {
+        body: gc.body,
+        createdAt: gc.created_at,
+        username: gc.sender_username,
+      },
+      unreadCount: gc.unread_count,
+    });
+  }
+
+  for (const eg of emptyGroups) {
+    conversations.push({
+      type: 'group',
+      groupId: eg.group_id,
+      groupName: eg.group_name,
+      groupColor: eg.group_color,
+      lastMessage: {
+        body: '',
+        createdAt: eg.created_at,
+        username: '',
+      },
+      unreadCount: 0,
     });
   }
 

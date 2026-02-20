@@ -79,13 +79,20 @@ export default function MessagesView({ user, onUserClick }) {
   const { t } = useTranslation();
   const { userId: paramUserId } = useParams();
   const [conversations, setConversations] = useState([]);
-  const [selectedConv, setSelectedConv] = useState(null); // { type: 'dm'|'project', id }
+  const [selectedConv, setSelectedConv] = useState(null); // { type: 'dm'|'project'|'group', id }
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [friends, setFriends] = useState([]);
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [friendSearch, setFriendSearch] = useState('');
+  // Group creation state
+  const [showGroupCreator, setShowGroupCreator] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupColor, setGroupColor] = useState('#2a5caa');
+  const [groupSelectedMembers, setGroupSelectedMembers] = useState([]);
+  const [groupFriends, setGroupFriends] = useState([]);
+  const [groupSearch, setGroupSearch] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showReactPickerForMsg, setShowReactPickerForMsg] = useState(null);
@@ -147,11 +154,12 @@ export default function MessagesView({ user, onUserClick }) {
       if (!loading) {
         const sc = selectedConvRef.current;
         for (const conv of data) {
-          const key = conv.type === 'dm' ? `dm-${conv.userId}` : `proj-${conv.projectId}`;
+          const key = conv.type === 'dm' ? `dm-${conv.userId}` : conv.type === 'group' ? `grp-${conv.groupId}` : `proj-${conv.projectId}`;
           const prevUnread = prevUnreadRef.current[key] || 0;
           const isActiveConv = sc && (
             (conv.type === 'dm' && sc.type === 'dm' && conv.userId === sc.id) ||
-            (conv.type === 'project' && sc.type === 'project' && conv.projectId === sc.id)
+            (conv.type === 'project' && sc.type === 'project' && conv.projectId === sc.id) ||
+            (conv.type === 'group' && sc.type === 'group' && conv.groupId === sc.id)
           );
           if (conv.unreadCount > prevUnread && !isActiveConv) {
             playMessageSound();
@@ -162,7 +170,7 @@ export default function MessagesView({ user, onUserClick }) {
       // Update prev unread tracking
       const newMap = {};
       for (const conv of data) {
-        const key = conv.type === 'dm' ? `dm-${conv.userId}` : `proj-${conv.projectId}`;
+        const key = conv.type === 'dm' ? `dm-${conv.userId}` : conv.type === 'group' ? `grp-${conv.groupId}` : `proj-${conv.projectId}`;
         newMap[key] = conv.unreadCount;
       }
       prevUnreadRef.current = newMap;
@@ -203,9 +211,8 @@ export default function MessagesView({ user, onUserClick }) {
           setTypingUsers([]);
         }
         await DB.markDMRead(selectedConv.id);
-      } else {
+      } else if (selectedConv.type === 'project') {
         const data = await DB.getProjectMessages(selectedConv.id);
-        // Response format: { messages, typingUsers }
         if (data.messages) {
           setMessages(data.messages);
           setTypingUsers(data.typingUsers || []);
@@ -215,6 +222,17 @@ export default function MessagesView({ user, onUserClick }) {
         }
         setOtherReadAt(null);
         await DB.markProjectChatRead(selectedConv.id);
+      } else if (selectedConv.type === 'group') {
+        const data = await DB.getGroupMessages(selectedConv.id);
+        if (data.messages) {
+          setMessages(data.messages);
+          setTypingUsers(data.typingUsers || []);
+        } else {
+          setMessages(data);
+          setTypingUsers([]);
+        }
+        setOtherReadAt(null);
+        await DB.markGroupRead(selectedConv.id);
       }
     } catch { /* ignore */ }
   };
@@ -241,6 +259,8 @@ export default function MessagesView({ user, onUserClick }) {
       } else {
         setChannelMembers([]);
       }
+    } else if (selectedConv?.type === 'group') {
+      DB.getGroupMembers(selectedConv.id).then(setChannelMembers).catch(() => {});
     } else {
       setChannelMembers([]);
     }
@@ -276,9 +296,14 @@ export default function MessagesView({ user, onUserClick }) {
     if (!threadParentId || !selectedConv) return;
     const loadThread = async () => {
       try {
-        const data = selectedConv.type === 'dm'
-          ? await DB.getDMThread(selectedConv.id, threadParentId)
-          : await DB.getProjectThread(selectedConv.id, threadParentId);
+        let data;
+        if (selectedConv.type === 'dm') {
+          data = await DB.getDMThread(selectedConv.id, threadParentId);
+        } else if (selectedConv.type === 'group') {
+          data = await DB.getGroupThread(selectedConv.id, threadParentId);
+        } else {
+          data = await DB.getProjectThread(selectedConv.id, threadParentId);
+        }
         setThreadParent(data.parent);
         setThreadMessages(data.replies);
       } catch { /* ignore */ }
@@ -309,6 +334,8 @@ export default function MessagesView({ user, onUserClick }) {
     try {
       if (selectedConv.type === 'dm') {
         await DB.sendDM(selectedConv.id, body.trim());
+      } else if (selectedConv.type === 'group') {
+        await DB.postGroupMessage(selectedConv.id, body.trim());
       } else {
         await DB.postProjectMessage(selectedConv.id, body.trim());
       }
@@ -324,6 +351,8 @@ export default function MessagesView({ user, onUserClick }) {
   const handleDelete = async (msgId) => {
     if (selectedConv.type === 'dm') {
       await DB.deleteDM(msgId);
+    } else if (selectedConv.type === 'group') {
+      await DB.deleteGroupMessage(selectedConv.id, msgId);
     } else {
       await DB.deleteProjectMessage(selectedConv.id, msgId);
     }
@@ -334,6 +363,8 @@ export default function MessagesView({ user, onUserClick }) {
     try {
       if (selectedConv.type === 'dm') {
         await DB.reactToDM(msgId, emoji);
+      } else if (selectedConv.type === 'group') {
+        await DB.reactToGroupMessage(selectedConv.id, msgId, emoji);
       } else {
         await DB.reactToProjectMessage(selectedConv.id, msgId, emoji);
       }
@@ -357,6 +388,8 @@ export default function MessagesView({ user, onUserClick }) {
     setShowMentions(false);
     if (conv.type === 'dm') {
       setSelectedConv({ type: 'dm', id: conv.userId });
+    } else if (conv.type === 'group') {
+      setSelectedConv({ type: 'group', id: conv.groupId });
     } else {
       setSelectedConv({ type: 'project', id: conv.projectId });
     }
@@ -376,6 +409,27 @@ export default function MessagesView({ user, onUserClick }) {
     setShowFriendPicker(true);
   };
 
+  const openGroupCreator = async () => {
+    try {
+      const data = await DB.getFriends();
+      setGroupFriends(data.filter(f => f.status === 'accepted'));
+    } catch { /* ignore */ }
+    setGroupSelectedMembers([]);
+    setGroupName('');
+    setGroupColor('#2a5caa');
+    setGroupSearch('');
+    setShowGroupCreator(true);
+  };
+
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || groupSelectedMembers.length === 0) return;
+    try {
+      await DB.createGroup(groupName.trim(), groupColor, groupSelectedMembers);
+      setShowGroupCreator(false);
+      await loadConversations();
+    } catch { /* ignore */ }
+  };
+
   // Send typing signal (throttled to 1 per 3s)
   const sendTypingSignal = () => {
     if (typingTimeoutRef.current) return;
@@ -383,6 +437,8 @@ export default function MessagesView({ user, onUserClick }) {
       DB.sendTypingDM(selectedConv.id).catch(() => {});
     } else if (selectedConv?.type === 'project') {
       DB.sendTypingProject(selectedConv.id).catch(() => {});
+    } else if (selectedConv?.type === 'group') {
+      DB.sendTypingGroup(selectedConv.id).catch(() => {});
     }
     typingTimeoutRef.current = setTimeout(() => { typingTimeoutRef.current = null; }, 3000);
   };
@@ -422,8 +478,8 @@ export default function MessagesView({ user, onUserClick }) {
     const members = (channelMembers || []).filter(
       (m) => m.username.toLowerCase().includes(mentionFilter) && m.userId !== user?.id
     );
-    // Add @chat option for project channels
-    if (selectedConv?.type === 'project' && 'chat'.includes(mentionFilter)) {
+    // Add @chat option for project and group channels
+    if ((selectedConv?.type === 'project' || selectedConv?.type === 'group') && 'chat'.includes(mentionFilter)) {
       return [{ userId: '__chat__', username: 'chat', isGroupMention: true }, ...members];
     }
     return members;
@@ -437,6 +493,8 @@ export default function MessagesView({ user, onUserClick }) {
       const threadOnly = !alsoSendToChannel;
       if (selectedConv.type === 'dm') {
         await DB.sendDM(selectedConv.id, threadBody.trim(), threadParentId, threadOnly);
+      } else if (selectedConv.type === 'group') {
+        await DB.postGroupMessage(selectedConv.id, threadBody.trim(), threadParentId, threadOnly);
       } else {
         await DB.postProjectMessage(selectedConv.id, threadBody.trim(), threadParentId, threadOnly);
       }
@@ -444,9 +502,14 @@ export default function MessagesView({ user, onUserClick }) {
       // Reload both thread and main feed
       const loadThread = async () => {
         try {
-          const data = selectedConv.type === 'dm'
-            ? await DB.getDMThread(selectedConv.id, threadParentId)
-            : await DB.getProjectThread(selectedConv.id, threadParentId);
+          let data;
+          if (selectedConv.type === 'dm') {
+            data = await DB.getDMThread(selectedConv.id, threadParentId);
+          } else if (selectedConv.type === 'group') {
+            data = await DB.getGroupThread(selectedConv.id, threadParentId);
+          } else {
+            data = await DB.getProjectThread(selectedConv.id, threadParentId);
+          }
           setThreadParent(data.parent);
           setThreadMessages(data.replies);
         } catch { /* ignore */ }
@@ -459,17 +522,17 @@ export default function MessagesView({ user, onUserClick }) {
 
   // Get display info for active conversation
   const activeConvInfo = selectedConv
-    ? conversations.find(c =>
-        selectedConv.type === 'dm'
-          ? c.type === 'dm' && c.userId === selectedConv.id
-          : c.type === 'project' && c.projectId === selectedConv.id
-      )
+    ? conversations.find(c => {
+        if (selectedConv.type === 'dm') return c.type === 'dm' && c.userId === selectedConv.id;
+        if (selectedConv.type === 'group') return c.type === 'group' && c.groupId === selectedConv.id;
+        return c.type === 'project' && c.projectId === selectedConv.id;
+      })
     : null;
 
   // Filtered conversations
   const filteredConvs = search
     ? conversations.filter(c => {
-        const name = c.type === 'dm' ? c.username : c.projectName;
+        const name = c.type === 'dm' ? c.username : c.type === 'group' ? c.groupName : c.projectName;
         return name.toLowerCase().includes(search.toLowerCase());
       })
     : conversations;
@@ -486,9 +549,14 @@ export default function MessagesView({ user, onUserClick }) {
       <div className={`messages-sidebar${selectedConv && isMobile ? ' hidden-mobile' : ''}`}>
         <div className="messages-sidebar-header">
           <h2>{t('messages.title')}</h2>
-          <button className="btn btn-sm btn-primary" onClick={openFriendPicker} title={t('messages.newMessage')}>
-            <IconPlus size={12} />
-          </button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-sm btn-primary" onClick={openFriendPicker} title={t('messages.newMessage')}>
+              <IconPlus size={12} />
+            </button>
+            <button className="btn btn-sm" onClick={openGroupCreator} title="New Group" style={{ fontSize: 11, padding: '2px 8px' }}>
+              Group
+            </button>
+          </div>
         </div>
 
         <div className="messages-search-wrap">
@@ -509,9 +577,10 @@ export default function MessagesView({ user, onUserClick }) {
           {filteredConvs.map((conv) => {
             const isActive = selectedConv && (
               (conv.type === 'dm' && selectedConv.type === 'dm' && conv.userId === selectedConv.id) ||
-              (conv.type === 'project' && selectedConv.type === 'project' && conv.projectId === selectedConv.id)
+              (conv.type === 'project' && selectedConv.type === 'project' && conv.projectId === selectedConv.id) ||
+              (conv.type === 'group' && selectedConv.type === 'group' && conv.groupId === selectedConv.id)
             );
-            const key = conv.type === 'dm' ? `dm-${conv.userId}` : `proj-${conv.projectId}`;
+            const key = conv.type === 'dm' ? `dm-${conv.userId}` : conv.type === 'group' ? `grp-${conv.groupId}` : `proj-${conv.projectId}`;
 
             return (
               <button
@@ -532,6 +601,10 @@ export default function MessagesView({ user, onUserClick }) {
                         style={{ position: 'absolute', bottom: 0, right: 0, border: '2px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }}
                       />
                     </>
+                  ) : conv.type === 'group' ? (
+                    <span className="conv-avatar-group" style={{ background: conv.groupColor || 'var(--accent)' }}>
+                      {conv.groupName.charAt(0).toUpperCase()}
+                    </span>
                   ) : (
                     <span className="conv-avatar-project" style={{ background: conv.projectColor || 'var(--accent)' }}>#</span>
                   )}
@@ -539,18 +612,20 @@ export default function MessagesView({ user, onUserClick }) {
                 <div className="conv-body">
                   <div className="conv-meta">
                     <span className="conv-name">
-                      {conv.type === 'dm' ? conv.username : conv.projectName}
+                      {conv.type === 'dm' ? conv.username : conv.type === 'group' ? conv.groupName : conv.projectName}
                     </span>
-                    <span className="conv-time">{timeAgo(conv.lastMessage.createdAt)}</span>
+                    {conv.lastMessage?.createdAt && (
+                      <span className="conv-time">{timeAgo(conv.lastMessage.createdAt)}</span>
+                    )}
                   </div>
                   <div className="conv-preview">
-                    {conv.type === 'project' && conv.lastMessage.username && (
+                    {(conv.type === 'project' || conv.type === 'group') && conv.lastMessage?.username && (
                       <span className="conv-preview-sender">{conv.lastMessage.username}: </span>
                     )}
-                    {conv.type === 'dm' && conv.lastMessage.senderId === user?.id && (
+                    {conv.type === 'dm' && conv.lastMessage?.senderId === user?.id && (
                       <span className="conv-preview-sender">{t('messages.you')}: </span>
                     )}
-                    {conv.lastMessage.body.slice(0, 50)}
+                    {conv.lastMessage?.body ? conv.lastMessage.body.slice(0, 50) : t('messages.noMessages')}
                   </div>
                 </div>
                 {conv.unreadCount > 0 && (
@@ -585,6 +660,13 @@ export default function MessagesView({ user, onUserClick }) {
                       {t(`messages.${activeConvInfo.presence === 'active' ? 'online' : activeConvInfo.presence === 'away' ? 'away' : 'offline'}`)}
                     </span>
                   </>
+                ) : activeConvInfo?.type === 'group' ? (
+                  <span className="messages-header-name">
+                    <span className="conv-group-icon" style={{ background: activeConvInfo.groupColor }}>
+                      {activeConvInfo.groupName.charAt(0).toUpperCase()}
+                    </span>
+                    {activeConvInfo.groupName}
+                  </span>
                 ) : activeConvInfo?.type === 'project' ? (
                   <span className="messages-header-name">
                     <span className="conv-hash" style={{ color: activeConvInfo.projectColor }}>#</span>
@@ -909,6 +991,84 @@ export default function MessagesView({ user, onUserClick }) {
                 </button>
               ))}
             </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Group creator modal ── */}
+      {showGroupCreator && (
+        <>
+          <div className="friend-picker-backdrop" onClick={() => setShowGroupCreator(false)} />
+          <div className="friend-picker-modal group-creator-modal">
+            <h3>Create Group</h3>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Group name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              autoFocus
+            />
+            <div className="group-color-row">
+              <span className="group-color-label">Color</span>
+              <div className="group-color-options">
+                {['#2a5caa','#e74c3c','#27ae60','#f39c12','#8e44ad','#1abc9c','#e67e22','#2c3e50'].map(c => (
+                  <button
+                    key={c}
+                    className={`group-color-swatch${groupColor === c ? ' active' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => setGroupColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search friends..."
+              value={groupSearch}
+              onChange={(e) => setGroupSearch(e.target.value)}
+            />
+            <div className="friend-picker-list">
+              {groupFriends
+                .filter(f => f.username.toLowerCase().includes(groupSearch.toLowerCase()))
+                .map((f) => {
+                  const isSelected = groupSelectedMembers.includes(f.id);
+                  return (
+                    <button
+                      key={f.id}
+                      className={`friend-picker-item${isSelected ? ' selected' : ''}`}
+                      onClick={() => {
+                        setGroupSelectedMembers(prev =>
+                          isSelected ? prev.filter(id => id !== f.id) : [...prev, f.id]
+                        );
+                      }}
+                    >
+                      <div className="conv-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>
+                        {resolveAvatarUrl(f.avatarUrl)
+                          ? <img src={resolveAvatarUrl(f.avatarUrl)} alt="" className="conv-avatar-img" />
+                          : <span className="conv-avatar-placeholder">{f.username.charAt(0).toUpperCase()}</span>
+                        }
+                      </div>
+                      <span>{f.username}</span>
+                      {isSelected && <span className="group-check">&#10003;</span>}
+                    </button>
+                  );
+                })}
+            </div>
+            {groupSelectedMembers.length > 0 && (
+              <div className="group-selected-count">
+                {groupSelectedMembers.length} member{groupSelectedMembers.length !== 1 ? 's' : ''} selected
+              </div>
+            )}
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', marginTop: 8 }}
+              disabled={!groupName.trim() || groupSelectedMembers.length === 0}
+              onClick={handleCreateGroup}
+            >
+              Create Group
+            </button>
           </div>
         </>
       )}
