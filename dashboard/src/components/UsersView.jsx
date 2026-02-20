@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
-import { resolveAvatarUrl } from '../avatarUtils';
-import StatusDot from './StatusDot';
+import Avatar from './Avatar';
+import { formatMonthYear } from '../utils/time';
 
 export default function UsersView({ onUserClick }) {
   const { t } = useTranslation();
@@ -24,11 +24,6 @@ export default function UsersView({ onUserClick }) {
   const filteredUsers = users.filter(u =>
     u.username.toLowerCase().includes(search.toLowerCase())
   );
-
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
-  };
 
   if (loading) {
     return <div className="page-container"><div className="empty-state">{t('common.loading')}</div></div>;
@@ -55,12 +50,7 @@ export default function UsersView({ onUserClick }) {
           <div key={user.id} className="user-card" onClick={() => onUserClick(user.username)}>
             <div className="user-card-avatar">
               <span className="avatar-with-status avatar-with-status-lg">
-                {resolveAvatarUrl(user.avatarUrl) ? (
-                  <img src={resolveAvatarUrl(user.avatarUrl)} alt={user.username} />
-                ) : (
-                  <div className="avatar-placeholder">{user.username.charAt(0).toUpperCase()}</div>
-                )}
-                <StatusDot presence={user.presence || 'offline'} size={14} statusEmoji={user.statusEmoji} statusText={user.statusText} style={{ position: 'absolute', bottom: 0, right: 0, border: '2.5px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }} />
+                <Avatar avatarUrl={user.avatarUrl} username={user.username} size={48} showStatus presence={user.presence || 'offline'} statusEmoji={user.statusEmoji} statusText={user.statusText} />
               </span>
             </div>
             <div className="user-card-info">
@@ -73,7 +63,7 @@ export default function UsersView({ onUserClick }) {
                 <span>{t('profile.projectsOwned')}: <strong>{user.projectsOwned}</strong></span>
               </div>
               <div className="user-card-meta">
-                {t('profile.memberSince')} {formatDate(user.memberSince)}
+                {t('profile.memberSince')} {formatMonthYear(user.memberSince)}
               </div>
             </div>
           </div>

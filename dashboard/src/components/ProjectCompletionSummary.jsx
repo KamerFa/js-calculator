@@ -1,5 +1,6 @@
 import { useTranslation } from '../i18n';
 import { getProjectTimeInfo } from '../projectStatus';
+import { formatDate } from '../utils/time';
 
 export default function ProjectCompletionSummary({ project, tasks }) {
   const { t } = useTranslation();
@@ -31,11 +32,6 @@ export default function ProjectCompletionSummary({ project, tasks }) {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const maxCount = chartData.length > 0 ? Math.max(...chartData.map((d) => d.count)) : 1;
-
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  };
 
   return (
     <div className="completion-summary">

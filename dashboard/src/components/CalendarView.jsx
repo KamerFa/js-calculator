@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { IconPlus } from './Icons';
+import { formatDateFull } from '../utils/time';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -132,13 +133,6 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
   const selectedTasks = selectedDate ? (tasksByDate[selectedDate] || []) : [];
   const getProject = (id) => projects.find((p) => p.id === id);
 
-  const formatDate = (iso) => {
-    if (!iso) return '';
-    return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric'
-    });
-  };
-
   const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
   return (
@@ -209,7 +203,7 @@ export default function CalendarView({ tasks, projects, onToggle, onTaskClick, o
       {/* Selected date panel */}
       {selectedDate && (
         <div className="cal-detail-panel">
-          <h3 className="cal-detail-date">{formatDate(selectedDate)}</h3>
+          <h3 className="cal-detail-date">{formatDateFull(selectedDate)}</h3>
           {selectedTasks.length === 0 ? (
             <div className="empty-state">No tasks on this date.</div>
           ) : (

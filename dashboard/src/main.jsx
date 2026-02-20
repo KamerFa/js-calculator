@@ -8,6 +8,7 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import { DataProvider } from './context/DataContext.jsx'
 import { ModalProvider } from './context/ModalContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { ToastProvider } from './components/Toast.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,11 +16,13 @@ createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <LanguageProvider>
           <AuthProvider>
-            <DataProvider>
-              <ModalProvider>
-                <App />
-              </ModalProvider>
-            </DataProvider>
+            <ToastProvider>
+              <DataProvider>
+                <ModalProvider>
+                  <App />
+                </ModalProvider>
+              </DataProvider>
+            </ToastProvider>
           </AuthProvider>
         </LanguageProvider>
       </ThemeProvider>

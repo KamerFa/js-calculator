@@ -22,14 +22,18 @@ import focusRoutes from './routes/focus.js';
 import dmRoutes from './routes/dm.js';
 import groupRoutes from './routes/groups.js';
 import pool from './db.js';
-import { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones } from './scheduled.js';
+import { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones, resetRecurringTasks } from './scheduled.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// ── Security: body size limit + CORS ──────────────────────────
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || true,
+  credentials: true,
+}));
+app.use(express.json({ limit: '10mb' }));
 
 // ── Serve uploaded files ──────────────────────────────────────
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -85,6 +89,12 @@ app.post('/api/profile/avatar', authMiddleware, upload.single('avatar'), async (
   res.json({ avatarUrl: url });
 });
 
+// ── Global error handler ────────────────────────────────────
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error:', err.message);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
 // ── Serve frontend in production ────────────────────────────
 const distDir = path.join(__dirname, '..', 'dist');
 app.use(express.static(distDir));
@@ -112,6 +122,14 @@ initDB()
     // Run once on startup, then every hour
     runScheduledJobs();
     setInterval(runScheduledJobs, 3600000);
+
+    // Reset recurring tasks every 5 minutes (batch SQL, replaces per-request O(n) loop)
+    const runResetJob = async () => {
+      try { await resetRecurringTasks(); }
+      catch (err) { console.error('Reset recurring tasks error:', err.message); }
+    };
+    runResetJob();
+    setInterval(runResetJob, 5 * 60 * 1000);
   })
   .catch((err) => {
     console.error('Failed to initialize database:', err);

@@ -1,19 +1,16 @@
+import { memo } from 'react';
 import { IconCheckSmall, IconEdit, IconTrash } from './Icons';
+import { formatDate } from '../utils/time';
 
 const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', repeatable: 'Repeatable' };
 
-export default function TaskRow({ task, project, showProject, showCreator, currentUserId, onToggle, onClick, onEdit, onDelete, onProjectClick }) {
+export default memo(function TaskRow({ task, project, showProject, showCreator, currentUserId, onToggle, onClick, onEdit, onDelete, onProjectClick }) {
   const effectiveDate = task.dueDate || task.scheduledDate;
   const isScheduled = !task.dueDate && !!task.scheduledDate;
   const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
   const isOwnTask = !currentUserId || task.userId === currentUserId;
   const isRepeatable = task.recurrence === 'repeatable';
   const isRecurring = task.recurrence && task.recurrence !== 'none';
-
-  const formatDate = (iso) => {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   return (
     <div className="task-row" onClick={() => onClick(task)}>
@@ -76,4 +73,4 @@ export default function TaskRow({ task, project, showProject, showCreator, curre
       </div>
     </div>
   );
-}
+})

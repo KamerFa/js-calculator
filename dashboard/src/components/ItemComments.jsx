@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { DB } from '../db';
 import { useAuth } from '../context/AuthContext';
-import { resolveAvatarUrl } from '../avatarUtils';
+import Avatar from './Avatar';
 import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
+import { timeAgoShort } from '../utils/time';
 
 export default function ItemComments({ targetType, targetId }) {
   const { user } = useAuth();
@@ -50,16 +51,7 @@ export default function ItemComments({ targetType, targetId }) {
     }
   };
 
-  const timeAgo = (iso) => {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d`;
-  };
+  const timeAgo = timeAgoShort;
 
   if (loading) return null;
 
@@ -75,13 +67,7 @@ export default function ItemComments({ targetType, targetId }) {
           {comments.map((c) => (
             <div className="item-comment" key={c.id}>
               <div className="item-comment-avatar-col">
-                {resolveAvatarUrl(c.avatarUrl) ? (
-                  <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="item-comment-avatar" />
-                ) : (
-                  <span className="item-comment-avatar item-comment-avatar-ph">
-                    {c.username?.charAt(0).toUpperCase()}
-                  </span>
-                )}
+                <Avatar avatarUrl={c.avatarUrl} username={c.username} size={32} className="item-comment-avatar" />
               </div>
               <div className="item-comment-content">
                 <div className="item-comment-meta">

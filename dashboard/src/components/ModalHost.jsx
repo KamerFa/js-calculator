@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -23,6 +24,24 @@ export default function ModalHost() {
     importModal, closeImportModal,
   } = useModals();
   const navigate = useNavigate();
+
+  // ── Global Escape key handler for all modals ──
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      // Close topmost modal (priority order: confirm > task detail > share > import > note > project > task)
+      if (confirm.open) { closeConfirm(); return; }
+      if (taskDetail.open) { closeTaskDetail(); return; }
+      if (shareModal.open) { closeShareModal(); return; }
+      if (importModal) { closeImportModal(); return; }
+      if (noteModal.open) { closeNoteModal(); return; }
+      if (projectModal.open) { closeProjectModal(); return; }
+      if (taskModal.open) { closeTaskModal(); return; }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [confirm.open, taskDetail.open, shareModal.open, importModal, noteModal.open, projectModal.open, taskModal.open,
+      closeConfirm, closeTaskDetail, closeShareModal, closeImportModal, closeNoteModal, closeProjectModal, closeTaskModal]);
 
   const handleSaveTask = async (form) => {
     await saveTask(form);

@@ -124,4 +124,40 @@ async function insertNotification(userId, actorId, type, summary, targetType, ta
   );
 }
 
-export { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones };
+/**
+ * Auto-reset shared recurring/repeatable tasks that are stale.
+ * Runs as a batch SQL update instead of per-request O(n) loop.
+ */
+async function resetRecurringTasks() {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Reset daily + repeatable tasks completed before today
+  await pool.query(
+    `UPDATE tasks SET status = 'todo', completed_at = NULL, completed_by = NULL
+     WHERE recurrence IN ('daily', 'repeatable') AND status = 'done'
+       AND task_type = 'shared'
+       AND DATE(completed_at) < $1::date`,
+    [today]
+  );
+
+  // Reset weekly tasks completed 7+ days ago
+  await pool.query(
+    `UPDATE tasks SET status = 'todo', completed_at = NULL, completed_by = NULL
+     WHERE recurrence = 'weekly' AND status = 'done'
+       AND task_type = 'shared'
+       AND DATE(completed_at) < ($1::date - INTERVAL '7 days')`,
+    [today]
+  );
+
+  // Reset monthly tasks completed in a previous month
+  await pool.query(
+    `UPDATE tasks SET status = 'todo', completed_at = NULL, completed_by = NULL
+     WHERE recurrence = 'monthly' AND status = 'done'
+       AND task_type = 'shared'
+       AND (EXTRACT(MONTH FROM completed_at) != EXTRACT(MONTH FROM $1::date)
+            OR EXTRACT(YEAR FROM completed_at) != EXTRACT(YEAR FROM $1::date))`,
+    [today]
+  );
+}
+
+export { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones, resetRecurringTasks };

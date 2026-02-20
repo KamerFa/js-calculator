@@ -407,6 +407,18 @@ async function initDB() {
     )
   `);
 
+  // ── Performance indexes ─────────────────────────────────────
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tweets_created_at ON tweets(created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tweet_reactions_tweet_id ON tweet_reactions(tweet_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tweet_comments_tweet_id ON tweet_comments(tweet_id, created_at ASC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON tasks(user_id, status)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_recurrence ON tasks(recurrence) WHERE recurrence != 'none'`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_messages_group ON group_messages(group_id, created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_dm_created ON direct_messages(created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_comment_votes_comment ON comment_votes(comment_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_username_lower ON users(LOWER(username))`);
+
   // ── Delete Ramadan project completely (no longer needed) ──
   await pool.query(`DELETE FROM task_completions WHERE task_id IN (SELECT id FROM tasks WHERE project_id = 'global-ramadan')`);
   await pool.query(`DELETE FROM tasks WHERE project_id = 'global-ramadan'`);

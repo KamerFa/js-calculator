@@ -4,6 +4,7 @@ import { IconX } from './Icons';
 import { renderWithMentions } from '../mentions';
 import ItemComments from './ItemComments';
 import { DB } from '../db';
+import { formatDate } from '../utils/time';
 
 function CompletionHeatmap({ history }) {
   // Build a 52-day heatmap (7 rows x ~8 cols)
@@ -67,11 +68,6 @@ export default function TaskDetailModal({ open, task, projects, notes, onClose, 
   const effectiveDate = task.dueDate || task.scheduledDate;
   const isScheduled = !task.dueDate && !!task.scheduledDate;
   const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
-
-  const formatDate = (iso) => {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   // Notes attached to this task
   const taskNotes = (notes || []).filter(

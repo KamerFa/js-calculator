@@ -1,10 +1,7 @@
 import { IconPlus } from './Icons';
+import { formatDate } from '../utils/time';
 
 export default function NotesView({ notes, projects, tasks, onNoteClick, onNewNote }) {
-  const formatDate = (iso) => {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const attachmentLabel = (note) => {
     if (!note.attachedTo) return 'Standalone';

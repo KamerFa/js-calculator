@@ -244,34 +244,13 @@ router.get('/', async (req, res) => {
     }
   }
 
-  // Auto-reset shared recurring/repeatable tasks only (per_member uses date-based tracking)
-  const sharedResetIds = [];
-
+  // Display-only auto-reset: fix stale shared tasks in memory (actual DB reset runs via scheduled job)
   for (const row of rows) {
-    if (row.task_type !== 'per_member') {
-      // Shared: existing reset logic (also handles repeatable via shouldReset)
-      if (shouldReset(row)) {
-        sharedResetIds.push(row.id);
-        row.status = 'todo';
-        row.completed_at = null;
-        row.completed_by = null;
-        row.completer_username = null;
-        // Repeatable tasks don't advance due_date
-        if (row.due_date && row.recurrence !== 'repeatable') {
-          row.due_date = nextDueDate(row.recurrence, row.due_date);
-        }
-      }
-    }
-  }
-
-  // Batch reset shared tasks
-  if (sharedResetIds.length > 0) {
-    for (const id of sharedResetIds) {
-      const row = rows.find((r) => r.id === id);
-      await pool.query(
-        `UPDATE tasks SET status = 'todo', completed_at = NULL, completed_by = NULL, due_date = $1 WHERE id = $2`,
-        [row.due_date, id]
-      );
+    if (row.task_type !== 'per_member' && shouldReset(row)) {
+      row.status = 'todo';
+      row.completed_at = null;
+      row.completed_by = null;
+      row.completer_username = null;
     }
   }
 

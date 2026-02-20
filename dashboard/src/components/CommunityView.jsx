@@ -4,43 +4,13 @@ import { IconUsers, IconPlus } from './Icons';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
 import StatusDot from './StatusDot';
+import ReactionPicker from './ReactionPicker';
 import { useTranslation } from '../i18n';
-
-const REACTION_EMOJIS = [
-  '\u2764\uFE0F', // red heart
-  '\uD83D\uDE02', // laugh
-  '\uD83D\uDE4F', // pray
-  '\uD83D\uDD25', // fire
-  '\uD83D\uDC4D', // thumbs up
-  '\uD83D\uDE22', // sad
-  '\uD83D\uDC4F', // clap
-  '\uD83D\uDE0D', // heart eyes
-  '\uD83E\uDD2F', // exploding head
-  '\uD83D\uDE80', // rocket
-  '\uD83C\uDF89', // party
-  '\uD83E\uDD14', // thinking
-  '\u2705', // checkmark
-  '\uD83D\uDCAF', // hundred
-  '\uD83D\uDC40', // eyes
-  '\uD83E\uDD21', // clown
-  '\uD83D\uDCA9', // poop
-  '\u2615', // coffee
-];
+import { timeAgo } from '../utils/time';
 
 const TWEET_TEMPLATE_COUNT = 4;
 
 const QUOTE_COUNT = 30;
-
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 
 function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, onDeleteComment, onVoteComment, onUserClick }) {
@@ -157,15 +127,7 @@ function TweetCard({ tw, user, allUsers, onDelete, onEdit, onReact, onComment, o
               onClick={() => setShowReactPicker(!showReactPicker)}
             >+</button>
             {showReactPicker && (
-              <div className="react-picker">
-                {REACTION_EMOJIS.map((e) => (
-                  <button
-                    key={e}
-                    className="react-picker-emoji"
-                    onClick={() => { onReact(tw.id, e); setShowReactPicker(false); }}
-                  >{e}</button>
-                ))}
-              </div>
+              <ReactionPicker onSelect={(e) => { onReact(tw.id, e); setShowReactPicker(false); }} />
             )}
           </div>
         </div>

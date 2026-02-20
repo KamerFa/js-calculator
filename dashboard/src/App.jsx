@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router';
 import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
@@ -10,19 +10,22 @@ import ModalHost from './components/ModalHost';
 import radioAudio from './radioAudio';
 import FocusTimer from './components/FocusTimer';
 import BottomTabBar from './components/BottomTabBar';
+import { timeAgo } from './utils/time';
 
-// ── Pages ────────────────────────────────────────────────
+// ── Pages (eagerly loaded core routes) ──
 import TasksPage from './pages/TasksPage';
 import ProjectPage from './pages/ProjectPage';
 import CalendarPage from './pages/CalendarPage';
-import NotesPage from './pages/NotesPage';
-import CommunityPage from './pages/CommunityPage';
-import ProfilePage from './pages/ProfilePage';
-import UsersPage from './pages/UsersPage';
-import RadioPage from './pages/RadioPage';
-import NewsPage from './pages/NewsPage';
-import SettingsPage from './pages/SettingsPage';
-import MessagesPage from './pages/MessagesPage';
+
+// ── Pages (lazy-loaded secondary routes) ──
+const NotesPage = lazy(() => import('./pages/NotesPage'));
+const CommunityPage = lazy(() => import('./pages/CommunityPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const RadioPage = lazy(() => import('./pages/RadioPage'));
+const NewsPage = lazy(() => import('./pages/NewsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 
 // ── Radio mini player ────────────────────────────────────
 function useRadioState() {
@@ -111,16 +114,7 @@ const NOTIF_FILTER_CATEGORIES = {
   projects: (n) => ['project_join', 'project_leave', 'project_invite', 'project_removed'].includes(n.type),
 };
 
-function notifTimeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
+const notifTimeAgo = timeAgo;
 
 function getDateGroup(iso) {
   const now = new Date();
@@ -343,21 +337,23 @@ export default function App() {
       />
 
       <main className="main" onClick={() => mobileOpen && setMobileOpen(false)}>
-        <Routes>
-          <Route index element={<TasksPage />} />
-          <Route path="calendar" element={<CalendarPage />} />
-          <Route path="notes" element={<NotesPage />} />
-          <Route path="community" element={<CommunityPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="radio" element={<RadioPage />} />
-          <Route path="news" element={<NewsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="profile/:username" element={<ProfilePage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="project/:id" element={<ProjectPage />} />
-          <Route path="messages" element={<MessagesPage />} />
-          <Route path="messages/:userId" element={<MessagesPage />} />
-        </Routes>
+        <Suspense fallback={<div className="page-container"><div className="empty-state">Loading...</div></div>}>
+          <Routes>
+            <Route index element={<TasksPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+            <Route path="notes" element={<NotesPage />} />
+            <Route path="community" element={<CommunityPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="radio" element={<RadioPage />} />
+            <Route path="news" element={<NewsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="profile/:username" element={<ProfilePage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="project/:id" element={<ProjectPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="messages/:userId" element={<MessagesPage />} />
+          </Routes>
+        </Suspense>
 
         {!isRadioPage && <RadioMiniPlayer />}
         <FocusTimer />

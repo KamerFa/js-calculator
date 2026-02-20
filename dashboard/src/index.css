@@ -4,6 +4,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  /* ── Colors ── */
   --bg:           #f7f5f0;
   --surface:      #ffffff;
   --border:       #e2ddd6;
@@ -20,13 +21,43 @@
   --success:      #276749;
   --success-bg:   #edf7f1;
 
+  /* ── Typography ── */
+  --text-xs:  0.75rem;
+  --text-sm:  0.875rem;
+  --text-base: 1rem;
+  --text-lg:  1.125rem;
+  --text-xl:  1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* ── Spacing (4px baseline) ── */
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
+  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
+  --space-8: 32px;  --space-10: 40px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-xl: 0 8px 32px rgba(0,0,0,0.16);
+
+  /* ── Transitions ── */
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms var(--ease-out);
+  --transition-base: 200ms var(--ease-out);
+  --transition-slow: 300ms var(--ease-out);
+
+  /* ── Radii ── */
   --radius-sm: 4px;
   --radius: 8px;
   --radius-lg: 14px;
+  --radius-pill: 20px;
 
+  /* ── Typography Families ── */
   --font-heading: 'Lora', serif;
   --font-body: 'DM Mono', monospace;
 
+  /* ── Layout ── */
   --sidebar-w: 220px;
 }
 
@@ -46,6 +77,10 @@
   --warn-bg:      rgba(240,160,48,0.12);
   --success:      #3ddc84;
   --success-bg:   rgba(61,220,132,0.12);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-xl: 0 8px 32px rgba(0,0,0,0.6);
 }
 
 body {
@@ -254,13 +289,17 @@ body {
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
   white-space: nowrap;
 }
 
 .btn:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:active {
+  transform: scale(0.97);
 }
 
 .btn-primary {
@@ -397,14 +436,15 @@ body {
   gap: 12px;
   padding: 10px 12px;
   border-radius: var(--radius);
-  transition: background 0.12s, box-shadow 0.12s;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   cursor: pointer;
   position: relative;
 }
 
 .task-row:hover {
   background: var(--surface);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .task-checkbox {
@@ -645,16 +685,17 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: var(--space-5);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   display: flex;
   flex-direction: column;
 }
 
 .note-card:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .note-card-title {
@@ -8586,4 +8627,155 @@ body {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
   }
+}
+
+/* ============================================================
+   GLOBAL FOCUS RING (Accessibility)
+   ============================================================ */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   SHARED AVATAR COMPONENT
+   ============================================================ */
+.avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+/* ============================================================
+   TOAST NOTIFICATION SYSTEM
+   ============================================================ */
+.toast-container {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 260px;
+  max-width: 400px;
+  font-size: var(--text-sm);
+  color: var(--text);
+  animation: toastSlideIn var(--transition-base) ease-out;
+}
+
+@keyframes toastSlideIn {
+  from { transform: translateX(calc(100% + var(--space-4))); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-success { border-left: 3px solid var(--success); }
+.toast-error { border-left: 3px solid var(--danger); }
+.toast-info { border-left: 3px solid var(--accent); }
+
+.toast-msg { flex: 1; }
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.toast-close:hover {
+  color: var(--text);
+}
+
+/* ============================================================
+   SKELETON LOADING STATES
+   ============================================================ */
+.skeleton-line {
+  background: linear-gradient(90deg, var(--border) 0%, var(--bg) 50%, var(--border) 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ============================================================
+   LIST ENTRANCE ANIMATION
+   ============================================================ */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.conv-item, .task-row {
+  animation: fadeSlideIn var(--transition-base) ease-out;
+}
+
+/* ============================================================
+   EMPTY STATE (shared)
+   ============================================================ */
+.empty-state-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-2);
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: var(--text-sm);
+  color: var(--text-3);
+  margin: 0;
+}
+
+.empty-state-desc {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  margin-top: var(--space-1);
+}
+
+.empty-state-action {
+  margin-top: var(--space-3);
 }

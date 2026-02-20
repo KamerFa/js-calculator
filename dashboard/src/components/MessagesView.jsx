@@ -6,26 +6,8 @@ import { resolveAvatarUrl } from '../avatarUtils';
 import StatusDot from './StatusDot';
 import { IconMessage, IconArrowLeft, IconSend, IconPlus, IconReply } from './Icons';
 import { initMessageSoundContext, playMessageSound } from '../messageSound';
-
-const REACTION_EMOJIS = [
-  '\u2764\uFE0F','😂','🙏','🔥','👍','😢','👏','😍','🤯','🚀','🎉','🤔','✅','💯','👀','🤡','💩','☕',
-];
-
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
-}
-
-function formatTime(iso) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+import ReactionPicker from './ReactionPicker';
+import { timeAgoShort, formatTime } from '../utils/time';
 
 function dateSeparatorLabel(iso, t) {
   const d = new Date(iso);
@@ -615,7 +597,7 @@ export default function MessagesView({ user, onUserClick }) {
                       {conv.type === 'dm' ? conv.username : conv.type === 'group' ? conv.groupName : conv.projectName}
                     </span>
                     {conv.lastMessage?.createdAt && (
-                      <span className="conv-time">{timeAgo(conv.lastMessage.createdAt)}</span>
+                      <span className="conv-time">{timeAgoShort(conv.lastMessage.createdAt)}</span>
                     )}
                   </div>
                   <div className="conv-preview">
@@ -745,11 +727,7 @@ export default function MessagesView({ user, onUserClick }) {
                               </button>
                             )}
                             {showReactPickerForMsg === msg.id && (
-                              <div className="react-picker msg-react-picker">
-                                {REACTION_EMOJIS.map((e) => (
-                                  <button key={e} className="react-picker-emoji" onClick={() => handleReact(msg.id, e)}>{e}</button>
-                                ))}
-                              </div>
+                              <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} className="msg-react-picker" />
                             )}
                           </div>
                           {msg.reactions && Object.keys(msg.reactions).length > 0 && (
@@ -843,11 +821,7 @@ export default function MessagesView({ user, onUserClick }) {
                                 title={t('messages.react')}
                               >+</button>
                               {showThreadReactPickerForMsg === msg.id && (
-                                <div className="react-picker msg-react-picker">
-                                  {REACTION_EMOJIS.map((e) => (
-                                    <button key={e} className="react-picker-emoji" onClick={() => handleReact(msg.id, e)}>{e}</button>
-                                  ))}
-                                </div>
+                                <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} className="msg-react-picker" />
                               )}
                             </div>
                             {msg.reactions && Object.keys(msg.reactions).length > 0 && (

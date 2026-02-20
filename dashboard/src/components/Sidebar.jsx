@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews, IconCalendar, IconCommunity, IconMessage } from './Icons';
 import { useTranslation } from '../i18n';
-import { resolveAvatarUrl } from '../avatarUtils';
 import { getProjectStatus } from '../projectStatus';
 import StatusDot, { CustomStatusBadge } from './StatusDot';
+import Avatar from './Avatar';
 import StatusPicker from './StatusPicker';
 import { DB } from '../db';
 import { initMessageSoundContext, playMessageSound } from '../messageSound';
@@ -357,12 +357,7 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
           <div className="user-menu" ref={userMenuRef}>
             <div className="user-menu-info" style={{ cursor: 'pointer' }} onClick={() => setUserMenuOpen(!userMenuOpen)}>
               <span className="avatar-with-status">
-                {resolveAvatarUrl(user.avatarUrl) ? (
-                  <img src={resolveAvatarUrl(user.avatarUrl)} alt="" className="user-menu-avatar" />
-                ) : (
-                  <span className="user-menu-avatar-placeholder">{user.username?.charAt(0).toUpperCase()}</span>
-                )}
-                <StatusDot presence={myStatus.presence} size={10} statusEmoji={myStatus.statusEmoji} statusText={myStatus.statusText} style={{ position: 'absolute', bottom: -1, right: -1, border: '2px solid var(--sidebar-bg, var(--surface))', borderRadius: '50%', boxSizing: 'content-box' }} />
+                <Avatar avatarUrl={user.avatarUrl} username={user.username} size={36} showStatus presence={myStatus.presence} statusEmoji={myStatus.statusEmoji} statusText={myStatus.statusText} />
               </span>
               <span className="user-menu-name-col">
                 <span className="user-menu-name">{user.username}</span>

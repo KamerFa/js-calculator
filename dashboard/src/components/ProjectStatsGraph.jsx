@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
+import { formatDate } from '../utils/time';
 
 export default function ProjectStatsGraph({ projectId }) {
   const { t } = useTranslation();
@@ -43,15 +44,6 @@ export default function ProjectStatsGraph({ projectId }) {
     data.sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    if (groupByWeek) {
-      const month = date.toLocaleDateString('en-US', { month: 'short' });
-      const day = date.getDate();
-      return `${month} ${day}`;
-    }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   return (
     <div className="project-stats-graph">

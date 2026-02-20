@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
-import StatusDot from './StatusDot';
+import Avatar from './Avatar';
 import { renderWithMentions, useMentions, MentionDropdown } from '../mentions';
 import { IconUsers, IconPlus } from './Icons';
 import AvatarPicker from './AvatarPicker';
@@ -236,20 +236,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
       <div className="profile-card">
         <div className="profile-card-top">
           <div className="profile-avatar-wrapper" onClick={() => isOwn && setShowAvatarPicker(true)}>
-            {avatarSrc ? (
-              <img src={avatarSrc} alt="Avatar" className="profile-avatar-img" />
-            ) : (
-              <div className="profile-avatar-placeholder">
-                {profile.username.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <StatusDot
-              presence={profile.presence || 'offline'}
-              size={18}
-              statusEmoji={profile.statusEmoji}
-              statusText={profile.statusText}
-              style={{ position: 'absolute', bottom: 2, right: 2, border: '3px solid var(--surface)', borderRadius: '50%', boxSizing: 'content-box' }}
-            />
+            <Avatar avatarUrl={profile.avatarUrl} username={profile.username} size={80} showStatus presence={profile.presence || 'offline'} statusEmoji={profile.statusEmoji} statusText={profile.statusText} />
             {isOwn && <span className="profile-avatar-edit">{t('modal.edit')}</span>}
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
           </div>
@@ -450,11 +437,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
           <div className="profile-friends-grid">
             {friends.filter((f) => f.status === 'accepted').map((f) => (
               <div className="profile-friend-card" key={f.id} onClick={() => onProjectClick && window.location.assign(`/profile/${f.username}`)}>
-                {f.avatarUrl ? (
-                  <img src={resolveAvatarUrl(f.avatarUrl)} alt="" className="profile-friend-avatar" />
-                ) : (
-                  <div className="profile-friend-avatar-placeholder">{f.username.charAt(0).toUpperCase()}</div>
-                )}
+                <Avatar avatarUrl={f.avatarUrl} username={f.username} size={40} className="profile-friend-avatar" />
                 <span className="profile-friend-name">
                   {f.nickname || f.username}
                 </span>
@@ -494,13 +477,7 @@ export default function ProfileView({ user, profileUsername, onProjectClick, onR
         {comments.map((c) => (
           <div className="profile-comment" key={c.id}>
             <div className="profile-comment-header">
-              {c.authorAvatar ? (
-                <img src={resolveAvatarUrl(c.authorAvatar)} alt="" className="profile-comment-avatar" />
-              ) : (
-                <span className="profile-comment-avatar profile-comment-avatar-placeholder">
-                  {c.authorUsername.charAt(0).toUpperCase()}
-                </span>
-              )}
+              <Avatar avatarUrl={c.authorAvatar} username={c.authorUsername} size={32} className="profile-comment-avatar" />
               <span className="profile-comment-author">@{c.authorUsername}</span>
               <span className="profile-comment-time">
                 {new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

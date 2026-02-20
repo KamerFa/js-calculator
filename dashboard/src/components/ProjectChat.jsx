@@ -2,21 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { DB } from '../db';
 import { resolveAvatarUrl } from '../avatarUtils';
 import { IconReply } from './Icons';
-
-const REACTION_EMOJIS = [
-  '\u2764\uFE0F','😂','🙏','🔥','👍','😢','👏','😍','🤯','🚀','🎉','🤔','✅','💯','👀','🤡','💩','☕',
-];
-
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
+import ReactionPicker from './ReactionPicker';
+import { timeAgo } from '../utils/time';
 
 function renderBody(body, onUserClick) {
   const parts = body.split(/(@\w+)/g);
@@ -230,11 +217,7 @@ export default function ProjectChat({ projectId, members, user, onUserClick }) {
                 )}
                 <p className="chat-msg-body">{renderBody(msg.body, onUserClick)}</p>
                 {showReactPickerForMsg === msg.id && (
-                  <div className="react-picker msg-react-picker" style={{ position: 'absolute', zIndex: 100 }}>
-                    {REACTION_EMOJIS.map((e) => (
-                      <button key={e} className="react-picker-emoji" onClick={() => handleReact(msg.id, e)}>{e}</button>
-                    ))}
-                  </div>
+                  <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} className="msg-react-picker" />
                 )}
                 {msg.reactions && Object.keys(msg.reactions).length > 0 && (
                   <div className="msg-reactions">

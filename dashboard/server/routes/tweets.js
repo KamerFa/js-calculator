@@ -6,65 +6,61 @@ import { derivePresence } from '../auth.js';
 const router = Router();
 
 // ── Helper: enrich tweets with reactions, comments, avatar, votes ──
+// Uses batched queries (3 parallel) instead of N+1 pattern
 async function enrichTweets(rows) {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
 
-  // Reactions grouped per tweet+emoji
-  const { rows: reactionRows } = await pool.query(
-    `SELECT tr.tweet_id, tr.emoji, tr.user_id, u.username
-     FROM tweet_reactions tr
-     JOIN users u ON u.id = tr.user_id
-     WHERE tr.tweet_id = ANY($1)`,
-    [ids]
-  );
+  // Run all 3 queries in parallel
+  const [reactResult, commentResult] = await Promise.all([
+    pool.query(
+      `SELECT tr.tweet_id, tr.emoji, tr.user_id, u.username
+       FROM tweet_reactions tr
+       JOIN users u ON u.id = tr.user_id
+       WHERE tr.tweet_id = ANY($1)`,
+      [ids]
+    ),
+    pool.query(
+      `SELECT tc.*, u.username, u.avatar_url,
+              COALESCE(cv.up, 0) AS upvotes,
+              COALESCE(cv.down, 0) AS downvotes,
+              cv.votes_json
+       FROM tweet_comments tc
+       JOIN users u ON u.id = tc.user_id
+       LEFT JOIN LATERAL (
+         SELECT
+           COUNT(*) FILTER (WHERE vote = 1) AS up,
+           COUNT(*) FILTER (WHERE vote = -1) AS down,
+           json_agg(json_build_object('userId', user_id, 'vote', vote)) AS votes_json
+         FROM comment_votes WHERE comment_id = tc.id
+       ) cv ON true
+       WHERE tc.tweet_id = ANY($1)
+       ORDER BY tc.created_at ASC`,
+      [ids]
+    ),
+  ]);
 
-  // Comments with usernames + avatars
-  const { rows: commentRows } = await pool.query(
-    `SELECT tc.*, u.username, u.avatar_url
-     FROM tweet_comments tc
-     JOIN users u ON u.id = tc.user_id
-     WHERE tc.tweet_id = ANY($1)
-     ORDER BY tc.created_at ASC`,
-    [ids]
-  );
-
-  // Comment votes
-  const commentIds = commentRows.map((c) => c.id);
-  let voteMap = {};
-  if (commentIds.length > 0) {
-    const { rows: voteRows } = await pool.query(
-      `SELECT comment_id, vote, user_id FROM comment_votes WHERE comment_id = ANY($1)`,
-      [commentIds]
-    );
-    for (const v of voteRows) {
-      if (!voteMap[v.comment_id]) voteMap[v.comment_id] = [];
-      voteMap[v.comment_id].push({ userId: v.user_id, vote: v.vote });
-    }
-  }
-
-  // Build per-tweet maps
+  // Build per-tweet reaction map
   const reactMap = {};
-  for (const r of reactionRows) {
+  for (const r of reactResult.rows) {
     if (!reactMap[r.tweet_id]) reactMap[r.tweet_id] = {};
     if (!reactMap[r.tweet_id][r.emoji]) reactMap[r.tweet_id][r.emoji] = [];
     reactMap[r.tweet_id][r.emoji].push({ userId: r.user_id, username: r.username });
   }
 
+  // Build per-tweet comment map (votes already joined)
   const commentMap = {};
-  for (const c of commentRows) {
+  for (const c of commentResult.rows) {
     if (!commentMap[c.tweet_id]) commentMap[c.tweet_id] = [];
-    const votes = voteMap[c.id] || [];
-    const upvotes = votes.filter((v) => v.vote === 1).length;
-    const downvotes = votes.filter((v) => v.vote === -1).length;
+    const up = parseInt(c.upvotes);
+    const down = parseInt(c.downvotes);
+    const votes = (c.votes_json && c.votes_json[0]?.userId) ? c.votes_json : [];
     commentMap[c.tweet_id].push({
       id: c.id, body: c.body, userId: c.user_id,
       username: c.username, avatarUrl: c.avatar_url,
       createdAt: c.created_at,
-      upvotes,
-      downvotes,
-      score: upvotes - downvotes,
-      votes: votes.map((v) => ({ userId: v.userId, vote: v.vote })),
+      upvotes: up, downvotes: down, score: up - down,
+      votes,
     });
   }
 
