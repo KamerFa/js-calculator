@@ -105,7 +105,7 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     const load = () => DB.getUnreadMessageCount().then(d => {
       const newTotal = d.total || 0;
       // Play sound if unread count increased and user is not on messages page
-      if (newTotal > prevUnreadMsgRef.current && prevUnreadMsgRef.current >= 0 && !pathname.startsWith('/messages')) {
+      if (newTotal > prevUnreadMsgRef.current && prevUnreadMsgRef.current >= 0 && !location.pathname.startsWith('/messages')) {
         playMessageSound();
       }
       prevUnreadMsgRef.current = newTotal;
@@ -114,7 +114,7 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     load();
     const interval = setInterval(load, 30000);
     return () => { clearInterval(interval); document.removeEventListener('click', initAudio); };
-  }, [user, pathname]);
+  }, [user, location.pathname]);
 
   const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
 
