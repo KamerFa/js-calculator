@@ -7407,6 +7407,7 @@ body {
   gap: 8px;
   padding: 4px 0;
   align-items: flex-end;
+  position: relative;
 }
 
 .msg-row.mine {
@@ -7509,33 +7510,73 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Message three-dots action button ── */
-.msg-actions-btn {
+/* ── Slack-style hover toolbar ── */
+.msg-toolbar {
+  position: absolute;
+  top: -14px;
+  right: 8px;
   display: none;
+  align-items: center;
+  gap: 1px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  padding: 2px;
+  z-index: 20;
+}
+
+.msg-row.mine .msg-toolbar {
+  right: auto;
+  left: 8px;
+}
+
+.msg-row:hover > .msg-toolbar,
+.msg-toolbar:has(.msg-toolbar-picker),
+.msg-toolbar:has(.msg-actions-menu) {
+  display: flex;
+}
+
+.msg-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 13px;
-  color: inherit;
-  opacity: 0.5;
-  padding: 0 2px;
-  line-height: 1;
-  flex-shrink: 0;
+  color: var(--text-2);
+  border-radius: 4px;
+  transition: background 0.1s;
 }
 
-.msg-bubble:hover .msg-actions-btn {
-  display: inline-flex;
-  align-items: center;
+.msg-toolbar-btn:hover {
+  background: var(--hover);
+  color: var(--text);
 }
 
-.msg-actions-btn:hover {
-  opacity: 1;
-}
-
-/* ── Message action dropdown menu ── */
-.msg-actions-menu {
+/* ── Reaction picker anchored to toolbar ── */
+.msg-toolbar-picker {
   position: absolute;
   bottom: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+}
+
+.msg-row.mine .msg-toolbar-picker {
+  right: auto;
+  left: 0;
+}
+
+.msg-toolbar-picker .react-picker {
+  position: static;
+}
+
+/* ── More-actions dropdown anchored to toolbar ── */
+.msg-actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
   right: 0;
   z-index: 50;
   display: flex;
@@ -7546,12 +7587,11 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   padding: 4px 0;
-  overflow: hidden;
 }
 
 .msg-row.mine .msg-actions-menu {
-  right: 0;
-  left: auto;
+  right: auto;
+  left: 0;
 }
 
 .msg-actions-menu button {
@@ -7606,17 +7646,7 @@ body {
   opacity: 1;
 }
 
-/* ── Reaction picker within message bubble ── */
-.msg-react-picker {
-  bottom: calc(100% + 4px);
-  right: 0;
-  left: auto;
-}
-
-.msg-row.mine .msg-react-picker {
-  left: auto;
-  right: 0;
-}
+/* ── (Removed: old msg-react-picker, now in toolbar) ── */
 
 /* ── Reaction chips row below bubble ── */
 .msg-reactions {
