@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
@@ -55,6 +55,46 @@ function renderBody(body, onUserClick) {
     }
     return part;
   });
+}
+
+/* ── Position-aware picker/menu drop ── */
+function PickerDrop({ children, className = '' }) {
+  const ref = useRef(null);
+  const [pos, setPos] = useState({ vertical: 'above', horizontal: 'right' });
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Find the scroll container (.messages-thread or .thread-panel-messages)
+    const container = el.closest('.messages-thread') || el.closest('.thread-panel-messages');
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const wrapEl = el.closest('.msg-bubble-wrap');
+    if (!wrapEl) return;
+    const wrapRect = wrapEl.getBoundingClientRect();
+
+    // Vertical: prefer above, flip to below if not enough room
+    const spaceAbove = wrapRect.top - containerRect.top;
+    const spaceBelow = containerRect.bottom - wrapRect.bottom;
+    const vertical = spaceAbove < 340 && spaceBelow > spaceAbove ? 'below' : 'above';
+
+    // Horizontal: prefer aligned to right edge, flip to left if overflow
+    const spaceRight = containerRect.right - wrapRect.left;
+    const spaceLeft = wrapRect.right - containerRect.left;
+    const horizontal = spaceRight < 330 && spaceLeft > spaceRight ? 'left' : 'right';
+
+    setPos({ vertical, horizontal });
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`msg-picker-drop ${className} drop-v-${pos.vertical} drop-h-${pos.horizontal}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 export default function MessagesView({ user, onUserClick }) {
@@ -735,21 +775,23 @@ export default function MessagesView({ user, onUserClick }) {
                               </button>
                             </div>
                             {showReactPickerForMsg === msg.id && (
-                              <div className="msg-picker-drop">
+                              <PickerDrop>
                                 <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} />
-                              </div>
+                              </PickerDrop>
                             )}
                             {activeMenuMsgId === msg.id && (
-                              <div className="msg-actions-menu">
-                                <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveMenuMsgId(null); }}>
-                                  <IconCopy size={14} /> Copy Text
-                                </button>
-                                {isMine && (
-                                  <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveMenuMsgId(null); }}>
-                                    &times; {t('messages.deleteMessage')}
+                              <PickerDrop className="msg-menu-drop">
+                                <div className="msg-actions-menu">
+                                  <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveMenuMsgId(null); }}>
+                                    <IconCopy size={14} /> Copy Text
                                   </button>
-                                )}
-                              </div>
+                                  {isMine && (
+                                    <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveMenuMsgId(null); }}>
+                                      &times; {t('messages.deleteMessage')}
+                                    </button>
+                                  )}
+                                </div>
+                              </PickerDrop>
                             )}
                           </div>
                           {msg.reactions && Object.keys(msg.reactions).length > 0 && (
@@ -848,21 +890,23 @@ export default function MessagesView({ user, onUserClick }) {
                                 </button>
                               </div>
                               {showThreadReactPickerForMsg === msg.id && (
-                                <div className="msg-picker-drop">
+                                <PickerDrop>
                                   <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} />
-                                </div>
+                                </PickerDrop>
                               )}
                               {activeThreadMenuMsgId === msg.id && (
-                                <div className="msg-actions-menu">
-                                  <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveThreadMenuMsgId(null); }}>
-                                    <IconCopy size={14} /> Copy Text
-                                  </button>
-                                  {isMine && (
-                                    <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveThreadMenuMsgId(null); }}>
-                                      &times; {t('messages.deleteMessage')}
+                                <PickerDrop className="msg-menu-drop">
+                                  <div className="msg-actions-menu">
+                                    <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveThreadMenuMsgId(null); }}>
+                                      <IconCopy size={14} /> Copy Text
                                     </button>
-                                  )}
-                                </div>
+                                    {isMine && (
+                                      <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveThreadMenuMsgId(null); }}>
+                                        &times; {t('messages.deleteMessage')}
+                                      </button>
+                                    )}
+                                  </div>
+                                </PickerDrop>
                               )}
                             </div>
                             {msg.reactions && Object.keys(msg.reactions).length > 0 && (

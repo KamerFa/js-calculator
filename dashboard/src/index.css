@@ -7768,17 +7768,36 @@ body {
 }
 
 /* ── Reaction picker drop (from hover actions) ── */
+/* ── Position-aware picker drop ── */
 .msg-picker-drop {
   position: absolute;
-  bottom: calc(100% + 8px);
-  right: 0;
   z-index: 50;
-  animation: pickerSlideIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pickerSlideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.msg-row.mine .msg-picker-drop {
-  right: auto;
+/* Vertical: above (default) */
+.msg-picker-drop.drop-v-above {
+  bottom: calc(100% + 8px);
+  top: auto;
+}
+
+/* Vertical: below (flipped) */
+.msg-picker-drop.drop-v-below {
+  top: calc(100% + 8px);
+  bottom: auto;
+  animation-name: pickerSlideDown;
+}
+
+/* Horizontal: right-aligned (default) */
+.msg-picker-drop.drop-h-right {
+  right: 0;
+  left: auto;
+}
+
+/* Horizontal: left-aligned (flipped) */
+.msg-picker-drop.drop-h-left {
   left: 0;
+  right: auto;
 }
 
 .msg-picker-drop .react-picker {
@@ -7787,17 +7806,18 @@ body {
   box-shadow: 0 12px 40px rgba(0,0,0,0.18);
 }
 
-@keyframes pickerSlideIn {
+@keyframes pickerSlideUp {
   from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pickerSlideDown {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── More-actions dropdown ── */
 .msg-actions-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 50;
   display: flex;
   flex-direction: column;
   min-width: 160px;
@@ -7807,17 +7827,19 @@ body {
   box-shadow: 0 8px 32px rgba(0,0,0,0.15);
   padding: 4px;
   backdrop-filter: blur(20px);
-  animation: menuIn 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.msg-row.mine .msg-actions-menu {
+/* When used outside PickerDrop (legacy/fallback) */
+.msg-actions-menu:not(.msg-menu-drop .msg-actions-menu) {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+}
+
+.msg-row.mine .msg-actions-menu:not(.msg-menu-drop .msg-actions-menu) {
   right: auto;
   left: 0;
-}
-
-@keyframes menuIn {
-  from { opacity: 0; transform: translateY(-4px) scale(0.95); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .msg-actions-menu button {
