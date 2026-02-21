@@ -7767,39 +7767,7 @@ body {
   transform: scale(1.1);
 }
 
-/* ── Reaction picker drop (from hover actions) ── */
-/* ── Position-aware picker drop ── */
-.msg-picker-drop {
-  position: absolute;
-  z-index: 50;
-  animation: pickerSlideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Vertical: above (default) */
-.msg-picker-drop.drop-v-above {
-  bottom: calc(100% + 8px);
-  top: auto;
-}
-
-/* Vertical: below (flipped) */
-.msg-picker-drop.drop-v-below {
-  top: calc(100% + 8px);
-  bottom: auto;
-  animation-name: pickerSlideDown;
-}
-
-/* Horizontal: right-aligned (default) */
-.msg-picker-drop.drop-h-right {
-  right: 0;
-  left: auto;
-}
-
-/* Horizontal: left-aligned (flipped) */
-.msg-picker-drop.drop-h-left {
-  left: 0;
-  right: auto;
-}
-
+/* ── Position-aware picker drop (positioned via inline styles in JS) ── */
 .msg-picker-drop .react-picker {
   position: static;
   border-radius: 16px;

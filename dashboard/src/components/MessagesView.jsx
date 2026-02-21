@@ -60,38 +60,64 @@ function renderBody(body, onUserClick) {
 /* ── Position-aware picker/menu drop ── */
 function PickerDrop({ children, className = '' }) {
   const ref = useRef(null);
-  const [pos, setPos] = useState({ vertical: 'above', horizontal: 'right' });
+  const [style, setStyle] = useState({ position: 'absolute', zIndex: 50, visibility: 'hidden' });
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Find the scroll container (.messages-thread or .thread-panel-messages)
     const container = el.closest('.messages-thread') || el.closest('.thread-panel-messages');
     if (!container) return;
-
-    const containerRect = container.getBoundingClientRect();
     const wrapEl = el.closest('.msg-bubble-wrap');
     if (!wrapEl) return;
-    const wrapRect = wrapEl.getBoundingClientRect();
+
+    const cRect = container.getBoundingClientRect();
+    const wRect = wrapEl.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const pw = elRect.width;   // picker width
+    const ph = elRect.height;  // picker height
+    const gap = 8;
+    const pad = 8; // safety padding from container edges
 
     // Vertical: prefer above, flip to below if not enough room
-    const spaceAbove = wrapRect.top - containerRect.top;
-    const spaceBelow = containerRect.bottom - wrapRect.bottom;
-    const vertical = spaceAbove < 340 && spaceBelow > spaceAbove ? 'below' : 'above';
+    const spaceAbove = wRect.top - cRect.top;
+    const spaceBelow = cRect.bottom - wRect.bottom;
+    let top;
+    let animDir = 'up';
+    if (spaceAbove >= ph + gap) {
+      top = -(ph + gap); // above
+    } else if (spaceBelow >= ph + gap) {
+      top = wRect.height + gap; // below
+      animDir = 'down';
+    } else if (spaceAbove > spaceBelow) {
+      top = -(ph + gap); // above even if tight
+    } else {
+      top = wRect.height + gap; // below
+      animDir = 'down';
+    }
 
-    // Horizontal: prefer aligned to right edge, flip to left if overflow
-    const spaceRight = containerRect.right - wrapRect.left;
-    const spaceLeft = wrapRect.right - containerRect.left;
-    const horizontal = spaceRight < 330 && spaceLeft > spaceRight ? 'left' : 'right';
+    // Horizontal: center on the bubble-wrap, then clamp to container
+    let left = (wRect.width - pw) / 2; // centered
+    // Convert to container-relative coords to check overflow
+    const absLeft = wRect.left + left;
+    const absRight = absLeft + pw;
+    if (absLeft < cRect.left + pad) {
+      left += (cRect.left + pad) - absLeft;
+    } else if (absRight > cRect.right - pad) {
+      left -= absRight - (cRect.right - pad);
+    }
 
-    setPos({ vertical, horizontal });
+    setStyle({
+      position: 'absolute',
+      zIndex: 50,
+      top: `${top}px`,
+      left: `${left}px`,
+      visibility: 'visible',
+      animation: `${animDir === 'up' ? 'pickerSlideUp' : 'pickerSlideDown'} 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)`,
+    });
   }, []);
 
   return (
-    <div
-      ref={ref}
-      className={`msg-picker-drop ${className} drop-v-${pos.vertical} drop-h-${pos.horizontal}`}
-    >
+    <div ref={ref} className={`msg-picker-drop ${className}`} style={style}>
       {children}
     </div>
   );
