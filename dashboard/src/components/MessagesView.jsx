@@ -267,7 +267,7 @@ export default function MessagesView({ user, onUserClick }) {
   useEffect(() => {
     if (!showReactPickerForMsg && !showThreadReactPickerForMsg && !activeMenuMsgId && !activeThreadMenuMsgId) return;
     const handleClick = (e) => {
-      if (!e.target.closest('.msg-toolbar')) {
+      if (!e.target.closest('.msg-bubble-wrap')) {
         setShowReactPickerForMsg(null);
         setShowThreadReactPickerForMsg(null);
         setActiveMenuMsgId(null);
@@ -713,13 +713,43 @@ export default function MessagesView({ user, onUserClick }) {
                               <span className="msg-reply-text">{msg.replyTo.body}</span>
                             </div>
                           )}
-                          <div className={`msg-bubble${isMine ? ' mine' : ''}`}>
-                            <span className="msg-text">{renderBody(msg.body, onUserClick)}</span>
-                            <span className="msg-time">{formatTime(msg.createdAt)}</span>
-                            {isMine && selectedConv.type === 'dm' && (
-                              <span className={`msg-status${isSeen ? ' seen' : ''}`}>
-                                {isSeen ? '\u2713\u2713' : '\u2713'}
-                              </span>
+                          <div className="msg-bubble-wrap">
+                            <div className={`msg-bubble${isMine ? ' mine' : ''}`}>
+                              <span className="msg-text">{renderBody(msg.body, onUserClick)}</span>
+                              <span className="msg-time">{formatTime(msg.createdAt)}</span>
+                              {isMine && selectedConv.type === 'dm' && (
+                                <span className={`msg-status${isSeen ? ' seen' : ''}`}>
+                                  {isSeen ? '\u2713\u2713' : '\u2713'}
+                                </span>
+                              )}
+                            </div>
+                            <div className={`msg-hover-actions${showReactPickerForMsg === msg.id || activeMenuMsgId === msg.id ? ' pinned' : ''}`}>
+                              <button onClick={(e) => { e.stopPropagation(); setShowReactPickerForMsg(showReactPickerForMsg === msg.id ? null : msg.id); setActiveMenuMsgId(null); }} title={t('messages.react')}>
+                                <IconSmile size={14} />
+                              </button>
+                              <button onClick={() => setThreadParentId(msg.id)} title={t('messages.reply')}>
+                                <IconReply size={14} />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg.id ? null : msg.id); setShowReactPickerForMsg(null); }} title="More">
+                                <IconMoreHorizontal size={14} />
+                              </button>
+                            </div>
+                            {showReactPickerForMsg === msg.id && (
+                              <div className="msg-picker-drop">
+                                <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} />
+                              </div>
+                            )}
+                            {activeMenuMsgId === msg.id && (
+                              <div className="msg-actions-menu">
+                                <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveMenuMsgId(null); }}>
+                                  <IconCopy size={14} /> Copy Text
+                                </button>
+                                {isMine && (
+                                  <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveMenuMsgId(null); }}>
+                                    &times; {t('messages.deleteMessage')}
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                           {msg.reactions && Object.keys(msg.reactions).length > 0 && (
@@ -756,47 +786,6 @@ export default function MessagesView({ user, onUserClick }) {
                             <button className="msg-thread-badge" onClick={() => setThreadParentId(msg.id)}>
                               {msg.replyCount} {msg.replyCount === 1 ? t('messages.reply') : t('messages.replies')}
                             </button>
-                          )}
-                        </div>
-                        {/* Slack-style hover toolbar */}
-                        <div className="msg-toolbar">
-                          <button
-                            className="msg-toolbar-btn"
-                            onClick={(e) => { e.stopPropagation(); setShowReactPickerForMsg(showReactPickerForMsg === msg.id ? null : msg.id); setActiveMenuMsgId(null); }}
-                            title={t('messages.react')}
-                          >
-                            <IconSmile size={15} />
-                          </button>
-                          <button
-                            className="msg-toolbar-btn"
-                            onClick={() => setThreadParentId(msg.id)}
-                            title={t('messages.reply')}
-                          >
-                            <IconReply size={15} />
-                          </button>
-                          <button
-                            className="msg-toolbar-btn"
-                            onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg.id ? null : msg.id); setShowReactPickerForMsg(null); }}
-                            title="More actions"
-                          >
-                            <IconMoreHorizontal size={15} />
-                          </button>
-                          {showReactPickerForMsg === msg.id && (
-                            <div className="msg-toolbar-picker">
-                              <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} />
-                            </div>
-                          )}
-                          {activeMenuMsgId === msg.id && (
-                            <div className="msg-actions-menu">
-                              <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveMenuMsgId(null); }}>
-                                <IconCopy size={14} /> Copy Text
-                              </button>
-                              {isMine && (
-                                <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveMenuMsgId(null); }}>
-                                  &times; {t('messages.deleteMessage')}
-                                </button>
-                              )}
-                            </div>
                           )}
                         </div>
                       </div>
@@ -845,9 +834,36 @@ export default function MessagesView({ user, onUserClick }) {
                                 {msg.username}
                               </span>
                             )}
-                            <div className={`msg-bubble${isMine ? ' mine' : ''}`}>
-                              <span className="msg-text">{renderBody(msg.body, onUserClick)}</span>
-                              <span className="msg-time">{formatTime(msg.createdAt)}</span>
+                            <div className="msg-bubble-wrap">
+                              <div className={`msg-bubble${isMine ? ' mine' : ''}`}>
+                                <span className="msg-text">{renderBody(msg.body, onUserClick)}</span>
+                                <span className="msg-time">{formatTime(msg.createdAt)}</span>
+                              </div>
+                              <div className={`msg-hover-actions${showThreadReactPickerForMsg === msg.id || activeThreadMenuMsgId === msg.id ? ' pinned' : ''}`}>
+                                <button onClick={(e) => { e.stopPropagation(); setShowThreadReactPickerForMsg(showThreadReactPickerForMsg === msg.id ? null : msg.id); setActiveThreadMenuMsgId(null); }} title={t('messages.react')}>
+                                  <IconSmile size={14} />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); setActiveThreadMenuMsgId(activeThreadMenuMsgId === msg.id ? null : msg.id); setShowThreadReactPickerForMsg(null); }} title="More">
+                                  <IconMoreHorizontal size={14} />
+                                </button>
+                              </div>
+                              {showThreadReactPickerForMsg === msg.id && (
+                                <div className="msg-picker-drop">
+                                  <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} />
+                                </div>
+                              )}
+                              {activeThreadMenuMsgId === msg.id && (
+                                <div className="msg-actions-menu">
+                                  <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveThreadMenuMsgId(null); }}>
+                                    <IconCopy size={14} /> Copy Text
+                                  </button>
+                                  {isMine && (
+                                    <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveThreadMenuMsgId(null); }}>
+                                      &times; {t('messages.deleteMessage')}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             {msg.reactions && Object.keys(msg.reactions).length > 0 && (
                               <div className="msg-reactions">
@@ -863,40 +879,6 @@ export default function MessagesView({ user, onUserClick }) {
                                     </button>
                                   );
                                 })}
-                              </div>
-                            )}
-                          </div>
-                          {/* Slack-style hover toolbar (thread) */}
-                          <div className="msg-toolbar">
-                            <button
-                              className="msg-toolbar-btn"
-                              onClick={(e) => { e.stopPropagation(); setShowThreadReactPickerForMsg(showThreadReactPickerForMsg === msg.id ? null : msg.id); setActiveThreadMenuMsgId(null); }}
-                              title={t('messages.react')}
-                            >
-                              <IconSmile size={15} />
-                            </button>
-                            <button
-                              className="msg-toolbar-btn"
-                              onClick={(e) => { e.stopPropagation(); setActiveThreadMenuMsgId(activeThreadMenuMsgId === msg.id ? null : msg.id); setShowThreadReactPickerForMsg(null); }}
-                              title="More actions"
-                            >
-                              <IconMoreHorizontal size={15} />
-                            </button>
-                            {showThreadReactPickerForMsg === msg.id && (
-                              <div className="msg-toolbar-picker">
-                                <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} />
-                              </div>
-                            )}
-                            {activeThreadMenuMsgId === msg.id && (
-                              <div className="msg-actions-menu">
-                                <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveThreadMenuMsgId(null); }}>
-                                  <IconCopy size={14} /> Copy Text
-                                </button>
-                                {isMine && (
-                                  <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveThreadMenuMsgId(null); }}>
-                                    &times; {t('messages.deleteMessage')}
-                                  </button>
-                                )}
                               </div>
                             )}
                           </div>
