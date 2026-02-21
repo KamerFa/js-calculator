@@ -9,6 +9,22 @@ const EMOJI_CATEGORIES = [
     emojis: [], // filled dynamically
   },
   {
+    id: 'fun',
+    icon: '🫠',
+    label: 'Fun & Niche',
+    emojis: [
+      '🫠','🫡','🫣','🫢','🫥','🤌','🫶','🤙','🦭','🪿',
+      '🫎','🦤','🪸','🪼','🪻','🫧','🪩','🛸','🧿','🪬',
+      '🫗','🧋','🥶','🥵','🤡','💀','👻','👽','🤖','👾',
+      '🧌','🫨','🙃','🥴','🤪','😶‍🌫️','🫠','🦧','🦥','🦔',
+      '🦩','🦜','🪶','🐙','🦑','🪰','🦞','🪺','🧊','🫙',
+      '🪤','🪆','🧸','🪅','🪄','🔮','🧬','🦠','🛞','🪬',
+      '🫰','🫳','🫴','🫵','🤏','💅','🧠','🫀','👁️','🫦',
+      '🧶','🪢','🪡','🧲','⚗️','🧪','🪈','🪇','🪘','🪗',
+      '🪭','🪮','🪯','🪷','🪹','🪾','🫎','🫏','🛜','🪽',
+    ],
+  },
+  {
     id: 'smileys',
     icon: '😊',
     label: 'Smileys & Emotion',
@@ -155,11 +171,12 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
-/* Quick-react row */
-const QUICK_EMOJIS = ['❤️','😂','👍','🔥','🙏','😢','🎉','🚀'];
+/* Quick-react defaults (used when recents < 8) */
+const DEFAULT_QUICK = ['❤️','😂','👍','🔥','🙏','🫠','🎉','🚀'];
 
 const RECENTS_KEY = 'emoji-recents';
 const MAX_RECENTS = 24;
+const QUICK_COUNT = 8;
 
 function getRecents() {
   try {
@@ -175,12 +192,12 @@ function saveRecent(emoji) {
 }
 
 /* Keep the old export for any code that imports REACTION_EMOJIS */
-export const REACTION_EMOJIS = QUICK_EMOJIS;
+export const REACTION_EMOJIS = DEFAULT_QUICK;
 
 const EMOJIS_PER_PAGE = 40;
 
 const ReactionPicker = memo(function ReactionPicker({ onSelect, className = '' }) {
-  const [activeTab, setActiveTab] = useState('smileys');
+  const [activeTab, setActiveTab] = useState('fun');
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [recents, setRecents] = useState(getRecents);
@@ -225,7 +242,7 @@ const ReactionPicker = memo(function ReactionPicker({ onSelect, className = '' }
     } else if (activeTab === 'recent' && recents.length === 0) {
       displayEmojis = [];
     } else {
-      const fallback = categories.find(c => c.id === 'smileys');
+      const fallback = categories.find(c => c.id === 'fun');
       totalPages = Math.ceil(fallback.emojis.length / EMOJIS_PER_PAGE);
       displayEmojis = fallback.emojis.slice(page * EMOJIS_PER_PAGE, (page + 1) * EMOJIS_PER_PAGE);
     }
@@ -236,13 +253,20 @@ const ReactionPicker = memo(function ReactionPicker({ onSelect, className = '' }
 
   return (
     <div className={`react-picker ${className}`} onClick={e => e.stopPropagation()}>
-      {/* Quick-react row */}
+      {/* Quick-react row: recents first, pad with defaults */}
       <div className="rp-quick-row">
-        {QUICK_EMOJIS.map(emoji => (
-          <button key={emoji} className="rp-quick-btn" onClick={() => handleSelect(emoji)}>
-            {emoji}
-          </button>
-        ))}
+        {(() => {
+          const merged = [...recents];
+          for (const e of DEFAULT_QUICK) {
+            if (merged.length >= QUICK_COUNT) break;
+            if (!merged.includes(e)) merged.push(e);
+          }
+          return merged.slice(0, QUICK_COUNT).map(emoji => (
+            <button key={emoji} className="rp-quick-btn" onClick={() => handleSelect(emoji)}>
+              {emoji}
+            </button>
+          ));
+        })()}
       </div>
 
       <div className="rp-divider" />
