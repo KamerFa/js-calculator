@@ -26,6 +26,7 @@ const RadioPage = lazy(() => import('./pages/RadioPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 // ── Radio mini player ────────────────────────────────────
 function useRadioState() {
@@ -322,6 +323,11 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!authChecked) return null;
+
+  // Landing page — standalone, no auth required
+  if (location.pathname === '/landing') {
+    return <Suspense fallback={null}><LandingPage /></Suspense>;
+  }
 
   if (!user) {
     return <LoginPage onAuth={handleAuth} />;
