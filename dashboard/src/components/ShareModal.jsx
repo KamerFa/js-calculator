@@ -6,6 +6,7 @@ export default function ShareModal({ open, project, user, onClose, onChanged }) 
   const [members, setMembers] = useState([]);
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
+  const [fieldError, setFieldError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -13,6 +14,7 @@ export default function ShareModal({ open, project, user, onClose, onChanged }) 
       DB.getProjectMembers(project.id).then(setMembers).catch(() => {});
       setUsername('');
       setError('');
+      setFieldError('');
     }
   }, [open, project]);
 
@@ -21,7 +23,8 @@ export default function ShareModal({ open, project, user, onClose, onChanged }) 
   const isOwner = project.isOwner;
 
   const handleInvite = async () => {
-    if (!username.trim()) return;
+    if (!username.trim()) { setFieldError('Username is required'); return; }
+    setFieldError('');
     setError('');
     setLoading(true);
     try {
@@ -67,10 +70,10 @@ export default function ShareModal({ open, project, user, onClose, onChanged }) 
           {isOwner && (
             <div className="share-invite-row">
               <input
-                className="form-input"
+                className={`form-input${fieldError ? ' error' : ''}`}
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => { setUsername(e.target.value); if (fieldError) setFieldError(''); }}
                 onKeyDown={handleKeyDown}
                 placeholder="Enter username to invite..."
                 disabled={loading}
@@ -80,6 +83,7 @@ export default function ShareModal({ open, project, user, onClose, onChanged }) 
               </button>
             </div>
           )}
+          {fieldError && <div className="form-error">{fieldError}</div>}
 
           {error && <div className="share-error">{error}</div>}
 

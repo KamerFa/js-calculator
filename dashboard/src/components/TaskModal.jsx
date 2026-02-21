@@ -16,6 +16,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   const [screenshotFile, setScreenshotFile] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({});
   const fileRef = useRef(null);
   const descRef = useRef(null);
   const mentions = useMentions(allUsers, null);
@@ -48,6 +49,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
       setScreenshotPreview(null);
     }
     setScreenshotFile(null);
+    setFieldErrors({});
   }, [open, task, prefillProjectId]);
 
   useEffect(() => {
@@ -87,7 +89,10 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   };
 
   const handleSave = () => {
-    if (!form.title.trim()) return;
+    const errors = {};
+    if (!form.title.trim()) errors.title = 'Title is required';
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
     onSave({ ...form, id: task?.id, _screenshotFile: screenshotFile });
   };
 
@@ -101,7 +106,8 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         <div className="modal-body">
           <div className="form-group">
             <label>Title</label>
-            <input className="form-input" type="text" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Task title" />
+            <input className={`form-input${fieldErrors.title ? ' error' : ''}`} type="text" value={form.title} onChange={(e) => { set('title', e.target.value); if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' })); }} placeholder="Task title" />
+            {fieldErrors.title && <div className="form-error">{fieldErrors.title}</div>}
           </div>
           <div className="form-group" style={{ position: 'relative' }}>
             <label>Description <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— use @ to mention users</span></label>

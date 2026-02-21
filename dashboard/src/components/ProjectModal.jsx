@@ -14,6 +14,7 @@ function toDateInput(val) {
 export default function ProjectModal({ open, project, onSave, onClose }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false, startDate: '', endDate: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (!open) return;
@@ -29,6 +30,7 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
     } else {
       setForm({ name: '', description: '', color: PRESET_COLORS[0], isPublic: false, startDate: '', endDate: '' });
     }
+    setFieldErrors({});
   }, [open, project]);
 
   if (!open) return null;
@@ -36,7 +38,10 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const handleSave = () => {
-    if (!form.name.trim()) return;
+    const errors = {};
+    if (!form.name.trim()) errors.name = 'Name is required';
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
     onSave({ ...form, id: project?.id });
   };
 
@@ -50,7 +55,8 @@ export default function ProjectModal({ open, project, onSave, onClose }) {
         <div className="modal-body">
           <div className="form-group">
             <label>{t('projects.name')}</label>
-            <input className="form-input" type="text" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={t('projects.name')} />
+            <input className={`form-input${fieldErrors.name ? ' error' : ''}`} type="text" value={form.name} onChange={(e) => { set('name', e.target.value); if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' })); }} placeholder={t('projects.name')} />
+            {fieldErrors.name && <div className="form-error">{fieldErrors.name}</div>}
           </div>
           <div className="form-group">
             <label>{t('projects.description')}</label>

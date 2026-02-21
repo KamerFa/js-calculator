@@ -4,7 +4,7 @@ import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { resolveAvatarUrl } from '../avatarUtils';
 import StatusDot from './StatusDot';
-import { IconMessage, IconArrowLeft, IconSend, IconPlus, IconReply } from './Icons';
+import { IconMessage, IconArrowLeft, IconSend, IconPlus, IconReply, IconMoreHorizontal, IconCopy } from './Icons';
 import { initMessageSoundContext, playMessageSound } from '../messageSound';
 import ReactionPicker from './ReactionPicker';
 import { timeAgoShort, formatTime } from '../utils/time';
@@ -75,10 +75,13 @@ export default function MessagesView({ user, onUserClick }) {
   const [groupSelectedMembers, setGroupSelectedMembers] = useState([]);
   const [groupFriends, setGroupFriends] = useState([]);
   const [groupSearch, setGroupSearch] = useState('');
+  const [groupErrors, setGroupErrors] = useState({});
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showReactPickerForMsg, setShowReactPickerForMsg] = useState(null);
   const [reactorsPopup, setReactorsPopup] = useState(null);
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+  const [activeThreadMenuMsgId, setActiveThreadMenuMsgId] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const prevUnreadRef = useRef({});
@@ -264,7 +267,7 @@ export default function MessagesView({ user, onUserClick }) {
   useEffect(() => {
     if (!showReactPickerForMsg && !showThreadReactPickerForMsg) return;
     const handleClick = (e) => {
-      if (!e.target.closest('.msg-react-picker') && !e.target.closest('.msg-react-btn')) {
+      if (!e.target.closest('.msg-react-picker') && !e.target.closest('.msg-actions-menu')) {
         setShowReactPickerForMsg(null);
         setShowThreadReactPickerForMsg(null);
       }
@@ -272,6 +275,19 @@ export default function MessagesView({ user, onUserClick }) {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, [showReactPickerForMsg, showThreadReactPickerForMsg]);
+
+  // Close action menu on outside click
+  useEffect(() => {
+    if (!activeMenuMsgId && !activeThreadMenuMsgId) return;
+    const handleClick = (e) => {
+      if (!e.target.closest('.msg-actions-menu') && !e.target.closest('.msg-actions-btn')) {
+        setActiveMenuMsgId(null);
+        setActiveThreadMenuMsgId(null);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [activeMenuMsgId, activeThreadMenuMsgId]);
 
   // Load thread when threadParentId changes
   useEffect(() => {
@@ -302,12 +318,14 @@ export default function MessagesView({ user, onUserClick }) {
     }
   }, [threadMessages]);
 
-  // Close thread when conversation changes
+  // Close thread and menus when conversation changes
   useEffect(() => {
     setThreadParentId(null);
     setThreadParent(null);
     setThreadMessages([]);
     setThreadBody('');
+    setActiveMenuMsgId(null);
+    setActiveThreadMenuMsgId(null);
   }, [selectedConv?.type, selectedConv?.id]);
 
   const handleSend = async () => {
@@ -400,11 +418,16 @@ export default function MessagesView({ user, onUserClick }) {
     setGroupName('');
     setGroupColor('#2a5caa');
     setGroupSearch('');
+    setGroupErrors({});
     setShowGroupCreator(true);
   };
 
   const handleCreateGroup = async () => {
-    if (!groupName.trim() || groupSelectedMembers.length === 0) return;
+    const errors = {};
+    if (!groupName.trim()) errors.groupName = 'Group name is required';
+    if (groupSelectedMembers.length === 0) errors.members = 'Select at least one member';
+    if (Object.keys(errors).length > 0) { setGroupErrors(errors); return; }
+    setGroupErrors({});
     try {
       await DB.createGroup(groupName.trim(), groupColor, groupSelectedMembers);
       setShowGroupCreator(false);
@@ -710,21 +733,29 @@ export default function MessagesView({ user, onUserClick }) {
                               </span>
                             )}
                             <button
-                              className="msg-reply-btn"
-                              onClick={() => { setThreadParentId(msg.id); }}
-                              title={t('messages.reply')}
+                              className="msg-actions-btn"
+                              onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg.id ? null : msg.id); setShowReactPickerForMsg(null); }}
+                              title="Actions"
                             >
-                              <IconReply size={11} />
+                              <IconMoreHorizontal size={12} />
                             </button>
-                            <button
-                              className="msg-react-btn"
-                              onClick={(e) => { e.stopPropagation(); setShowReactPickerForMsg(showReactPickerForMsg === msg.id ? null : msg.id); }}
-                              title={t('messages.react')}
-                            >+</button>
-                            {isMine && (
-                              <button className="msg-delete" onClick={() => handleDelete(msg.id)} title={t('messages.deleteMessage')}>
-                                &times;
-                              </button>
+                            {activeMenuMsgId === msg.id && (
+                              <div className="msg-actions-menu">
+                                <button onClick={() => { setThreadParentId(msg.id); setActiveMenuMsgId(null); }}>
+                                  <IconReply size={12} /> {t('messages.reply')}
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); setShowReactPickerForMsg(msg.id); }}>
+                                  <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> {t('messages.react')}
+                                </button>
+                                <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveMenuMsgId(null); }}>
+                                  <IconCopy size={12} /> Copy Text
+                                </button>
+                                {isMine && (
+                                  <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveMenuMsgId(null); }}>
+                                    &times; {t('messages.deleteMessage')}
+                                  </button>
+                                )}
+                              </div>
                             )}
                             {showReactPickerForMsg === msg.id && (
                               <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} className="msg-react-picker" />
@@ -816,10 +847,27 @@ export default function MessagesView({ user, onUserClick }) {
                               <span className="msg-text">{renderBody(msg.body, onUserClick)}</span>
                               <span className="msg-time">{formatTime(msg.createdAt)}</span>
                               <button
-                                className="msg-react-btn"
-                                onClick={(e) => { e.stopPropagation(); setShowThreadReactPickerForMsg(showThreadReactPickerForMsg === msg.id ? null : msg.id); }}
-                                title={t('messages.react')}
-                              >+</button>
+                                className="msg-actions-btn"
+                                onClick={(e) => { e.stopPropagation(); setActiveThreadMenuMsgId(activeThreadMenuMsgId === msg.id ? null : msg.id); setShowThreadReactPickerForMsg(null); }}
+                                title="Actions"
+                              >
+                                <IconMoreHorizontal size={12} />
+                              </button>
+                              {activeThreadMenuMsgId === msg.id && (
+                                <div className="msg-actions-menu">
+                                  <button onClick={(e) => { e.stopPropagation(); setActiveThreadMenuMsgId(null); setShowThreadReactPickerForMsg(msg.id); }}>
+                                    <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> {t('messages.react')}
+                                  </button>
+                                  <button onClick={() => { try { navigator.clipboard.writeText(msg.body); } catch {} setActiveThreadMenuMsgId(null); }}>
+                                    <IconCopy size={12} /> Copy Text
+                                  </button>
+                                  {isMine && (
+                                    <button className="msg-actions-menu-danger" onClick={() => { handleDelete(msg.id); setActiveThreadMenuMsgId(null); }}>
+                                      &times; {t('messages.deleteMessage')}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                               {showThreadReactPickerForMsg === msg.id && (
                                 <ReactionPicker onSelect={(e) => handleReact(msg.id, e)} className="msg-react-picker" />
                               )}
@@ -977,12 +1025,13 @@ export default function MessagesView({ user, onUserClick }) {
             <h3>Create Group</h3>
             <input
               type="text"
-              className="form-input"
+              className={`form-input${groupErrors.groupName ? ' error' : ''}`}
               placeholder="Group name"
               value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              onChange={(e) => { setGroupName(e.target.value); if (groupErrors.groupName) setGroupErrors((prev) => ({ ...prev, groupName: '' })); }}
               autoFocus
             />
+            {groupErrors.groupName && <div className="form-error">{groupErrors.groupName}</div>}
             <div className="group-color-row">
               <span className="group-color-label">Color</span>
               <div className="group-color-options">
@@ -1016,6 +1065,7 @@ export default function MessagesView({ user, onUserClick }) {
                         setGroupSelectedMembers(prev =>
                           isSelected ? prev.filter(id => id !== f.id) : [...prev, f.id]
                         );
+                        if (groupErrors.members) setGroupErrors((prev) => ({ ...prev, members: '' }));
                       }}
                     >
                       <div className="conv-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>
@@ -1030,6 +1080,7 @@ export default function MessagesView({ user, onUserClick }) {
                   );
                 })}
             </div>
+            {groupErrors.members && <div className="form-error">{groupErrors.members}</div>}
             {groupSelectedMembers.length > 0 && (
               <div className="group-selected-count">
                 {groupSelectedMembers.length} member{groupSelectedMembers.length !== 1 ? 's' : ''} selected
@@ -1038,7 +1089,6 @@ export default function MessagesView({ user, onUserClick }) {
             <button
               className="btn btn-primary"
               style={{ width: '100%', marginTop: 8 }}
-              disabled={!groupName.trim() || groupSelectedMembers.length === 0}
               onClick={handleCreateGroup}
             >
               Create Group

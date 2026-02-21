@@ -7,6 +7,7 @@ import ItemComments from './ItemComments';
 export default function NoteModal({ open, note, projects, tasks, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({ title: '', body: '', attachType: '', attachId: '' });
   const [allUsers, setAllUsers] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({});
   const bodyRef = useRef(null);
   const mentions = useMentions(allUsers, null);
 
@@ -22,6 +23,7 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
     } else {
       setForm({ title: '', body: '', attachType: '', attachId: '' });
     }
+    setFieldErrors({});
   }, [open, note]);
 
   useEffect(() => {
@@ -35,7 +37,10 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const handleSave = () => {
-    if (!form.title.trim() && !form.body.trim()) return;
+    const errors = {};
+    if (!form.title.trim() && !form.body.trim()) errors.title = 'Title or body is required';
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
     onSave({ ...form, id: note?.id });
   };
 
@@ -49,17 +54,19 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
         <div className="modal-body">
           <div className="form-group">
             <label>Title</label>
-            <input className="form-input" type="text" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Note title" />
+            <input className={`form-input${fieldErrors.title ? ' error' : ''}`} type="text" value={form.title} onChange={(e) => { set('title', e.target.value); if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' })); }} placeholder="Note title" />
+            {fieldErrors.title && <div className="form-error">{fieldErrors.title}</div>}
           </div>
           <div className="form-group" style={{ position: 'relative' }}>
             <label>Body <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— use @ to mention users</span></label>
             <textarea
               ref={bodyRef}
-              className="form-textarea large"
+              className={`form-textarea large${fieldErrors.title ? ' error' : ''}`}
               value={form.body}
               onChange={(e) => {
                 set('body', e.target.value);
                 mentions.detectMention(e.target.value, e.target.selectionStart);
+                if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' }));
               }}
               placeholder="Write your note..."
             />

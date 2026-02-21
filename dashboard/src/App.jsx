@@ -210,6 +210,12 @@ function NotificationBell() {
       else navigate(`/profile/${notif.actorName}`);
     }
     else if (notif.targetType === 'task') navigate('/');
+    else if (notif.targetType === 'message' || notif.type === 'direct_message')
+      navigate(notif.targetId ? `/messages/${notif.targetId}` : '/messages');
+    else if (notif.type === 'message_reaction') navigate('/messages');
+    else if (notif.type === 'friend_request' || notif.type === 'friend_accepted')
+      navigate(notif.actorName ? `/profile/${notif.actorName}` : '/profile');
+    else navigate('/');
   };
 
   const filteredNotifs = notifications.filter(NOTIF_FILTER_CATEGORIES[notifFilter] || (() => true));
