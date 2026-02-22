@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { DB } from '../db';
 import { useAuth } from './AuthContext';
 import { useToast } from '../components/Toast';
@@ -54,8 +54,11 @@ export function DataProvider({ children }) {
       if (form._screenshotFile && saved?.id) {
         await DB.uploadScreenshot(saved.id, form._screenshotFile);
       }
-      const freshTasks = await DB.getAll('tasks');
-      setTasks(freshTasks);
+      // Optimistic local update, then background revalidate
+      if (saved) {
+        setTasks(prev => upsert(prev, saved));
+      }
+      DB.getAll('tasks').then(setTasks).catch(() => {});
       addToast(form.id ? 'Task updated' : 'Task created', 'success');
       return saved;
     } catch (err) {
@@ -65,11 +68,14 @@ export function DataProvider({ children }) {
   }, [addToast]);
 
   const toggleTask = useCallback(async (task, completionDate) => {
-    const updated = { ...task, status: task.status === 'done' ? 'todo' : 'done' };
+    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    const updated = { ...task, status: newStatus };
     if (completionDate) updated.completionDate = completionDate;
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
     await DB.save('tasks', updated);
-    const freshTasks = await DB.getAll('tasks');
-    setTasks(freshTasks);
+    // Background revalidate
+    DB.getAll('tasks').then(setTasks).catch(() => {});
   }, []);
 
   const deleteTask = useCallback(async (taskId) => {
@@ -158,13 +164,15 @@ export function DataProvider({ children }) {
     setNotes(prev => prev.filter(n => n.id !== id));
   }, []);
 
+  const value = useMemo(() => ({
+    tasks, projects, notes, reload,
+    saveTask, toggleTask, deleteTask,
+    saveProject, deleteProject, leaveProject, importProject,
+    saveNote, deleteNote,
+  }), [tasks, projects, notes, reload, saveTask, toggleTask, deleteTask, saveProject, deleteProject, leaveProject, importProject, saveNote, deleteNote]);
+
   return (
-    <DataContext.Provider value={{
-      tasks, projects, notes, reload,
-      saveTask, toggleTask, deleteTask,
-      saveProject, deleteProject, leaveProject, importProject,
-      saveNote, deleteNote,
-    }}>
+    <DataContext.Provider value={value}>
       {children}
     </DataContext.Provider>
   );

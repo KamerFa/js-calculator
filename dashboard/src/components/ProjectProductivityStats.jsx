@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { DB } from '../db';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -19,17 +19,19 @@ const PdTooltip = ({ active, payload, label }) => {
   );
 };
 
-export default function ProjectProductivityStats({ projectId }) {
+export default memo(function ProjectProductivityStats({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!projectId) return;
+    let cancelled = false;
     setLoading(true);
     DB.getProjectProductivityStats(projectId)
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(() => { if (!cancelled) setData(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [projectId]);
 
   if (loading) return <div className="pps-loading">Loading stats...</div>;
@@ -151,4 +153,4 @@ export default function ProjectProductivityStats({ projectId }) {
       )}
     </div>
   );
-}
+})

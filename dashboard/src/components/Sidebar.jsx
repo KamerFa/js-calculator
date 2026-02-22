@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { IconGrid, IconCheck, IconFile, IconUsers, IconRadio, IconNews, IconCalendar, IconCommunity, IconMessage } from './Icons';
 import { useTranslation } from '../i18n';
@@ -92,20 +92,27 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     }).catch(() => {});
   }, [user]);
 
-  // Poll unread message count + sound notification
-  const prevUnreadMsgRef = useRef(0);
+  // Init AudioContext on first user interaction (once)
   useEffect(() => {
-    if (!user) return;
-    // Init AudioContext on first user interaction
     const initAudio = () => {
       initMessageSoundContext();
       document.removeEventListener('click', initAudio);
     };
     document.addEventListener('click', initAudio);
+    return () => document.removeEventListener('click', initAudio);
+  }, []);
+
+  // Poll unread message count + sound notification
+  const prevUnreadMsgRef = useRef(0);
+  const locationRef = useRef(location.pathname);
+  locationRef.current = location.pathname;
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
     const load = () => DB.getUnreadMessageCount().then(d => {
+      if (cancelled) return;
       const newTotal = d.total || 0;
-      // Play sound if unread count increased and user is not on messages page
-      if (newTotal > prevUnreadMsgRef.current && prevUnreadMsgRef.current >= 0 && !location.pathname.startsWith('/messages')) {
+      if (newTotal > prevUnreadMsgRef.current && prevUnreadMsgRef.current >= 0 && !locationRef.current.startsWith('/messages')) {
         playMessageSound();
       }
       prevUnreadMsgRef.current = newTotal;
@@ -113,14 +120,22 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
     }).catch(() => {});
     load();
     const interval = setInterval(load, 30000);
-    return () => { clearInterval(interval); document.removeEventListener('click', initAudio); };
-  }, [user, location.pathname]);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [user]);
 
-  const openCount = (pid) => tasks.filter(t => t.projectId === pid && t.status !== 'done').length;
+  const openCountMap = useMemo(() => {
+    const map = {};
+    for (const t of tasks) {
+      if (t.projectId && t.status !== 'done') map[t.projectId] = (map[t.projectId] || 0) + 1;
+    }
+    return map;
+  }, [tasks]);
+  const openCount = (pid) => openCountMap[pid] || 0;
 
   // Derive current view and project id from URL
   const pathname = location.pathname;
   const view = pathname === '/' ? 'tasks'
+    : pathname === '/projects' ? 'projects'
     : pathname.startsWith('/project/') ? 'project'
     : pathname.slice(1).split('/')[0] || 'tasks';
   const currentProjectId = pathname.startsWith('/project/') ? pathname.split('/')[2] : null;
@@ -326,6 +341,16 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
         {projectsOpen && (
           <>
             <ul className="sidebar-nav">
+              <li>
+                <a
+                  href="/projects"
+                  className={view === 'projects' ? 'active' : ''}
+                  onClick={(e) => { e.preventDefault(); nav('/projects'); }}
+                  style={{ fontSize: 12, opacity: 0.7 }}
+                >
+                  View all projects
+                </a>
+              </li>
               {projects.map((project) => {
                 const pStatus = getProjectStatus(project);
                 return (

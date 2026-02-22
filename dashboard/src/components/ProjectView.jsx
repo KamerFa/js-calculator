@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DB } from '../db';
 import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
@@ -20,23 +20,26 @@ export default function ProjectView({ project, tasks, notes, user, onToggle, onT
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'kanban'
 
   useEffect(() => {
-    if (project) {
-      DB.getProjectMembers(project.id).then(setMembers).catch(() => setMembers([]));
-    }
-  }, [project, tasks]);
+    if (!project) return;
+    let cancelled = false;
+    DB.getProjectMembers(project.id)
+      .then(d => { if (!cancelled) setMembers(d); })
+      .catch(() => { if (!cancelled) setMembers([]); });
+    return () => { cancelled = true; };
+  }, [project?.id]);
 
   if (!project) return null;
 
-  const projectTasks = tasks.filter((t) => t.projectId === project.id);
-  const openCount = projectTasks.filter((t) => t.status !== 'done').length;
-  const doneCount = projectTasks.filter((t) => t.status === 'done').length;
+  const projectTasks = useMemo(() => tasks.filter((t) => t.projectId === project.id), [tasks, project.id]);
+  const openCount = useMemo(() => projectTasks.filter((t) => t.status !== 'done').length, [projectTasks]);
+  const doneCount = useMemo(() => projectTasks.filter((t) => t.status === 'done').length, [projectTasks]);
   const progress = projectTasks.length === 0 ? 0 : Math.round((doneCount / projectTasks.length) * 100);
 
-  const groups = STATUS_ORDER.map((s) => ({
+  const groups = useMemo(() => STATUS_ORDER.map((s) => ({
     status: s,
     label: STATUS_LABELS[s],
     tasks: projectTasks.filter((t) => t.status === s),
-  }));
+  })), [projectTasks, STATUS_LABELS]);
 
   const isShared = members.length > 1;
   const isOwner = project.isOwner;

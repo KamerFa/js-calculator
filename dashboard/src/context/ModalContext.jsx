@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const ModalContext = createContext(null);
 
@@ -44,16 +44,18 @@ export function ModalProvider({ children }) {
   const openImportModal = useCallback(() => setImportModal(true), []);
   const closeImportModal = useCallback(() => setImportModal(false), []);
 
+  const value = useMemo(() => ({
+    taskModal, openTaskModal, closeTaskModal,
+    projectModal, openProjectModal, closeProjectModal,
+    noteModal, openNoteModal, closeNoteModal,
+    confirm, openConfirm, closeConfirm,
+    taskDetail, openTaskDetail, closeTaskDetail,
+    shareModal, openShareModal, closeShareModal,
+    importModal, openImportModal, closeImportModal,
+  }), [taskModal, openTaskModal, closeTaskModal, projectModal, openProjectModal, closeProjectModal, noteModal, openNoteModal, closeNoteModal, confirm, openConfirm, closeConfirm, taskDetail, openTaskDetail, closeTaskDetail, shareModal, openShareModal, closeShareModal, importModal, openImportModal, closeImportModal]);
+
   return (
-    <ModalContext.Provider value={{
-      taskModal, openTaskModal, closeTaskModal,
-      projectModal, openProjectModal, closeProjectModal,
-      noteModal, openNoteModal, closeNoteModal,
-      confirm, openConfirm, closeConfirm,
-      taskDetail, openTaskDetail, closeTaskDetail,
-      shareModal, openShareModal, closeShareModal,
-      importModal, openImportModal, closeImportModal,
-    }}>
+    <ModalContext.Provider value={value}>
       {children}
     </ModalContext.Provider>
   );

@@ -1,31 +1,30 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { IconCheck, IconFile, IconCalendar, IconCommunity, IconMore, IconUsers, IconNews, IconRadio, IconFolder, IconUser, IconSettings, IconLogout, IconMessage } from './Icons';
+import { IconCheck, IconFile, IconCalendar, IconCommunity, IconMore, IconUsers, IconNews, IconRadio, IconFolder, IconUser, IconSettings, IconMessage } from './Icons';
 import { useTranslation } from '../i18n';
 
 const PRIMARY_TABS = [
   { key: 'tasks', path: '/', match: (p) => p === '/' },
+  { key: 'projects', path: '/projects', match: (p) => p === '/projects' || p.startsWith('/project/') },
   { key: 'calendar', path: '/calendar', match: (p) => p === '/calendar' },
-  { key: 'notes', path: '/notes', match: (p) => p === '/notes' },
-  { key: 'community', path: '/community', match: (p) => p === '/community' },
+  { key: 'messages', path: '/messages', match: (p) => p.startsWith('/messages') },
 ];
 
 const TAB_ICONS = {
   tasks: <IconCheck />,
+  projects: <IconFolder />,
   calendar: <IconCalendar />,
-  notes: <IconFile />,
-  community: <IconCommunity />,
+  messages: <IconMessage />,
   more: <IconMore />,
 };
 
-export default function BottomTabBar({ onOpenSidebar, onLogout }) {
+export default function BottomTabBar({ onLogout }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const pathname = location.pathname;
-
   const isPrimaryActive = PRIMARY_TABS.some((tab) => tab.match(pathname));
 
   const handleTabClick = (tab) => {
@@ -42,16 +41,11 @@ export default function BottomTabBar({ onOpenSidebar, onLogout }) {
     navigate(path);
   };
 
-  const handleProjectsClick = () => {
-    setMoreOpen(false);
-    if (onOpenSidebar) onOpenSidebar();
-  };
-
   const labels = {
     tasks: t('sidebar.tasks') || 'Tasks',
+    projects: t('sidebar.projects') || 'Projects',
     calendar: t('sidebar.calendar') || 'Calendar',
-    notes: t('sidebar.notes') || 'Notes',
-    community: t('sidebar.community') || 'Community',
+    messages: t('sidebar.messages') || 'Messages',
     more: t('sidebar.more') || 'More',
   };
 
@@ -64,11 +58,18 @@ export default function BottomTabBar({ onOpenSidebar, onLogout }) {
           <div className="bottom-sheet-handle" />
           <div className="bottom-sheet-grid">
             <button
-              className={`bottom-sheet-item${pathname.startsWith('/messages') ? ' active' : ''}`}
-              onClick={() => handleSheetNav('/messages')}
+              className={`bottom-sheet-item${pathname === '/notes' ? ' active' : ''}`}
+              onClick={() => handleSheetNav('/notes')}
             >
-              <IconMessage />
-              <span>{t('sidebar.messages') || 'Messages'}</span>
+              <IconFile />
+              <span>{t('sidebar.notes') || 'Notes'}</span>
+            </button>
+            <button
+              className={`bottom-sheet-item${pathname === '/community' ? ' active' : ''}`}
+              onClick={() => handleSheetNav('/community')}
+            >
+              <IconCommunity />
+              <span>{t('sidebar.community') || 'Community'}</span>
             </button>
             <button
               className={`bottom-sheet-item${pathname === '/users' ? ' active' : ''}`}
@@ -90,13 +91,6 @@ export default function BottomTabBar({ onOpenSidebar, onLogout }) {
             >
               <IconRadio />
               <span>Radio</span>
-            </button>
-            <button
-              className={`bottom-sheet-item${pathname.startsWith('/project/') ? ' active' : ''}`}
-              onClick={handleProjectsClick}
-            >
-              <IconFolder />
-              <span>{t('sidebar.projects') || 'Projects'}</span>
             </button>
             <button
               className={`bottom-sheet-item${pathname === '/profile' ? ' active' : ''}`}

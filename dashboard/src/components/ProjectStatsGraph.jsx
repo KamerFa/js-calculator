@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { DB } from '../db';
 import { useTranslation } from '../i18n';
 import { formatDate } from '../utils/time';
 
-export default function ProjectStatsGraph({ projectId }) {
+export default memo(function ProjectStatsGraph({ projectId }) {
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (projectId) {
-      setLoading(true);
-      DB.getProjectStats(projectId)
-        .then(setStats)
-        .catch(() => setStats(null))
-        .finally(() => setLoading(false));
-    }
+    if (!projectId) return;
+    let cancelled = false;
+    setLoading(true);
+    DB.getProjectStats(projectId)
+      .then(d => { if (!cancelled) setStats(d); })
+      .catch(() => { if (!cancelled) setStats(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [projectId]);
 
   if (loading) return <div className="project-stats-graph loading">{t('projectStats.loading')}</div>;
@@ -83,4 +84,4 @@ export default function ProjectStatsGraph({ projectId }) {
       </div>
     </div>
   );
-}
+})

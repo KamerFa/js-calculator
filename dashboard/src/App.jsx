@@ -10,11 +10,13 @@ import ModalHost from './components/ModalHost';
 import radioAudio from './radioAudio';
 import FocusTimer from './components/FocusTimer';
 import BottomTabBar from './components/BottomTabBar';
+import ErrorBoundary from './components/ErrorBoundary';
 import { timeAgo } from './utils/time';
 
 // ── Pages (eagerly loaded core routes) ──
 import TasksPage from './pages/TasksPage';
 import ProjectPage from './pages/ProjectPage';
+import ProjectsPage from './pages/ProjectsPage';
 import CalendarPage from './pages/CalendarPage';
 
 // ── Pages (lazy-loaded secondary routes) ──
@@ -350,9 +352,11 @@ export default function App() {
       />
 
       <main className="main" onClick={() => mobileOpen && setMobileOpen(false)}>
+        <ErrorBoundary>
         <Suspense fallback={<div className="page-container"><div className="empty-state">Loading...</div></div>}>
           <Routes>
             <Route index element={<TasksPage />} />
+            <Route path="projects" element={<ProjectsPage />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="notes" element={<NotesPage />} />
             <Route path="community" element={<CommunityPage />} />
@@ -370,16 +374,14 @@ export default function App() {
             )}
           </Routes>
         </Suspense>
+        </ErrorBoundary>
 
         {!isRadioPage && <RadioMiniPlayer />}
         <FocusTimer />
         <NotificationBell />
       </main>
 
-      <BottomTabBar
-        onOpenSidebar={() => setMobileOpen(true)}
-        onLogout={logout}
-      />
+      <BottomTabBar onLogout={logout} />
 
       <ModalHost />
     </div>
