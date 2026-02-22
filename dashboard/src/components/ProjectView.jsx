@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { DB } from '../db';
 import { IconPlus, IconUsers } from './Icons';
 import TaskRow from './TaskRow';
+import ProjectKanban from './ProjectKanban';
 import ProjectStatsGraph from './ProjectStatsGraph';
+import ProjectProductivityStats from './ProjectProductivityStats';
 import ProjectCompletionSummary from './ProjectCompletionSummary';
 import ProjectChat from './ProjectChat';
 import { useTranslation } from '../i18n';
@@ -11,10 +13,11 @@ import { renderWithMentions } from '../mentions';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'];
 
-export default function ProjectView({ project, tasks, notes, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare, onUserClick, onNoteClick, onNewNote }) {
+export default function ProjectView({ project, tasks, notes, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare, onUserClick, onNoteClick, onNewNote, onStatusChange }) {
   const { t } = useTranslation();
   const STATUS_LABELS = { todo: t('tasks.todo'), 'in-progress': t('tasks.inProgress'), done: t('tasks.done') };
   const [members, setMembers] = useState([]);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'kanban'
 
   useEffect(() => {
     if (project) {
@@ -150,6 +153,11 @@ export default function ProjectView({ project, tasks, notes, user, onToggle, onT
 
       <ProjectStatsGraph projectId={project.id} />
 
+      {/* Per-project productivity stats (kamer only) */}
+      {user?.username === 'kamer' && (
+        <ProjectProductivityStats projectId={project.id} />
+      )}
+
       {/* Completion Leaderboard */}
       {isShared && sortedMembers.length > 0 && maxDone > 0 && (
         <div className="completion-history">
@@ -179,40 +187,65 @@ export default function ProjectView({ project, tasks, notes, user, onToggle, onT
 
       <div className="page-header">
         <div className="page-header-row">
-          <div><h1 style={{ fontSize: 20 }}>{t('tasks.title')}</h1></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{ fontSize: 20 }}>{t('tasks.title')}</h1>
+            <div className="view-toggle">
+              <button className={`view-toggle-btn${viewMode === 'list' ? ' active' : ''}`} onClick={() => setViewMode('list')} title="List view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+              <button className={`view-toggle-btn${viewMode === 'kanban' ? ' active' : ''}`} onClick={() => setViewMode('kanban')} title="Kanban view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+              </button>
+            </div>
+          </div>
           <button className="btn btn-primary btn-sm" onClick={() => onNewTask(project.id)}>
             <IconPlus /> {t('tasks.newTask')}
           </button>
         </div>
       </div>
 
-      {groups.map((group) =>
-        group.tasks.length > 0 ? (
-          <div className="task-group" key={group.status}>
-            <div className="task-group-header">
-              <span>{group.label}</span>
-              <span className="task-group-count">{group.tasks.length}</span>
-            </div>
-            {group.tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                project={null}
-                showProject={false}
-                showCreator={isShared}
-                currentUserId={user?.id}
-                onToggle={onToggle}
-                onClick={onTaskClick}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onProjectClick={onProjectClick}
-              />
-            ))}
-          </div>
-        ) : null
+      {viewMode === 'kanban' ? (
+        <ProjectKanban
+          tasks={projectTasks}
+          currentUserId={user?.id}
+          isShared={isShared}
+          onToggle={onToggle}
+          onClick={onTaskClick}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onNewTask={() => onNewTask(project.id)}
+          onStatusChange={onStatusChange}
+        />
+      ) : (
+        <>
+          {groups.map((group) =>
+            group.tasks.length > 0 ? (
+              <div className="task-group" key={group.status}>
+                <div className="task-group-header">
+                  <span>{group.label}</span>
+                  <span className="task-group-count">{group.tasks.length}</span>
+                </div>
+                {group.tasks.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    project={null}
+                    showProject={false}
+                    showCreator={isShared}
+                    currentUserId={user?.id}
+                    onToggle={onToggle}
+                    onClick={onTaskClick}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onProjectClick={onProjectClick}
+                  />
+                ))}
+              </div>
+            ) : null
+          )}
+          {projectTasks.length === 0 && <div className="empty-state">{t('tasks.noTasks')}</div>}
+        </>
       )}
-
-      {projectTasks.length === 0 && <div className="empty-state">{t('tasks.noTasks')}</div>}
 
       {/* Notes attached to this project */}
       {(projectNotes.length > 0 || isOwner) && (

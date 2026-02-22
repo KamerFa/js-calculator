@@ -444,6 +444,10 @@ const DB = {
     return api('/productivity/stats');
   },
 
+  async getProjectProductivityStats(projectId) {
+    return api(`/productivity/project/${projectId}`);
+  },
+
   // ── Direct Messages ────────────────────────────────────────
   async getConversations() {
     return api('/dm/conversations');

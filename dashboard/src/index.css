@@ -10371,3 +10371,381 @@ body {
   color: #f59e0b;
   font-weight: 600;
 }
+
+/* ============================================================
+   VIEW TOGGLE (list / kanban)
+   ============================================================ */
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-toggle-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ============================================================
+   KANBAN BOARD (.kb-*)
+   ============================================================ */
+.kb {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+  min-height: 200px;
+}
+
+.kb-col {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.kb-col-over {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary), 0 0 12px rgba(91, 154, 239, 0.15);
+}
+
+.kb-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.kb-col-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kb-col-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.kb-col-count {
+  font-size: 11px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 7px;
+  line-height: 1.4;
+}
+
+.kb-add-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-2);
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.kb-add-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.kb-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 60px;
+}
+
+/* ── Kanban card ── */
+.kb-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: grab;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  position: relative;
+}
+
+.kb-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.kb-card:active {
+  cursor: grabbing;
+}
+
+.kb-dragging {
+  opacity: 0.35;
+  transform: scale(0.97);
+}
+
+.kb-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.kb-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.kb-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: capitalize;
+}
+
+.kb-priority-high { color: #ec4899; background: rgba(236,72,153,0.12); }
+.kb-priority-medium { color: #f59e0b; background: rgba(245,158,11,0.12); }
+.kb-priority-low { color: #5b9aef; background: rgba(91,154,239,0.12); }
+
+.kb-date {
+  font-size: 10px;
+  color: var(--text-2);
+}
+
+.kb-overdue {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.kb-creator {
+  font-size: 10px;
+  color: var(--text-2);
+  opacity: 0.7;
+}
+
+.kb-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: none;
+  gap: 2px;
+}
+
+.kb-card:hover .kb-card-actions {
+  display: flex;
+}
+
+.kb-card-actions .icon-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.kb-empty {
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: center;
+  padding: 20px 8px;
+  opacity: 0.6;
+}
+
+/* ============================================================
+   PROJECT PRODUCTIVITY STATS (.pps-*)
+   Per-project analytics card (kamer only)
+   ============================================================ */
+.pps {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.pps-header {
+  margin-bottom: 14px;
+}
+
+.pps-title {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.pps-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* Stat pills row */
+.pps-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pps-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  min-width: 70px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.pps-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.pps-pill-value {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+.pps-pill-dim {
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+.pps-pill-label {
+  font-size: 10px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Charts */
+.pps-chart {
+  margin-bottom: 14px;
+}
+
+.pps-chart-label {
+  font-size: 11px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* Donut row */
+.pps-donuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.pps-donut-card {
+  text-align: center;
+}
+
+.pps-donut-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pps-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-2);
+}
+
+.pps-legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Recharts theme overrides for pps ── */
+.pps .recharts-text {
+  fill: var(--text-2) !important;
+  font-size: 10px;
+  font-family: var(--font-body);
+}
+
+.pps .recharts-cartesian-grid-horizontal line,
+.pps .recharts-cartesian-grid-vertical line {
+  stroke: var(--border);
+  stroke-opacity: 0.5;
+}
+
+/* ── Responsive: kanban + pps ── */
+@media (max-width: 700px) {
+  .kb {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .pps-pills {
+    gap: 6px;
+  }
+
+  .pps-pill {
+    padding: 8px 10px;
+    min-width: 60px;
+  }
+
+  .pps-pill-value {
+    font-size: 16px;
+  }
+
+  .pps-donuts {
+    grid-template-columns: 1fr;
+  }
+}

@@ -252,4 +252,128 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// ── Per-project stats (kamer only) ──────────────────────────
+router.get('/project/:projectId', async (req, res) => {
+  const userId = req.userId;
+  const { projectId } = req.params;
+  const now = new Date();
+
+  const d30 = new Date(now);
+  d30.setDate(now.getDate() - 30);
+  const d30Str = d30.toISOString().split('T')[0];
+
+  try {
+    const [
+      taskOverview,
+      completionLog,
+      effortBreakdown,
+      priorityBreakdown,
+      xpEarned,
+      avgCompletion,
+    ] = await Promise.all([
+      pool.query(`
+        SELECT
+          COUNT(*) as total,
+          COUNT(*) FILTER (WHERE status = 'done') as done,
+          COUNT(*) FILTER (WHERE status = 'todo') as todo,
+          COUNT(*) FILTER (WHERE status = 'in-progress') as in_progress,
+          COALESCE(MAX(current_streak), 0) as max_streak,
+          COALESCE(MAX(best_streak), 0) as best_streak
+        FROM tasks WHERE project_id = $1
+      `, [projectId]),
+
+      pool.query(`
+        SELECT cl.completion_date, COUNT(*) as count
+        FROM task_completion_log cl
+        JOIN tasks t ON t.id = cl.source_id OR (t.title IS NOT NULL AND cl.reason LIKE '%' || t.title || '%')
+        WHERE t.project_id = $1 AND cl.user_id = $2 AND cl.completion_date >= $3
+        GROUP BY cl.completion_date ORDER BY cl.completion_date
+      `, [projectId, userId, d30Str]).catch(() => ({ rows: [] })),
+
+      pool.query(`
+        SELECT COALESCE(effort, 'medium') as effort, COUNT(*) as count
+        FROM tasks WHERE project_id = $1
+        GROUP BY effort
+      `, [projectId]),
+
+      pool.query(`
+        SELECT COALESCE(priority, 'medium') as priority, COUNT(*) as count
+        FROM tasks WHERE project_id = $1
+        GROUP BY priority
+      `, [projectId]),
+
+      pool.query(`
+        SELECT COALESCE(SUM(xl.amount), 0) as total_xp
+        FROM xp_log xl
+        JOIN tasks t ON xl.source_id = t.id
+        WHERE t.project_id = $1 AND xl.user_id = $2
+      `, [projectId, userId]),
+
+      pool.query(`
+        SELECT
+          CASE WHEN COUNT(*) FILTER (WHERE status = 'done' AND completed_at IS NOT NULL) > 0
+          THEN AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 86400)
+               FILTER (WHERE status = 'done' AND completed_at IS NOT NULL)
+          ELSE NULL END as avg_days
+        FROM tasks WHERE project_id = $1
+      `, [projectId]),
+    ]);
+
+    const ov = taskOverview.rows[0];
+
+    // Fill 30-day completion timeline
+    const completionMap = {};
+    for (const row of completionLog.rows) completionMap[row.completion_date] = parseInt(row.count);
+    const timeline = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const ds = d.toISOString().split('T')[0];
+      timeline.push({ date: ds, count: completionMap[ds] || 0 });
+    }
+
+    // Effort
+    const effortMap = { easy: 0, medium: 0, hard: 0, epic: 0 };
+    for (const r of effortBreakdown.rows) {
+      if (Object.hasOwn(effortMap, r.effort)) effortMap[r.effort] = parseInt(r.count);
+    }
+
+    // Priority
+    const priorityMap = { high: 0, medium: 0, low: 0 };
+    for (const r of priorityBreakdown.rows) {
+      if (Object.hasOwn(priorityMap, r.priority)) priorityMap[r.priority] = parseInt(r.count);
+    }
+
+    res.json({
+      overview: {
+        total: parseInt(ov.total),
+        done: parseInt(ov.done),
+        todo: parseInt(ov.todo),
+        inProgress: parseInt(ov.in_progress),
+        maxStreak: parseInt(ov.max_streak),
+        bestStreak: parseInt(ov.best_streak),
+      },
+      completionTimeline: timeline,
+      effortBreakdown: [
+        { name: 'Easy', count: effortMap.easy, fill: '#5b9aef' },
+        { name: 'Medium', count: effortMap.medium, fill: '#f59e0b' },
+        { name: 'Hard', count: effortMap.hard, fill: '#ec4899' },
+        { name: 'Epic', count: effortMap.epic, fill: '#a855f7' },
+      ],
+      priorityBreakdown: [
+        { name: 'High', count: priorityMap.high, fill: '#ec4899' },
+        { name: 'Medium', count: priorityMap.medium, fill: '#f59e0b' },
+        { name: 'Low', count: priorityMap.low, fill: '#5b9aef' },
+      ],
+      xpEarned: parseInt(xpEarned.rows[0]?.total_xp || 0),
+      avgCompletionDays: avgCompletion.rows[0]?.avg_days != null
+        ? parseFloat(parseFloat(avgCompletion.rows[0].avg_days).toFixed(1))
+        : null,
+    });
+  } catch (err) {
+    console.error('Project productivity stats error:', err.message);
+    res.status(500).json({ error: 'Failed to load project stats' });
+  }
+});
+
 export default router;

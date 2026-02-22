@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useModals } from '../context/ModalContext';
+import { DB } from '../db';
 import ProjectView from '../components/ProjectView';
 
 export default function ProjectPage() {
@@ -34,6 +35,13 @@ export default function ProjectPage() {
     });
   };
 
+  const handleStatusChange = async (task, newStatus) => {
+    try {
+      await DB.save('tasks', { ...task, status: newStatus });
+      await reload();
+    } catch { /* ignore */ }
+  };
+
   return (
     <ProjectView
       project={project}
@@ -53,6 +61,7 @@ export default function ProjectPage() {
       onUserClick={(username) => navigate(`/profile/${username}`)}
       onNoteClick={(n) => openNoteModal(n)}
       onNewNote={() => openNoteModal()}
+      onStatusChange={handleStatusChange}
     />
   );
 }
