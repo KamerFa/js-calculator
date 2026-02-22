@@ -22,7 +22,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
   const mentions = useMentions(allUsers, null);
 
   function emptyForm() {
-    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', dueDate: '', scheduledDate: '', dateType: 'due', recurrence: 'none', taskType: 'shared', customFields: [] };
+    return { title: '', description: '', projectId: '', status: 'todo', priority: 'medium', effort: 'medium', dueDate: '', scheduledDate: '', dateType: 'due', recurrence: 'none', taskType: 'shared', customFields: [] };
   }
 
   useEffect(() => {
@@ -34,6 +34,7 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
         projectId: task.projectId || '',
         status: task.status,
         priority: task.priority,
+        effort: task.effort || 'medium',
         dueDate: task.dueDate || '',
         scheduledDate: task.scheduledDate || '',
         dateType: task.scheduledDate ? 'scheduled' : 'due',
@@ -153,6 +154,15 @@ export default function TaskModal({ open, task, projects, prefillProjectId, onSa
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Effort</label>
+              <select className="form-select" value={form.effort} onChange={(e) => set('effort', e.target.value)}>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+                <option value="epic">Epic</option>
               </select>
             </div>
             <div className="form-group" style={form.recurrence === 'repeatable' ? { display: 'none' } : undefined}>

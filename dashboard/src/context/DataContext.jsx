@@ -47,6 +47,7 @@ export function DataProvider({ children }) {
         scheduledDate: form.scheduledDate || null,
         recurrence: form.recurrence || 'none',
         taskType: form.taskType || 'shared',
+        effort: form.effort || 'medium',
         customFields: form.customFields.filter((f) => f.key.trim()),
       };
       const saved = await DB.save('tasks', task);

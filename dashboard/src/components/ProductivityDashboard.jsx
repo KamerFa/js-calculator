@@ -1,4 +1,4 @@
-import { useProductivityData } from './pd/useProductivityData';
+import { useProductivityData, formatMinutes } from './pd/useProductivityData';
 import StatsCards from './pd/StatsCards';
 import {
   TaskCompletionChart,
@@ -7,6 +7,7 @@ import {
   PriorityBarChart,
   ProjectActivityChart,
   WeeklyPatternChart,
+  AchievementsGrid,
 } from './pd/Charts';
 
 export default function ProductivityDashboard() {
@@ -35,7 +36,7 @@ export default function ProductivityDashboard() {
         <p className="pd-header-sub">Your personal analytics overview</p>
       </div>
 
-      <StatsCards score={data.productivityScore} stats={data.stats} />
+      <StatsCards data={data} />
 
       {/* Task completions — full width area chart */}
       <div className="pd-chart-card pd-chart-wide">
@@ -77,18 +78,25 @@ export default function ProductivityDashboard() {
         </div>
       </div>
 
+      {/* Achievements */}
+      <div className="pd-chart-card pd-chart-wide">
+        <h3 className="pd-chart-title">Achievements</h3>
+        <p className="pd-chart-sub">{data.achievements.filter((a) => a.unlocked).length} / {data.achievements.length} unlocked</p>
+        <AchievementsGrid achievements={data.achievements} />
+      </div>
+
       {/* Bottom summary row */}
       <div className="pd-summary-row">
         <div className="pd-summary-item">
-          <span className="pd-summary-value">{data.stats.totalDone}</span>
+          <span className="pd-summary-value">{data.overview.totalDone}</span>
           <span className="pd-summary-label">All-Time Tasks Done</span>
         </div>
         <div className="pd-summary-item">
-          <span className="pd-summary-value">{data.stats.totalFocusMinutes}</span>
+          <span className="pd-summary-value">{formatMinutes(data.overview.totalFocusMinutes)}</span>
           <span className="pd-summary-label">Total Focus Time</span>
         </div>
         <div className="pd-summary-item">
-          <span className="pd-summary-value">{data.stats.messagesSent}</span>
+          <span className="pd-summary-value">{data.thisWeek.messagesSent}</span>
           <span className="pd-summary-label">Messages This Week</span>
         </div>
       </div>

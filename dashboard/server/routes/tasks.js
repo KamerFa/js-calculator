@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
 import { notify, notifyProjectMembers, getUsername } from '../notify.js';
+import { calculateTaskXP, awardXP, checkDailyBonus } from '../gamification.js';
 
 const router = Router();
 
@@ -48,6 +49,7 @@ function toJSON(row, completionDatesMap) {
     completionCount: row.completion_count || 0,
     currentStreak: row.current_streak || 0,
     bestStreak: row.best_streak || 0,
+    effort: row.effort || 'medium',
   };
 
   // Include completion dates for recurring/repeatable per_member tasks (for calendar view)
@@ -277,7 +279,7 @@ router.get('/:id/history', async (req, res) => {
 
 // ── POST: Create or update task ───────────────────────────
 router.post('/', async (req, res) => {
-  const { title, description, projectId, status, priority, dueDate, scheduledDate, customFields, recurrence, taskType } = req.body;
+  const { title, description, projectId, status, priority, dueDate, scheduledDate, customFields, recurrence, taskType, effort } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
 
   const id = req.body.id || uid();
@@ -329,6 +331,13 @@ router.post('/', async (req, res) => {
           await notifyProjectMembers(existing.project_id, req.userId, 'task_completed',
             `${actor} completed "${existing.title}"`, 'task', existing.id);
         }
+
+        // Award XP for task completion
+        try {
+          const xp = calculateTaskXP(existing.priority, existing.effort, existing.current_streak);
+          await awardXP(req.userId, xp, 'task_complete', existing.id);
+          await checkDailyBonus(req.userId);
+        } catch { /* non-fatal */ }
       } else {
         if (isRecurring) {
           // For recurring/repeatable tasks, only delete the specific date's completion
@@ -385,6 +394,15 @@ router.post('/', async (req, res) => {
         await logCompletion(existing.id, req.userId, existing.recurrence);
       }
 
+      // Award XP for shared task completion
+      if (newStatus === 'done' && existing.status !== 'done') {
+        try {
+          const xp = calculateTaskXP(existing.priority, existing.effort, existing.current_streak);
+          await awardXP(req.userId, xp, 'task_complete', existing.id);
+          await checkDailyBonus(req.userId);
+        } catch { /* non-fatal */ }
+      }
+
       // Notify on status change
       if (newStatus !== existing.status && existing.project_id) {
         const actor = await getUsername(req.userId);
@@ -401,15 +419,24 @@ router.post('/', async (req, res) => {
       await pool.query(
         `UPDATE tasks SET project_id = $1, title = $2, description = $3, status = $4,
          priority = $5, due_date = $6, custom_fields = $7, recurrence = $8, completed_at = $9, completed_by = $10,
-         scheduled_date = $13, task_type = $14
+         scheduled_date = $13, task_type = $14, effort = $15
          WHERE id = $11 AND user_id = $12`,
         [projectId || null, title.trim(), description || '', status || 'todo',
-         priority || 'medium', dueDate || null, cf, rec, completedAt, completedBy, id, req.userId, scheduledDate || null, taskType || existing.task_type || 'shared']
+         priority || 'medium', dueDate || null, cf, rec, completedAt, completedBy, id, req.userId, scheduledDate || null, taskType || existing.task_type || 'shared', effort || existing.effort || 'medium']
       );
 
       // Log completion for shared repeatable/recurring tasks
       if (status === 'done' && existing.status !== 'done' && existing.recurrence && existing.recurrence !== 'none') {
         await logCompletion(existing.id, req.userId, existing.recurrence);
+      }
+
+      // Award XP for owner task completion
+      if (status === 'done' && existing.status !== 'done') {
+        try {
+          const xp = calculateTaskXP(priority || existing.priority, effort || existing.effort, existing.current_streak);
+          await awardXP(req.userId, xp, 'task_complete', existing.id);
+          await checkDailyBonus(req.userId);
+        } catch { /* non-fatal */ }
       }
 
       // Notify on status change by owner
@@ -431,10 +458,10 @@ router.post('/', async (req, res) => {
       if (access.length === 0) return res.status(403).json({ error: 'No access to this project' });
     }
     await pool.query(
-      `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, custom_fields, recurrence, task_type, scheduled_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      `INSERT INTO tasks (id, user_id, project_id, title, description, status, priority, due_date, custom_fields, recurrence, task_type, scheduled_date, effort)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [id, req.userId, projectId || null, title.trim(), description || '',
-       status || 'todo', priority || 'medium', dueDate || null, cf, rec, taskType || 'shared', scheduledDate || null]
+       status || 'todo', priority || 'medium', dueDate || null, cf, rec, taskType || 'shared', scheduledDate || null, effort || 'medium']
     );
 
     // Notify project members about new task

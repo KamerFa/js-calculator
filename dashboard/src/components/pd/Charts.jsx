@@ -1,7 +1,3 @@
-/* ═══════════════════════════════════════════════════════════════
-   CHARTS — All 6 Recharts visualizations for the productivity dashboard
-   ═══════════════════════════════════════════════════════════════ */
-
 import {
   AreaChart, Area,
   BarChart, Bar,
@@ -20,21 +16,16 @@ function PdTooltip({ active, payload, label, suffix = '' }) {
   );
 }
 
-/* ── Shared date formatter ── */
 function shortDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-/* ═══════════════════════════════════
-   1. Task Completion Area Chart (30d)
-   ═══════════════════════════════════ */
+/* ── 1. Task Completion Area Chart (30d) ── */
 export function TaskCompletionChart({ data }) {
   if (!data || data.length === 0) return <div className="pd-empty">No completion data yet</div>;
-
   const formatted = data.map((d) => ({ ...d, label: shortDate(d.date) }));
-
   return (
     <ResponsiveContainer width="100%" height={250}>
       <AreaChart data={formatted} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -54,14 +45,10 @@ export function TaskCompletionChart({ data }) {
   );
 }
 
-/* ═══════════════════════════════════
-   2. Focus Time Bar Chart (30d)
-   ═══════════════════════════════════ */
+/* ── 2. Focus Time Bar Chart (30d) ── */
 export function FocusTimeChart({ data }) {
   if (!data || data.length === 0) return <div className="pd-empty">No focus sessions yet</div>;
-
   const formatted = data.map((d) => ({ ...d, label: shortDate(d.date) }));
-
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart data={formatted} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -75,32 +62,17 @@ export function FocusTimeChart({ data }) {
   );
 }
 
-/* ═══════════════════════════════════
-   3. Task Status Donut
-   ═══════════════════════════════════ */
+/* ── 3. Task Status Donut ── */
 export function TaskStatusDonut({ data }) {
   if (!data || data.every((d) => d.value === 0)) return <div className="pd-empty">No tasks yet</div>;
-
-  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const total = data.reduce((s, d) => s + d.value, 0);
   const donePercent = total > 0 ? Math.round((data[0].value / total) * 100) : 0;
-
   return (
     <div className="pd-donut-wrap">
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={55}
-            outerRadius={80}
-            paddingAngle={3}
-            dataKey="value"
-            stroke="none"
-          >
-            {data.map((entry, i) => (
-              <Cell key={i} fill={entry.fill} />
-            ))}
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value" stroke="none">
+            {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
           </Pie>
           <Tooltip content={<PdTooltip suffix=" tasks" />} />
         </PieChart>
@@ -113,12 +85,9 @@ export function TaskStatusDonut({ data }) {
   );
 }
 
-/* ═══════════════════════════════════
-   4. Priority Breakdown Bar Chart
-   ═══════════════════════════════════ */
+/* ── 4. Priority Breakdown ── */
 export function PriorityBarChart({ data }) {
   if (!data || data.every((d) => d.count === 0)) return <div className="pd-empty">No tasks yet</div>;
-
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -127,21 +96,16 @@ export function PriorityBarChart({ data }) {
         <YAxis tick={{ fontSize: 11, fill: 'var(--text-2)' }} allowDecimals={false} tickLine={false} axisLine={false} />
         <Tooltip content={<PdTooltip suffix=" tasks" />} />
         <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={48}>
-          {data.map((entry, i) => (
-            <Cell key={i} fill={entry.fill} />
-          ))}
+          {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-/* ═══════════════════════════════════
-   5. Project Activity (Horizontal Bar)
-   ═══════════════════════════════════ */
+/* ── 5. Project Activity (Horizontal Bar) ── */
 export function ProjectActivityChart({ data }) {
   if (!data || data.length === 0) return <div className="pd-empty">No project data yet</div>;
-
   return (
     <ResponsiveContainer width="100%" height={Math.max(180, data.length * 44)}>
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
@@ -150,21 +114,16 @@ export function ProjectActivityChart({ data }) {
         <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12, fill: 'var(--text-2)' }} tickLine={false} axisLine={false} />
         <Tooltip content={<PdTooltip suffix=" done" />} />
         <Bar dataKey="done" radius={[0, 6, 6, 0]} maxBarSize={24}>
-          {data.map((entry, i) => (
-            <Cell key={i} fill={entry.color || '#5b9aef'} />
-          ))}
+          {data.map((entry, i) => <Cell key={i} fill={entry.color || '#5b9aef'} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-/* ═══════════════════════════════════
-   6. Weekly Pattern Bar Chart
-   ═══════════════════════════════════ */
+/* ── 6. Weekly Pattern ── */
 export function WeeklyPatternChart({ data }) {
   if (!data || data.every((d) => d.count === 0)) return <div className="pd-empty">No pattern data yet</div>;
-
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -174,5 +133,30 @@ export function WeeklyPatternChart({ data }) {
         <Bar dataKey="count" fill="#22c55e" radius={[6, 6, 0, 0]} maxBarSize={36} />
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+/* ── 7. Achievements Grid ── */
+export function AchievementsGrid({ achievements }) {
+  if (!achievements?.length) return null;
+  const unlocked = achievements.filter((a) => a.unlocked);
+  const locked = achievements.filter((a) => !a.unlocked);
+  return (
+    <div className="pd-achievements">
+      {unlocked.map((a) => (
+        <div key={a.id} className="pd-achievement" title={a.desc}>
+          <span className="pd-achievement-icon">{a.icon}</span>
+          <span className="pd-achievement-name">{a.name}</span>
+          <span className="pd-achievement-xp">+{a.xp} XP</span>
+        </div>
+      ))}
+      {locked.map((a) => (
+        <div key={a.id} className="pd-achievement pd-achievement-locked" title={a.desc}>
+          <span className="pd-achievement-icon">{a.icon}</span>
+          <span className="pd-achievement-name">{a.name}</span>
+          <span className="pd-achievement-xp">+{a.xp} XP</span>
+        </div>
+      ))}
+    </div>
   );
 }

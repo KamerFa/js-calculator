@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { uid } from '../db.js';
+import { FOCUS_SESSION_XP, awardXP } from '../gamification.js';
 
 const router = Router();
 
@@ -25,6 +26,12 @@ router.post('/:id/complete', async (req, res) => {
     `UPDATE focus_sessions SET completed_at = NOW() WHERE id = $1 AND user_id = $2`,
     [req.params.id, req.userId]
   );
+
+  // Award XP for completing a focus session
+  try {
+    await awardXP(req.userId, FOCUS_SESSION_XP, 'focus_session', req.params.id);
+  } catch { /* non-fatal */ }
+
   res.json({ ok: true });
 });
 

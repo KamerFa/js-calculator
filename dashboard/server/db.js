@@ -407,6 +407,34 @@ async function initDB() {
     )
   `);
 
+  // ── Gamification: XP, Levels, Achievements ─────────────────
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS effort TEXT NOT NULL DEFAULT 'medium'`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS xp_log (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount      INTEGER NOT NULL,
+      reason      TEXT NOT NULL,
+      source_id   TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_xp_log_user ON xp_log(user_id, created_at DESC)`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      achievement_id  TEXT NOT NULL,
+      unlocked_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, achievement_id)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id)`);
+
   // ── Performance indexes ─────────────────────────────────────
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_tweets_created_at ON tweets(created_at DESC)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_tweet_reactions_tweet_id ON tweet_reactions(tweet_id)`);
