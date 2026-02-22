@@ -3206,7 +3206,7 @@ body {
    ============================================================ */
 @media (max-width: 900px) {
   .app-layout {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   .sidebar {
@@ -3243,8 +3243,8 @@ body {
     margin-left: 0;
     padding: 20px 20px 72px;
     flex-shrink: 0;
-    width: 100vw;
-    min-width: 100vw;
+    width: 100%;
+    min-width: 0;
   }
 
   .radio-mini-player:not(.radio-mini-top) {
