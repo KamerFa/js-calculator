@@ -9896,3 +9896,347 @@ body {
     text-align: center;
   }
 }
+
+/* ============================================================
+   PRODUCTIVITY DASHBOARD (.pd-*)
+   Private analytics page — kamer only
+   ============================================================ */
+
+.pd-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.pd-header {
+  margin-bottom: 32px;
+}
+
+.pd-header h1 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 0 0 6px;
+}
+
+.pd-header-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.pd-loading {
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+/* ── Stats cards row ── */
+.pd-stats-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.pd-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.pd-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Score card — horizontal layout */
+.pd-stat-score {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+}
+
+.pd-stat-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Score ring */
+.pd-score-ring {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.pd-score-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Stat icons */
+.pd-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pd-accent-green { background: rgba(34,197,94,0.12); color: #22c55e; }
+.pd-accent-purple { background: rgba(168,85,247,0.12); color: #a855f7; }
+.pd-accent-pink { background: rgba(236,72,153,0.12); color: #ec4899; }
+.pd-accent-blue { background: rgba(91,154,239,0.12); color: #5b9aef; }
+
+.pd-stat-value {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.pd-color-green { color: #22c55e; }
+.pd-color-purple { color: #a855f7; }
+.pd-color-pink { color: #ec4899; }
+.pd-color-blue { color: #5b9aef; }
+
+.pd-stat-label {
+  font-size: 11px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pd-stat-sublabel {
+  font-size: 11px;
+  color: var(--text-3, var(--text-2));
+  opacity: 0.7;
+}
+
+/* Trend badges */
+.pd-trend {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.pd-trend-up {
+  color: #22c55e;
+  background: rgba(34,197,94,0.1);
+}
+
+.pd-trend-down {
+  color: #ef4444;
+  background: rgba(239,68,68,0.1);
+}
+
+.pd-trend-flat {
+  color: var(--text-2);
+  background: var(--bg);
+}
+
+/* ── Chart cards ── */
+.pd-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.pd-chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pd-chart-title {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 4px;
+  letter-spacing: -0.2px;
+}
+
+.pd-chart-sub {
+  font-size: 12px;
+  color: var(--text-2);
+  margin: 0 0 16px;
+}
+
+.pd-chart-title + .recharts-responsive-container {
+  margin-top: 16px;
+}
+
+/* ── Custom tooltip ── */
+.pd-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-body);
+}
+
+.pd-tooltip-label {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 2px;
+}
+
+.pd-tooltip-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── Donut center ── */
+.pd-donut-wrap {
+  position: relative;
+}
+
+.pd-donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.pd-donut-center-value {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  line-height: 1;
+}
+
+.pd-donut-center-label {
+  font-size: 11px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Empty state ── */
+.pd-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* ── Summary row ── */
+.pd-summary-row {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  padding: 32px 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.pd-summary-item {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pd-summary-value {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pd-summary-label {
+  font-size: 11px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Recharts overrides for theme ── */
+.pd-chart-card .recharts-cartesian-grid-horizontal line,
+.pd-chart-card .recharts-cartesian-grid-vertical line {
+  stroke: var(--border);
+  stroke-opacity: 0.5;
+}
+
+.pd-chart-card .recharts-text {
+  fill: var(--text-2) !important;
+  font-size: 11px;
+  font-family: var(--font-body);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .pd-stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .pd-stat-score {
+    grid-column: span 3;
+    justify-content: center;
+  }
+
+  .pd-chart-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .pd-page {
+    padding: 20px 12px 80px;
+  }
+
+  .pd-stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .pd-stat-score {
+    grid-column: span 2;
+  }
+
+  .pd-stat-value {
+    font-size: 20px;
+  }
+
+  .pd-summary-row {
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .pd-summary-value {
+    font-size: 18px;
+  }
+}

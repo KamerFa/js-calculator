@@ -439,6 +439,11 @@ const DB = {
     return api('/focus/history');
   },
 
+  // ── Productivity Dashboard ────────────────────────────────
+  async getProductivityStats() {
+    return api('/productivity/stats');
+  },
+
   // ── Direct Messages ────────────────────────────────────────
   async getConversations() {
     return api('/dm/conversations');

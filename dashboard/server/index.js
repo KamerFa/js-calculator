@@ -21,6 +21,7 @@ import newsRoutes from './routes/news.js';
 import focusRoutes from './routes/focus.js';
 import dmRoutes from './routes/dm.js';
 import groupRoutes from './routes/groups.js';
+import productivityRoutes from './routes/productivity.js';
 import pool from './db.js';
 import { checkDueTaskReminders, checkOverdueTasks, checkStreakMilestones, resetRecurringTasks } from './scheduled.js';
 
@@ -58,6 +59,7 @@ app.use('/api/news', authMiddleware, newsRoutes);
 app.use('/api/focus', authMiddleware, focusRoutes);
 app.use('/api/dm', authMiddleware, dmRoutes);
 app.use('/api/groups', authMiddleware, groupRoutes);
+app.use('/api/productivity', authMiddleware, productivityRoutes);
 
 // ── File uploads (screenshots + avatars) ──────────────────────
 const upload = multer({

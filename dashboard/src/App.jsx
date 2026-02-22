@@ -27,6 +27,7 @@ const NewsPage = lazy(() => import('./pages/NewsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const ProductivityPage = lazy(() => import('./pages/ProductivityPage'));
 
 // ── Radio mini player ────────────────────────────────────
 function useRadioState() {
@@ -364,6 +365,9 @@ export default function App() {
             <Route path="project/:id" element={<ProjectPage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="messages/:userId" element={<MessagesPage />} />
+            {user?.username === 'kamer' && (
+              <Route path="productivity" element={<ProductivityPage />} />
+            )}
           </Routes>
         </Suspense>
 
