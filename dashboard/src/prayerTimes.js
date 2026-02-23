@@ -17,78 +17,90 @@ const CITIES = {
   'Brčko':     { lat: 44.8725, lng: 18.8097, alt: 95 },
 };
 
-// IZ BiH method angles
+// IZ BiH method: Fajr 18°, Isha 18°
 const FAJR_ANGLE = 18;
 const ISHA_ANGLE = 18;
-const ASR_FACTOR = 1; // Standard (Shafi'i). Use 2 for Hanafi.
+const ASR_FACTOR = 1; // Standard (Shafi'i)
 
-const DEG = Math.PI / 180;
-const RAD = 180 / Math.PI;
+const D2R = Math.PI / 180;
+const R2D = 180 / Math.PI;
 
-function sin(d) { return Math.sin(d * DEG); }
-function cos(d) { return Math.cos(d * DEG); }
-function tan(d) { return Math.tan(d * DEG); }
-function asin(x) { return Math.asin(x) * RAD; }
-function acos(x) { return Math.acos(Math.max(-1, Math.min(1, x))) * RAD; }
-function atan2(y, x) { return Math.atan2(y, x) * RAD; }
+// Trig helpers that work in degrees
+function dsin(d) { return Math.sin(d * D2R); }
+function dcos(d) { return Math.cos(d * D2R); }
+function dtan(d) { return Math.tan(d * D2R); }
+function dasin(x) { return Math.asin(x) * R2D; }
+function dacos(x) { return Math.acos(Math.max(-1, Math.min(1, x))) * R2D; }
+function datan2(y, x) { return Math.atan2(y, x) * R2D; }
+
+function fixAngle(a) { a = a % 360; return a < 0 ? a + 360 : a; }
+function fixHour(h) { h = h % 24; return h < 0 ? h + 24 : h; }
 
 /**
- * Julian date from a JS Date
+ * Julian date from a JS Date (at noon)
  */
-function julianDate(date) {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  let jy = y, jm = m;
-  if (m <= 2) { jy--; jm += 12; }
-  const A = Math.floor(jy / 100);
+function julianDate(year, month, day) {
+  if (month <= 2) { year--; month += 12; }
+  const A = Math.floor(year / 100);
   const B = 2 - A + Math.floor(A / 4);
-  return Math.floor(365.25 * (jy + 4716)) + Math.floor(30.6001 * (jm + 1)) + d + B - 1524.5;
+  return Math.floor(365.25 * (year + 4716)) + Math.floor(30.6001 * (month + 1)) + day + B - 1524.5;
 }
 
 /**
- * Sun position: declination and equation of time
+ * Sun position: declination (degrees) and equation of time (minutes)
  */
 function sunPosition(jd) {
-  const D = jd - 2451545.0;
-  const g = (357.529 + 0.98560028 * D) % 360;
-  const q = (280.459 + 0.98564736 * D) % 360;
-  const L = (q + 1.915 * sin(g) + 0.020 * sin(2 * g)) % 360;
-  const e = 23.439 - 0.00000036 * D;
-  const RA = atan2(cos(e) * sin(L), cos(L)) / 15;
-  const decl = asin(sin(e) * sin(L));
-  const eqt = q / 15 - RA + (D > 0 ? 0 : 24);
-  return { declination: decl, equation: fixHour(eqt) };
-}
+  const T = (jd - 2451545.0) / 36525; // Julian centuries from J2000
 
-function fixHour(h) {
-  h = h % 24;
-  return h < 0 ? h + 24 : h;
+  // Mean elements
+  const L0 = fixAngle(280.46646 + 36000.76983 * T + 0.0003032 * T * T); // mean longitude
+  const M = fixAngle(357.52911 + 35999.05029 * T - 0.0001537 * T * T);  // mean anomaly
+  const e = 0.016708634 - 0.000042037 * T - 0.0000001267 * T * T;       // eccentricity
+
+  // Equation of center
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * dsin(M)
+          + (0.019993 - 0.000101 * T) * dsin(2 * M)
+          + 0.000289 * dsin(3 * M);
+
+  const sunLng = L0 + C; // sun true longitude
+  const omega = 125.04 - 1934.136 * T;
+  const appLng = sunLng - 0.00569 - 0.00478 * dsin(omega); // apparent longitude
+
+  // Obliquity of the ecliptic
+  const eps0 = 23.0 + (26.0 + (21.448 - 46.815 * T) / 60) / 60;
+  const eps = eps0 + 0.00256 * dcos(omega); // corrected obliquity
+
+  // Declination
+  const declination = dasin(dsin(eps) * dsin(appLng));
+
+  // Equation of time (in minutes)
+  const y = dtan(eps / 2) * dtan(eps / 2);
+  const eqTime = 4 * R2D * (
+    y * dsin(2 * L0)
+    - 2 * e * dsin(M)
+    + 4 * e * y * dsin(M) * dcos(2 * L0)
+    - 0.5 * y * y * dsin(4 * L0)
+    - 1.25 * e * e * dsin(2 * M)
+  );
+
+  return { declination, eqTime };
 }
 
 /**
- * Compute the time (in hours) when the sun reaches a given angle below horizon
+ * Compute the hour angle (in hours) for when the sun is at a given
+ * elevation angle, at the given latitude and declination.
  */
-function sunAngleTime(angle, declination, lat, direction) {
-  const cosHA = (sin(angle) - sin(lat) * sin(declination)) / (cos(lat) * cos(declination));
-  if (cosHA > 1 || cosHA < -1) return NaN; // sun doesn't reach this angle
-  const HA = acos(cosHA) / 15;
-  return direction === 'ccw' ? 12 - HA : 12 + HA;
-}
-
-/**
- * Asr time: when shadow = factor * object + noon shadow
- */
-function asrTime(factor, declination, lat) {
-  const delta = acos(sin(Math.atan(1 / (factor + tan(Math.abs(lat - declination)))) * RAD * DEG));
-  return delta / 15;
+function hourAngle(elevationAngle, lat, decl) {
+  const cosHA = (dsin(elevationAngle) - dsin(lat) * dsin(decl))
+              / (dcos(lat) * dcos(decl));
+  return dacos(cosHA) / 15; // convert degrees to hours
 }
 
 /**
  * Convert decimal hours to HH:MM string
  */
 function formatTime(hours) {
-  if (isNaN(hours)) return '--:--';
+  if (isNaN(hours) || hours === null) return '--:--';
   hours = fixHour(hours);
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
@@ -97,55 +109,45 @@ function formatTime(hours) {
 }
 
 /**
- * Get timezone offset in hours for a given date
- */
-function getTimezoneOffset(date) {
-  return -date.getTimezoneOffset() / 60;
-}
-
-/**
- * Calculate all prayer times for a given date and city
+ * Calculate all prayer times for a given date and city.
+ * Returns decimal hours in local time.
  */
 export function calculatePrayerTimes(date, cityName) {
   const city = CITIES[cityName];
   if (!city) return null;
 
   const { lat, lng, alt } = city;
-  const jd = julianDate(date);
-  const tz = getTimezoneOffset(date);
+  const tz = -date.getTimezoneOffset() / 60;
+  const jd = julianDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  const { declination, eqTime } = sunPosition(jd);
 
-  const { declination, equation } = sunPosition(jd);
+  // Dhuhr = 12:00 - EqTime/60 - lng/15 + tz
+  const dhuhr = fixHour(12 - eqTime / 60 - lng / 15 + tz);
 
-  // Dhuhr: sun at meridian
-  const dhuhr = fixHour(12 + (tz - lng / 15) - equation);
+  // Sunrise/sunset angle adjusted for elevation
+  // Standard refraction = 0.833°, altitude adjustment = 0.0347 * sqrt(alt)
+  const sunRiseSetAngle = -(0.833 + 0.0347 * Math.sqrt(alt));
 
-  // Sunrise / Sunset angle adjusted for altitude
-  const sunAngle = 0.833 + 0.0347 * Math.sqrt(alt);
+  // Hour angles (in hours)
+  const fajrHA    = hourAngle(-FAJR_ANGLE, lat, declination);
+  const sunriseHA = hourAngle(sunRiseSetAngle, lat, declination);
+  const sunsetHA  = hourAngle(sunRiseSetAngle, lat, declination);
+  const ishaHA    = hourAngle(-ISHA_ANGLE, lat, declination);
 
-  const fajr = dhuhr - sunAngleTime(FAJR_ANGLE, declination, lat, 'ccw') + sunAngleTime(FAJR_ANGLE, declination, lat, 'ccw') - sunAngleTime(FAJR_ANGLE, declination, lat, 'ccw');
-  // Simplify: compute hour angles directly
+  // Asr: shadow length = factor * object + noon shadow
+  // noon shadow = tan(|lat - decl|)
+  // elevation angle = acot(factor + tan(|lat - decl|)) = atan(1 / (factor + tan(|lat - decl|)))
+  const asrElevation = R2D * Math.atan(1 / (ASR_FACTOR + dtan(Math.abs(lat - declination))));
+  const asrHA = hourAngle(asrElevation, lat, declination);
 
-  const fajrHA = sunAngleTime(-FAJR_ANGLE, declination, lat, 'ccw');
-  const sunriseHA = sunAngleTime(-sunAngle, declination, lat, 'ccw');
-  const sunsetHA = sunAngleTime(-sunAngle, declination, lat, 'cw');
-  const ishaHA = sunAngleTime(-ISHA_ANGLE, declination, lat, 'cw');
-
-  // Asr: shadow = factor * object + noon shadow
-  const asrAngle = acos(sin(Math.atan(1 / (ASR_FACTOR + tan(Math.abs(lat - declination)))) * RAD * DEG));
-  const asrHA = asrAngle / 15;
-
-  const base = 12 + (tz - lng / 15) - equation;
-
-  const times = {
-    fajr:    fixHour(base - fajrHA),
-    sunrise: fixHour(base - sunriseHA),
-    dhuhr:   fixHour(base),
-    asr:     fixHour(base + asrHA),
-    maghrib: fixHour(base + sunsetHA),
-    isha:    fixHour(base + ishaHA),
+  return {
+    fajr:    fixHour(dhuhr - fajrHA),
+    sunrise: fixHour(dhuhr - sunriseHA),
+    dhuhr:   dhuhr,
+    asr:     fixHour(dhuhr + asrHA),
+    maghrib: fixHour(dhuhr + sunsetHA),
+    isha:    fixHour(dhuhr + ishaHA),
   };
-
-  return times;
 }
 
 /**
