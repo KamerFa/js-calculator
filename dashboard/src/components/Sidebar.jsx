@@ -331,6 +331,16 @@ export default function Sidebar({ projects, tasks, user, onNewProject, onImportP
               Radio
             </a>
           </li>
+          <li>
+            <a
+              href="/vaktijas"
+              className={view === 'vaktijas' ? 'active' : ''}
+              onClick={(e) => { e.preventDefault(); nav('/vaktijas'); }}
+            >
+              🕌
+              {t('vaktijas', 'Vaktijas')}
+            </a>
+          </li>
         </ul>
 
         {/* ── Projects section — collapsible accordion ── */}

@@ -3321,6 +3321,10 @@ body {
     gap: 10px;
   }
 
+  .vaktijas-grid {
+    grid-template-columns: 1fr;
+  }
+
   .filter-bar {
     gap: 6px;
     margin-bottom: 16px;
@@ -10916,6 +10920,231 @@ body {
   max-width: 400px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* ============================================================
+   VAKTIJAS PAGE
+   ============================================================ */
+.vaktijas-container {
+  max-width: 900px;
+}
+
+.location-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.location-selector label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.location-select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.location-select:hover {
+  border-color: var(--border-strong);
+}
+
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.vaktijas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.vakat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.vakat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.vakat-card.fajr {
+  border-left: 4px solid #667eea;
+}
+
+.vakat-card.sunrise {
+  border-left: 4px solid #f97316;
+}
+
+.vakat-card.dhuhr {
+  border-left: 4px solid #fbbf24;
+}
+
+.vakat-card.asr {
+  border-left: 4px solid #f59e0b;
+}
+
+.vakat-card.maghrib {
+  border-left: 4px solid #ef4444;
+}
+
+.vakat-card.isha {
+  border-left: 4px solid #8b5cf6;
+}
+
+.vakat-icon {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vakat-info {
+  flex: 1;
+}
+
+.vakat-info h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.vakat-time {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.vakat-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.upcoming-prayer {
+  padding: 20px;
+  background: var(--accent-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+}
+
+.upcoming-prayer h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upcoming-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.upcoming-card svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.prayer-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.prayer-time {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.info-box {
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.info-box.warning {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.info-box p {
+  margin: 0;
+  font-size: 13px;
 }
 
 /* ── Responsive: Projects grid ── */
