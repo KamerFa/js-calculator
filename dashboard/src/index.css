@@ -3321,10 +3321,6 @@ body {
     gap: 10px;
   }
 
-  .vaktijas-grid {
-    grid-template-columns: 1fr;
-  }
-
   .filter-bar {
     gap: 6px;
     margin-bottom: 16px;
@@ -10929,29 +10925,109 @@ body {
   max-width: 900px;
 }
 
-.location-selector {
+/* ── Hero: Next Prayer Countdown ── */
+.vaktija-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1a3a4a 0%, #0d2137 50%, #162544 100%);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.vaktija-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -20px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.vaktija-hero::after {
+  content: '☪';
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  font-size: 48px;
+  opacity: 0.08;
+}
+
+.vaktija-hero-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.vaktija-hero-name {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  margin-bottom: 4px;
+}
+
+.vaktija-hero-time {
+  font-size: 16px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  opacity: 0.8;
+}
+
+.vaktija-countdown {
+  text-align: center;
+}
+
+.vaktija-countdown-value {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: 'Monaco', 'Courier New', monospace;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.vaktija-countdown-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.6;
+}
+
+/* ── Controls Row ── */
+.vaktija-controls {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
-  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.vaktija-controls .location-selector {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 10px 14px;
   background: var(--bg);
   border-radius: var(--radius);
   border: 1px solid var(--border);
 }
 
-.location-selector label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
+.vaktija-controls .location-selector label {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .location-select {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -10965,186 +11041,192 @@ body {
   border-color: var(--border-strong);
 }
 
-.date-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-  font-size: 13px;
-  color: var(--text-2);
-  font-weight: 500;
+.vaktija-clock {
+  padding: 10px 18px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
 }
 
+/* ── Day Progress Bar ── */
+.vaktija-progress-wrap {
+  margin-bottom: 24px;
+}
+
+.vaktija-progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.vaktija-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #667eea 0%, #fbbf24 40%, #f97316 60%, #ef4444 80%, #8b5cf6 100%);
+  transition: width 1s ease;
+}
+
+.vaktija-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* ── Prayer Times Grid ── */
 .vaktijas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .vakat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 14px;
+  padding: 18px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg);
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  position: relative;
 }
 
 .vakat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.vakat-card.fajr {
-  border-left: 4px solid #667eea;
+.vakat-card.fajr    { border-left: 4px solid #667eea; }
+.vakat-card.sunrise  { border-left: 4px solid #f97316; }
+.vakat-card.dhuhr    { border-left: 4px solid #eab308; }
+.vakat-card.asr      { border-left: 4px solid #f59e0b; }
+.vakat-card.maghrib  { border-left: 4px solid #ef4444; }
+.vakat-card.isha     { border-left: 4px solid #8b5cf6; }
+
+.vakat-card.vakat-active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
 }
 
-.vakat-card.sunrise {
-  border-left: 4px solid #f97316;
-}
-
-.vakat-card.dhuhr {
-  border-left: 4px solid #fbbf24;
-}
-
-.vakat-card.asr {
-  border-left: 4px solid #f59e0b;
-}
-
-.vakat-card.maghrib {
-  border-left: 4px solid #ef4444;
-}
-
-.vakat-card.isha {
-  border-left: 4px solid #8b5cf6;
+.vakat-card.vakat-next {
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .vakat-icon {
-  font-size: 32px;
+  font-size: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .vakat-info {
   flex: 1;
+  min-width: 0;
 }
 
 .vakat-info h3 {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   font-family: var(--font-heading);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
 }
 
 .vakat-time {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--accent);
   font-family: 'Monaco', 'Courier New', monospace;
+  line-height: 1.2;
 }
 
 .vakat-desc {
-  margin: 4px 0 0;
-  font-size: 12px;
+  margin: 2px 0 0;
+  font-size: 11px;
   color: var(--text-3);
 }
 
-.upcoming-prayer {
-  padding: 20px;
-  background: var(--accent-bg);
-  border-radius: var(--radius);
-  border: 1px solid var(--accent);
-}
-
-.upcoming-prayer h3 {
-  margin: 0 0 12px;
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
+.vakat-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
-.upcoming-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
-
-.upcoming-card svg {
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.prayer-name {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.prayer-time {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--text-2);
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 24px;
+/* ── Source indicator ── */
+.vaktija-source {
   text-align: center;
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 12px 0;
 }
 
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 16px;
+/* ── Responsive: Vaktija ── */
+@media (max-width: 900px) {
+  .vaktijas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .vaktija-hero {
+    padding: 20px 24px;
+  }
+
+  .vaktija-hero-name {
+    font-size: 22px;
+  }
+
+  .vaktija-countdown-value {
+    font-size: 28px;
+  }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@media (max-width: 600px) {
+  .vaktijas-grid {
+    grid-template-columns: 1fr;
+  }
 
-.loading-state p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-2);
-}
+  .vaktija-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
 
-.info-box {
-  padding: 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  margin-bottom: 24px;
-}
+  .vaktija-hero-right {
+    align-self: flex-end;
+  }
 
-.info-box.warning {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: #fca5a5;
-  color: #b91c1c;
-}
+  .vaktija-controls {
+    flex-direction: column;
+  }
 
-.info-box p {
-  margin: 0;
-  font-size: 13px;
+  .vaktija-controls .location-selector {
+    width: 100%;
+  }
+
+  .vaktija-clock {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 /* ── Responsive: Projects grid ── */
