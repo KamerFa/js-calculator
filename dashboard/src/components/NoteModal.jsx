@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { IconX } from './Icons';
+import { IconX, IconExpand, IconShrink } from './Icons';
 import { useTheme } from '../context/ThemeContext';
 import ItemComments from './ItemComments';
 
@@ -17,6 +17,7 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
   const [fieldErrors, setFieldErrors] = useState({});
   const { mode } = useTheme();
   const bodyRef = useRef('');
+  const [expanded, setExpanded] = useState(false);
   // Key to force re-mount the editor when a different note opens
   const [editorKey, setEditorKey] = useState(0);
 
@@ -35,6 +36,7 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
       bodyRef.current = '';
     }
     setFieldErrors({});
+    setExpanded(false);
     setEditorKey((k) => k + 1);
   }, [open, note]);
 
@@ -58,10 +60,15 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card wide" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-card wide${expanded ? ' fullscreen' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{note ? 'Edit Note' : 'New Note'}</h2>
-          <button className="modal-close" onClick={onClose}><IconX /></button>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <button className="modal-close" onClick={() => setExpanded((v) => !v)} title={expanded ? 'Exit big view' : 'Big view'}>
+              {expanded ? <IconShrink /> : <IconExpand />}
+            </button>
+            <button className="modal-close" onClick={onClose}><IconX /></button>
+          </div>
         </div>
         <div className="modal-body">
           <div className="form-group">

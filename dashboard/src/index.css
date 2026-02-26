@@ -786,6 +786,34 @@ body {
   max-width: 760px;
 }
 
+.modal-card.fullscreen {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  width: 100%;
+  height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-card.fullscreen .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-card.fullscreen .modal-body .form-group:has(.note-editor-wrapper) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-card.fullscreen .note-editor-wrapper {
+  flex: 1;
+  max-height: none;
+  min-height: 300px;
+}
+
 /* ── Import Project Modal ──────────────────────────────── */
 .import-modal {
   max-width: 600px;
@@ -3407,6 +3435,13 @@ body {
 
   .modal-card.wide {
     max-width: 100%;
+  }
+
+  .modal-card.fullscreen {
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
   }
 
   .modal-header {
