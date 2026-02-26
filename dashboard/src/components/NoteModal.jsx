@@ -59,84 +59,111 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className={`modal-card wide${expanded ? ' fullscreen' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{note ? 'Edit Note' : 'New Note'}</h2>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <button className="modal-close" onClick={() => setExpanded((v) => !v)} title={expanded ? 'Exit big view' : 'Big view'}>
-              {expanded ? <IconShrink /> : <IconExpand />}
-            </button>
+    <>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-card wide" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>{note ? 'Edit Note' : 'New Note'}</h2>
             <button className="modal-close" onClick={onClose}><IconX /></button>
           </div>
-        </div>
-        <div className="modal-body">
-          <div className="form-group">
-            <label>Title</label>
-            <input
-              className={`form-input${fieldErrors.title ? ' error' : ''}`}
-              type="text"
-              value={form.title}
-              onChange={(e) => { set('title', e.target.value); if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' })); }}
-              placeholder="Note title"
-            />
-            {fieldErrors.title && <div className="form-error">{fieldErrors.title}</div>}
-          </div>
-          <div className="form-group">
-            <label>Body <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— type / for commands</span></label>
-            <Suspense fallback={<div className="form-textarea large" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>Loading editor...</div>}>
-              <NoteEditor
-                key={editorKey}
-                content={bodyRef.current}
-                onChange={handleEditorChange}
-                theme={resolveTheme(mode)}
-              />
-            </Suspense>
-          </div>
-          <div className="form-row">
+          <div className="modal-body">
             <div className="form-group">
-              <label>Attach to</label>
-              <select className="form-select" value={form.attachType} onChange={(e) => { set('attachType', e.target.value); set('attachId', ''); }}>
-                <option value="">None (Standalone)</option>
-                <option value="project">Project</option>
-                <option value="task">Task</option>
-              </select>
+              <label>Title</label>
+              <input
+                className={`form-input${fieldErrors.title ? ' error' : ''}`}
+                type="text"
+                value={form.title}
+                onChange={(e) => { set('title', e.target.value); if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' })); }}
+                placeholder="Note title"
+              />
+              {fieldErrors.title && <div className="form-error">{fieldErrors.title}</div>}
             </div>
-            {form.attachType === 'project' && (
+            <div className="form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ marginBottom: 0 }}>Body <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— type / for commands</span></label>
+                <button className="btn-icon-sm" onClick={() => setExpanded(true)} title="Big view">
+                  <IconExpand size={14} />
+                </button>
+              </div>
+              {!expanded && (
+                <Suspense fallback={<div className="form-textarea large" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>Loading editor...</div>}>
+                  <NoteEditor
+                    key={editorKey}
+                    content={bodyRef.current}
+                    onChange={handleEditorChange}
+                    theme={resolveTheme(mode)}
+                  />
+                </Suspense>
+              )}
+            </div>
+            <div className="form-row">
               <div className="form-group">
-                <label>Project</label>
-                <select className="form-select" value={form.attachId} onChange={(e) => set('attachId', e.target.value)}>
-                  <option value="">Select project</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
+                <label>Attach to</label>
+                <select className="form-select" value={form.attachType} onChange={(e) => { set('attachType', e.target.value); set('attachId', ''); }}>
+                  <option value="">None (Standalone)</option>
+                  <option value="project">Project</option>
+                  <option value="task">Task</option>
                 </select>
               </div>
-            )}
-            {form.attachType === 'task' && (
-              <div className="form-group">
-                <label>Task</label>
-                <select className="form-select" value={form.attachId} onChange={(e) => set('attachId', e.target.value)}>
-                  <option value="">Select task</option>
-                  {tasks.map((t) => (
-                    <option key={t.id} value={t.id}>{t.title}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+              {form.attachType === 'project' && (
+                <div className="form-group">
+                  <label>Project</label>
+                  <select className="form-select" value={form.attachId} onChange={(e) => set('attachId', e.target.value)}>
+                    <option value="">Select project</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {form.attachType === 'task' && (
+                <div className="form-group">
+                  <label>Task</label>
+                  <select className="form-select" value={form.attachId} onChange={(e) => set('attachId', e.target.value)}>
+                    <option value="">Select task</option>
+                    {tasks.map((t) => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        {note && (
-          <ItemComments targetType="note" targetId={note.id} />
-        )}
-        <div className="modal-footer">
           {note && (
-            <button className="btn btn-danger" onClick={() => onDelete(note.id)} style={{ marginRight: 'auto' }}>Delete</button>
+            <ItemComments targetType="note" targetId={note.id} />
           )}
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave}>Save</button>
+          <div className="modal-footer">
+            {note && (
+              <button className="btn btn-danger" onClick={() => onDelete(note.id)} style={{ marginRight: 'auto' }}>Delete</button>
+            )}
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleSave}>Save</button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {expanded && (
+        <div className="editor-bigview-overlay" onClick={() => setExpanded(false)}>
+          <div className="editor-bigview" onClick={(e) => e.stopPropagation()}>
+            <div className="editor-bigview-header">
+              <h3>{form.title || 'Untitled Note'}</h3>
+              <button className="modal-close" onClick={() => setExpanded(false)} title="Exit big view">
+                <IconShrink />
+              </button>
+            </div>
+            <div className="editor-bigview-body">
+              <Suspense fallback={<div className="form-textarea large" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>Loading editor...</div>}>
+                <NoteEditor
+                  key={editorKey}
+                  content={bodyRef.current}
+                  onChange={handleEditorChange}
+                  theme={resolveTheme(mode)}
+                />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

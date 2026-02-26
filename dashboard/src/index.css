@@ -786,32 +786,84 @@ body {
   max-width: 760px;
 }
 
-.modal-card.fullscreen {
-  max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 48px);
-  width: 100%;
-  height: calc(100vh - 48px);
+/* ── Editor Big View Overlay ───────────────────────────── */
+.editor-bigview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 24, 20, 0.45);
+  backdrop-filter: blur(6px);
+  z-index: 200;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
 }
 
-.modal-card.fullscreen .modal-body {
+.editor-bigview {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: calc(100vw - 80px);
+  max-width: 960px;
+  height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+  animation: slideUp 0.2s ease;
+}
+
+.editor-bigview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-bigview-header h3 {
+  font-family: 'Lora', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-bigview-body {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.modal-card.fullscreen .modal-body .form-group:has(.note-editor-wrapper) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-card.fullscreen .note-editor-wrapper {
+.editor-bigview-body .note-editor-wrapper {
   flex: 1;
   max-height: none;
-  min-height: 300px;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.editor-bigview-body .note-editor-wrapper:focus-within {
+  border-color: transparent;
+}
+
+.btn-icon-sm {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.btn-icon-sm:hover {
+  color: var(--text-1);
+  background: var(--hover);
 }
 
 /* ── Import Project Modal ──────────────────────────────── */
@@ -3437,10 +3489,9 @@ body {
     max-width: 100%;
   }
 
-  .modal-card.fullscreen {
-    max-width: 100%;
-    max-height: 100vh;
-    height: 100vh;
+  .editor-bigview {
+    width: 100%;
+    height: 100%;
     border-radius: 0;
   }
 
