@@ -1,47 +1,59 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { IconX } from './Icons';
-import { useMentions, MentionDropdown } from '../mentions';
-import { DB } from '../db';
+import { useTheme } from '../context/ThemeContext';
 import ItemComments from './ItemComments';
+
+const NoteEditor = lazy(() => import('./notes/NoteEditor'));
+
+function resolveTheme(mode) {
+  if (mode === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return mode;
+}
 
 export default function NoteModal({ open, note, projects, tasks, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({ title: '', body: '', attachType: '', attachId: '' });
-  const [allUsers, setAllUsers] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
-  const bodyRef = useRef(null);
-  const mentions = useMentions(allUsers, null);
+  const { mode } = useTheme();
+  const bodyRef = useRef('');
+  // Key to force re-mount the editor when a different note opens
+  const [editorKey, setEditorKey] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     if (note) {
       setForm({
         title: note.title,
-        body: note.body,
+        body: note.body || '',
         attachType: note.attachedTo ? note.attachedTo.type : '',
         attachId: note.attachedTo ? note.attachedTo.id : '',
       });
+      bodyRef.current = note.body || '';
     } else {
       setForm({ title: '', body: '', attachType: '', attachId: '' });
+      bodyRef.current = '';
     }
     setFieldErrors({});
+    setEditorKey((k) => k + 1);
   }, [open, note]);
-
-  useEffect(() => {
-    if (open && allUsers.length === 0) {
-      DB.getUsers().then(setAllUsers).catch(() => {});
-    }
-  }, [open]);
 
   if (!open) return null;
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
+  const handleEditorChange = (jsonString) => {
+    bodyRef.current = jsonString;
+    set('body', jsonString);
+  };
+
   const handleSave = () => {
+    const body = bodyRef.current || form.body;
     const errors = {};
-    if (!form.title.trim() && !form.body.trim()) errors.title = 'Title or body is required';
+    if (!form.title.trim() && !body.trim()) errors.title = 'Title or body is required';
     if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
     setFieldErrors({});
-    onSave({ ...form, id: note?.id });
+    onSave({ ...form, body, id: note?.id });
   };
 
   return (
@@ -54,27 +66,25 @@ export default function NoteModal({ open, note, projects, tasks, onSave, onDelet
         <div className="modal-body">
           <div className="form-group">
             <label>Title</label>
-            <input className={`form-input${fieldErrors.title ? ' error' : ''}`} type="text" value={form.title} onChange={(e) => { set('title', e.target.value); if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' })); }} placeholder="Note title" />
+            <input
+              className={`form-input${fieldErrors.title ? ' error' : ''}`}
+              type="text"
+              value={form.title}
+              onChange={(e) => { set('title', e.target.value); if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' })); }}
+              placeholder="Note title"
+            />
             {fieldErrors.title && <div className="form-error">{fieldErrors.title}</div>}
           </div>
-          <div className="form-group" style={{ position: 'relative' }}>
-            <label>Body <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— use @ to mention users</span></label>
-            <textarea
-              ref={bodyRef}
-              className={`form-textarea large${fieldErrors.title ? ' error' : ''}`}
-              value={form.body}
-              onChange={(e) => {
-                set('body', e.target.value);
-                mentions.detectMention(e.target.value, e.target.selectionStart);
-                if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' }));
-              }}
-              placeholder="Write your note..."
-            />
-            <MentionDropdown mentions={mentions} onSelect={(username) => {
-              const el = bodyRef.current;
-              const newVal = mentions.insertMention(username, form.body, el?.selectionStart || form.body.length);
-              set('body', newVal);
-            }} />
+          <div className="form-group">
+            <label>Body <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>— type / for commands</span></label>
+            <Suspense fallback={<div className="form-textarea large" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>Loading editor...</div>}>
+              <NoteEditor
+                key={editorKey}
+                content={bodyRef.current}
+                onChange={handleEditorChange}
+                theme={resolveTheme(mode)}
+              />
+            </Suspense>
           </div>
           <div className="form-row">
             <div className="form-group">

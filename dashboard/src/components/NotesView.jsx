@@ -1,5 +1,6 @@
 import { IconPlus } from './Icons';
 import { formatDate } from '../utils/time';
+import { getPlainTextPreview } from './notes/NoteEditor';
 
 export default function NotesView({ notes, projects, tasks, onNoteClick, onNewNote }) {
 
@@ -35,7 +36,7 @@ export default function NotesView({ notes, projects, tasks, onNoteClick, onNewNo
         {notes.map((note) => (
           <div className="note-card" key={note.id} onClick={() => onNoteClick(note)}>
             <div className="note-card-title">{note.title || 'Untitled'}</div>
-            <div className="note-card-body">{note.body}</div>
+            <div className="note-card-body">{getPlainTextPreview(note.body)}</div>
             <div className="note-card-meta">
               <span>{formatDate(note.updatedAt)}</span>
               <span className="note-attachment-tag">{attachmentLabel(note)}</span>

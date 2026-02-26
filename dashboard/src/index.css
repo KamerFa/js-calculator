@@ -783,7 +783,7 @@ body {
 }
 
 .modal-card.wide {
-  max-width: 680px;
+  max-width: 760px;
 }
 
 /* ── Import Project Modal ──────────────────────────────── */
@@ -995,6 +995,22 @@ body {
 
 .form-textarea.large {
   min-height: 200px;
+}
+
+/* BlockNote editor wrapper */
+.note-editor-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-height: 220px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--surface);
+}
+.note-editor-wrapper:focus-within {
+  border-color: var(--accent);
+}
+.note-editor-wrapper .bn-editor {
+  padding: 4px 8px;
 }
 
 .form-select {
