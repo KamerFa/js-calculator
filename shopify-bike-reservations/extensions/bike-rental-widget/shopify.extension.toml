@@ -1,0 +1,16 @@
+api_version = "2025-01"
+name = "Bike Rental Widget"
+type = "theme"
+
+[[extensions.targeting]]
+
+[settings]
+
+[[settings.fields]]
+key = "button_text"
+type = "single_line_text_field"
+name = "Button text"
+
+[[settings.fields.validations]]
+name = "max"
+value = "50"

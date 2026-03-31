@@ -1,0 +1,27 @@
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "Bike Reservations"
+client_id = "151f77d9f3beef15cfe421b4761bce1a"
+application_url = "https://bike-reservations.onrender.com"
+embedded = true
+
+[access_scopes]
+scopes = "read_products,write_products"
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://bike-reservations.onrender.com/auth/callback",
+  "https://bike-reservations.onrender.com/auth/shopify/callback",
+  "https://bike-reservations.onrender.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-01"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "your-dev-store.myshopify.com"

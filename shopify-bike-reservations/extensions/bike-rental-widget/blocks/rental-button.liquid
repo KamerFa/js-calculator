@@ -1,0 +1,65 @@
+{% comment %}
+  Bike Rental Widget - Product page block
+  Displays a "Rent this bike" button on the product page
+{% endcomment %}
+
+<div id="bike-rental-widget" data-product-id="{{ product.id }}" style="margin: 16px 0;">
+  <button
+    id="bike-rental-btn"
+    type="button"
+    style="
+      width: 100%;
+      padding: 12px 24px;
+      background-color: #008060;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    "
+    onmouseover="this.style.backgroundColor='#006e52'"
+    onmouseout="this.style.backgroundColor='#008060'"
+  >
+    {{ block.settings.button_text | default: "Rent This Bike" }}
+  </button>
+</div>
+
+<script>
+  (function() {
+    var btn = document.getElementById('bike-rental-btn');
+    var productId = document.getElementById('bike-rental-widget').dataset.productId;
+
+    btn.addEventListener('click', function() {
+      console.log('Bike rental button clicked for product:', productId);
+      alert('Rental request for product ' + productId + ' - feature coming soon!');
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Bike Rental Button",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Rent This Bike"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#008060"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Bike Rental Button"
+    }
+  ]
+}
+{% endschema %}
