@@ -17,7 +17,10 @@ jobs:
     # No Apple Developer account yet, so this only compiles for the
     # Simulator (no code signing required). Once TestFlight is wired up
     # this gets a second job that builds+signs for a real device.
-    runs-on: macos-14
+    # Uses macos-latest rather than a pinned label: XcodeGen's generated
+    # .pbxproj format tracks current Xcode, and a pinned older runner image
+    # can ship an Xcode too old to open it (see the fixed run for details).
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: ios
