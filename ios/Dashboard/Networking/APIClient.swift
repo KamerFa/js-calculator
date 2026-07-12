@@ -33,9 +33,13 @@ struct APIClient {
     var tokenProvider: () -> String?
 
     private struct ErrorBody: Decodable { let error: String? }
+    /// Sentinel for bodyless requests — `send`'s generic constraint requires
+    /// `B: Encodable`, which `Never` does not satisfy, so GET/DELETE pass
+    /// this instead of a real optional-body type.
+    private struct NoBody: Encodable {}
 
     func get<T: Decodable>(_ path: String) async throws -> T {
-        try await send(path: path, method: "GET", body: nil as Never?)
+        try await send(path: path, method: "GET", body: Optional<NoBody>.none)
     }
 
     func post<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
@@ -47,7 +51,7 @@ struct APIClient {
     }
 
     func delete<T: Decodable>(_ path: String) async throws -> T {
-        try await send(path: path, method: "DELETE", body: nil as Never?)
+        try await send(path: path, method: "DELETE", body: Optional<NoBody>.none)
     }
 
     private func send<T: Decodable, B: Encodable>(path: String, method: String, body: B?) async throws -> T {

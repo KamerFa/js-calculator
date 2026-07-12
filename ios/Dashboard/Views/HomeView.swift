@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// Placeholder shell for the Phase 1 tab structure. Each tab gets replaced by
-/// its real feature screen as Phase 1 lands (Tasks, Projects, Calendar, Notes).
+/// Tab shell for the Phase 1 feature set. Tasks is live; the rest are
+/// placeholders replaced as Phase 1 lands (Projects, Calendar, Notes).
 struct HomeView: View {
     @Environment(AuthStore.self) private var auth
     let user: User
 
     var body: some View {
         TabView {
-            placeholder("Tasks", systemImage: "checklist")
+            TaskListView()
+                .tabItem { Label("Tasks", systemImage: "checklist") }
+
             placeholder("Projects", systemImage: "square.grid.2x2")
             placeholder("Calendar", systemImage: "calendar")
             placeholder("Notes", systemImage: "note.text")

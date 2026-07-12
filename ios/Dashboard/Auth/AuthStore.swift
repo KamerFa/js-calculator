@@ -27,17 +27,23 @@ final class AuthStore {
             state = .loggedOut
             return
         }
-        do {
-            let me: MeResponse = try await api.get("/auth/me")
-            state = .loggedIn(me.user)
-        } catch APIError.unauthorized {
-            KeychainStore.deleteToken()
-            state = .loggedOut
-        } catch {
-            // Server unreachable — retry rather than dumping the user to login.
-            state = .restoring
-            try? await Task.sleep(for: .seconds(3))
-            await restoreSession()
+        // Loop rather than recurse: the server can stay unreachable for a
+        // long time (Render cold start, flaky network), and this should
+        // keep retrying without growing the call stack.
+        while true {
+            do {
+                let me: MeResponse = try await api.get("/auth/me")
+                state = .loggedIn(me.user)
+                return
+            } catch APIError.unauthorized {
+                KeychainStore.deleteToken()
+                state = .loggedOut
+                return
+            } catch {
+                // Server unreachable — retry rather than dumping the user to login.
+                state = .restoring
+                try? await Task.sleep(for: .seconds(3))
+            }
         }
     }
 
