@@ -1,0 +1,39 @@
+name: iOS Build Check
+
+on:
+  push:
+    branches:
+      - claude/ios-app-2whgmo
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build:
+    # No Apple Developer account yet, so this only compiles for the
+    # Simulator (no code signing required). Once TestFlight is wired up
+    # this gets a second job that builds+signs for a real device.
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build for Simulator (no signing)
+        run: |
+          xcodebuild build \
+            -project Dashboard.xcodeproj \
+            -scheme Dashboard \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO

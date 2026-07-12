@@ -5,7 +5,18 @@ existing Express/Postgres API in `../dashboard/server` — this app is a second
 client of the same API. See `../dashboard/.claude/plan-ios-app.md` for the
 full conversion plan.
 
-## Requirements
+## No Mac? CI builds this on every push
+
+There's no local Mac in this workflow, so `.github/workflows/ios-build.yml`
+runs on a GitHub Actions macOS runner: it generates the Xcode project and
+builds for the Simulator (unsigned) on every push touching `ios/**`. That
+catches compile errors immediately without needing Xcode installed anywhere.
+It does not install onto a device — that needs an Apple Developer Program
+account (for TestFlight signing), which isn't set up yet. Once that's in
+place, this workflow gets a second job that builds, signs, and uploads to
+TestFlight for testing on a physical iPhone.
+
+## Requirements (if you do have a Mac)
 
 - macOS with Xcode 15+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
