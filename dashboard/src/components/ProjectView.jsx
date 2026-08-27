@@ -1,0 +1,291 @@
+import { useState, useEffect, useMemo } from 'react';
+import { DB } from '../db';
+import { IconPlus, IconUsers } from './Icons';
+import TaskRow from './TaskRow';
+import ProjectKanban from './ProjectKanban';
+import ProjectStatsGraph from './ProjectStatsGraph';
+import ProjectProductivityStats from './ProjectProductivityStats';
+import ProjectCompletionSummary from './ProjectCompletionSummary';
+import ProjectChat from './ProjectChat';
+import { useTranslation } from '../i18n';
+import { getProjectStatus, getProjectTimeInfo, getProjectProgress } from '../projectStatus';
+import { renderWithMentions } from '../mentions';
+
+const STATUS_ORDER = ['todo', 'in-progress', 'done'];
+
+export default function ProjectView({ project, tasks, notes, user, onToggle, onTaskClick, onEdit, onDelete, onProjectClick, onNewTask, onEditProject, onDeleteProject, onLeaveProject, onShare, onUserClick, onNoteClick, onNewNote, onStatusChange }) {
+  const { t } = useTranslation();
+  const STATUS_LABELS = { todo: t('tasks.todo'), 'in-progress': t('tasks.inProgress'), done: t('tasks.done') };
+  const [members, setMembers] = useState([]);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'kanban'
+
+  useEffect(() => {
+    if (!project) return;
+    let cancelled = false;
+    DB.getProjectMembers(project.id)
+      .then(d => { if (!cancelled) setMembers(d); })
+      .catch(() => { if (!cancelled) setMembers([]); });
+    return () => { cancelled = true; };
+  }, [project?.id]);
+
+  if (!project) return null;
+
+  const projectTasks = useMemo(() => tasks.filter((t) => t.projectId === project.id), [tasks, project.id]);
+  const openCount = useMemo(() => projectTasks.filter((t) => t.status !== 'done').length, [projectTasks]);
+  const doneCount = useMemo(() => projectTasks.filter((t) => t.status === 'done').length, [projectTasks]);
+  const progress = projectTasks.length === 0 ? 0 : Math.round((doneCount / projectTasks.length) * 100);
+
+  const groups = useMemo(() => STATUS_ORDER.map((s) => ({
+    status: s,
+    label: STATUS_LABELS[s],
+    tasks: projectTasks.filter((t) => t.status === s),
+  })), [projectTasks, STATUS_LABELS]);
+
+  const isShared = members.length > 1;
+  const isOwner = project.isOwner;
+
+  // Project date status
+  const status = getProjectStatus(project);
+  const timeInfo = getProjectTimeInfo(project);
+  const timelineProgress = getProjectProgress(project);
+
+  const statusBadge = status === 'completed'
+    ? <span className="status-badge status-completed">{t('projectStatus.completed')}</span>
+    : status === 'active'
+    ? <span className="status-badge status-active">{t('projectStatus.active')}</span>
+    : status === 'upcoming'
+    ? <span className="status-badge status-upcoming">{t('projectStatus.upcoming')}</span>
+    : null;
+
+  const timeLabel = timeInfo
+    ? timeInfo.type === 'remaining'
+      ? t('projectStatus.daysRemaining', { days: timeInfo.days })
+      : timeInfo.type === 'today'
+      ? t('projectStatus.endsToday')
+      : t('projectStatus.endedAgo', { days: timeInfo.days })
+    : null;
+
+  // Notes attached to this project
+  const projectNotes = (notes || []).filter(
+    (n) => n.attachedTo?.type === 'project' && n.attachedTo?.id === project.id
+  );
+
+  // Completion leaderboard — sort members by tasks done
+  const sortedMembers = [...members].sort((a, b) => (b.tasks?.done || 0) - (a.tasks?.done || 0));
+  const maxDone = sortedMembers.length > 0 ? (sortedMembers[0].tasks?.done || 0) : 0;
+
+  return (
+    <div>
+      <div className="project-header">
+        <div className="project-header-top">
+          <div className="project-header-info">
+            <span className="project-header-dot" style={{ background: project.color }} />
+            <div>
+              <h1>
+                {project.name}
+                {project.isPublic && <span className="public-badge">{t('projects.public')}</span>}
+                {statusBadge}
+              </h1>
+              <p className="desc">{project.description ? renderWithMentions(project.description, onUserClick) : t('projects.noDescription')}</p>
+              {(project.startDate || project.endDate) && (
+                <div className="project-dates-row">
+                  <p className="project-dates">
+                    {project.startDate && <span>{t('projects.startDate')}: {new Date(project.startDate).toLocaleDateString()}</span>}
+                    {project.startDate && project.endDate && <span> — </span>}
+                    {project.endDate && <span>{t('projects.endDate')}: {new Date(project.endDate).toLocaleDateString()}</span>}
+                  </p>
+                  {timeLabel && <span className="project-time-label">{timeLabel}</span>}
+                </div>
+              )}
+              {/* Timeline progress bar */}
+              {timelineProgress !== null && status !== 'completed' && (
+                <div className="timeline-progress">
+                  <div className="timeline-progress-bar">
+                    <div className="timeline-progress-fill" style={{ width: `${timelineProgress}%` }} />
+                  </div>
+                  <span className="timeline-progress-pct">{timelineProgress}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="project-header-actions">
+            <button className="btn btn-sm" onClick={() => onShare(project)}>
+              <IconUsers /> {isShared ? t('projects.memberCount', { count: members.length }) : t('projects.share')}
+            </button>
+            {isOwner ? (
+              <>
+                <button className="btn btn-sm" onClick={() => onEditProject(project)}>{t('modal.edit')}</button>
+                <button className="btn btn-sm btn-danger" onClick={() => onDeleteProject(project)}>{t('projects.deleteProject')}</button>
+              </>
+            ) : (
+              <button className="btn btn-sm btn-danger" onClick={() => onLeaveProject(project)}>{t('projects.leaveProject')}</button>
+            )}
+          </div>
+        </div>
+
+        {isShared && (
+          <div className="project-members-row">
+            {members.map((m) => (
+              <div
+                className="member-chip member-chip-clickable"
+                key={m.userId}
+                title={`${m.username} — ${m.tasks.done}/${m.tasks.total} ${t('tasks.completed')}`}
+                onClick={() => onUserClick && onUserClick(m.username)}
+              >
+                <span className="member-chip-avatar">{m.username.charAt(0).toUpperCase()}</span>
+                <span>{m.username}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="project-stats">
+          <span><strong>{projectTasks.length}</strong> {t('tasks.total')}</span>
+          <span><strong>{openCount}</strong> {t('tasks.open')}</span>
+          <span><strong>{doneCount}</strong> {t('tasks.completed')}</span>
+        </div>
+        <div className="progress-bar">
+          <div className="progress-bar-fill" style={{ width: progress + '%' }} />
+        </div>
+      </div>
+
+      {/* Show completion summary for completed projects */}
+      {status === 'completed' && (
+        <ProjectCompletionSummary project={project} tasks={tasks} />
+      )}
+
+      <ProjectStatsGraph projectId={project.id} />
+
+      {/* Per-project productivity stats (kamer only) */}
+      {user?.username === 'kamer' && (
+        <ProjectProductivityStats projectId={project.id} />
+      )}
+
+      {/* Completion Leaderboard */}
+      {isShared && sortedMembers.length > 0 && maxDone > 0 && (
+        <div className="completion-history">
+          <h3>Completion History</h3>
+          <div className="completion-leaderboard">
+            {sortedMembers.map((m, i) => {
+              const done = m.tasks?.done || 0;
+              const total = m.tasks?.total || 0;
+              const pct = maxDone > 0 ? Math.round((done / maxDone) * 100) : 0;
+              const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+              return (
+                <div className="completion-row" key={m.userId} onClick={() => onUserClick && onUserClick(m.username)} style={{ cursor: 'pointer' }}>
+                  <span className={`completion-rank ${rankClass}`}>#{i + 1}</span>
+                  <span className="completion-user">@{m.username}</span>
+                  <div className="completion-bar-wrapper">
+                    <div className="completion-bar">
+                      <div className="completion-bar-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="completion-count">{done}/{total} done</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="page-header">
+        <div className="page-header-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{ fontSize: 20 }}>{t('tasks.title')}</h1>
+            <div className="view-toggle">
+              <button className={`view-toggle-btn${viewMode === 'list' ? ' active' : ''}`} onClick={() => setViewMode('list')} title="List view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+              <button className={`view-toggle-btn${viewMode === 'kanban' ? ' active' : ''}`} onClick={() => setViewMode('kanban')} title="Kanban view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+              </button>
+            </div>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={() => onNewTask(project.id)}>
+            <IconPlus /> {t('tasks.newTask')}
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'kanban' ? (
+        <ProjectKanban
+          tasks={projectTasks}
+          currentUserId={user?.id}
+          isShared={isShared}
+          onToggle={onToggle}
+          onClick={onTaskClick}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onNewTask={() => onNewTask(project.id)}
+          onStatusChange={onStatusChange}
+        />
+      ) : (
+        <>
+          {groups.map((group) =>
+            group.tasks.length > 0 ? (
+              <div className="task-group" key={group.status}>
+                <div className="task-group-header">
+                  <span>{group.label}</span>
+                  <span className="task-group-count">{group.tasks.length}</span>
+                </div>
+                {group.tasks.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    project={null}
+                    showProject={false}
+                    showCreator={isShared}
+                    currentUserId={user?.id}
+                    onToggle={onToggle}
+                    onClick={onTaskClick}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onProjectClick={onProjectClick}
+                  />
+                ))}
+              </div>
+            ) : null
+          )}
+          {projectTasks.length === 0 && <div className="empty-state">{t('tasks.noTasks')}</div>}
+        </>
+      )}
+
+      {/* Notes attached to this project */}
+      {(projectNotes.length > 0 || isOwner) && (
+        <div className="project-notes-section">
+          <div className="project-notes-header">
+            <h3>Notes ({projectNotes.length})</h3>
+            {onNewNote && (
+              <button className="btn btn-sm" onClick={onNewNote}>
+                <IconPlus /> Add Note
+              </button>
+            )}
+          </div>
+          {projectNotes.length > 0 ? (
+            <div className="project-notes-list">
+              {projectNotes.map((note) => (
+                <div className="project-note-card" key={note.id} onClick={() => onNoteClick && onNoteClick(note)}>
+                  <div className="project-note-title">{note.title || 'Untitled'}</div>
+                  <div className="project-note-body">{note.body}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: '16px 0', fontSize: 13 }}>No notes for this project yet.</div>
+          )}
+        </div>
+      )}
+
+      {/* Project Chat / Discussion Board */}
+      {isShared && (
+        <ProjectChat
+          projectId={project.id}
+          members={members}
+          user={user}
+          onUserClick={onUserClick}
+        />
+      )}
+
+    </div>
+  );
+}

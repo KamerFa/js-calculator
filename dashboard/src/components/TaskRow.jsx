@@ -1,0 +1,76 @@
+import { memo } from 'react';
+import { IconCheckSmall, IconEdit, IconTrash } from './Icons';
+import { formatDate } from '../utils/time';
+
+const REC_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', repeatable: 'Repeatable' };
+
+export default memo(function TaskRow({ task, project, showProject, showCreator, currentUserId, onToggle, onClick, onEdit, onDelete, onProjectClick }) {
+  const effectiveDate = task.dueDate || task.scheduledDate;
+  const isScheduled = !task.dueDate && !!task.scheduledDate;
+  const isOverdue = task.dueDate && task.status !== 'done' && new Date(task.dueDate) < new Date(new Date().toISOString().split('T')[0]);
+  const isOwnTask = !currentUserId || task.userId === currentUserId;
+  const isRepeatable = task.recurrence === 'repeatable';
+  const isRecurring = task.recurrence && task.recurrence !== 'none';
+
+  return (
+    <div className="task-row" onClick={() => onClick(task)}>
+      <div
+        className={`task-checkbox${task.status === 'done' ? ' checked' : ''}`}
+        onClick={(e) => { e.stopPropagation(); onToggle(task); }}
+      >
+        <IconCheckSmall />
+      </div>
+      <span className={`task-title${task.status === 'done' ? ' done' : ''}`}>{task.title}</span>
+      {task.screenshotUrl && (
+        <span className="screenshot-thumb-badge" title="Has screenshot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+          </svg>
+        </span>
+      )}
+      {isRecurring && (
+        <span className={`recurrence-badge${isRepeatable ? ' repeatable' : ''}`}>
+          {isRepeatable ? '\u{1F501} ' : ''}{REC_LABELS[task.recurrence]}
+        </span>
+      )}
+      {isRecurring && task.completionCount > 0 && (
+        <span className="completion-count-badge" title={`Completed ${task.completionCount} times`}>
+          {'\u00D7'}{task.completionCount}
+        </span>
+      )}
+      {isRecurring && task.currentStreak > 0 && (
+        <span className={`streak-badge${task.currentStreak >= 30 ? ' gold' : task.currentStreak >= 7 ? ' hot' : ''}`} title={`${task.currentStreak} day streak (best: ${task.bestStreak})`}>
+          {'\uD83D\uDD25'}{task.currentStreak}
+        </span>
+      )}
+      {showProject && project && (
+        <span
+          className="project-tag"
+          style={{ background: project.color + '18', color: project.color }}
+          onClick={(e) => { e.stopPropagation(); onProjectClick(project.id); }}
+        >
+          <span className="project-dot" style={{ width: 7, height: 7, background: project.color }} />
+          {project.name}
+        </span>
+      )}
+      <span className={`priority-badge ${task.priority}`}>{task.priority}</span>
+      {effectiveDate && (
+        <span className={`task-due${isOverdue ? ' overdue' : ''}${isScheduled ? ' scheduled' : ''}`}>
+          {isScheduled ? '\u{1F4C5} ' : ''}{formatDate(effectiveDate)}
+        </span>
+      )}
+      <div className="task-actions">
+        {isOwnTask && (
+          <>
+            <button className="icon-btn" onClick={(e) => { e.stopPropagation(); onEdit(task); }} title="Edit">
+              <IconEdit />
+            </button>
+            <button className="icon-btn danger" onClick={(e) => { e.stopPropagation(); onDelete(task); }} title="Delete">
+              <IconTrash />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+})

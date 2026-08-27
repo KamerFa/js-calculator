@@ -1,0 +1,400 @@
+// Global audio singleton - persists across component mounts/unmounts
+// This ensures radio keeps playing when switching views
+
+const STATIONS = [
+  // ── SomaFM ────────────────────────────────────────────
+  // Chill / Lounge
+  { id: 'groovesalad', name: 'Groove Salad', genre: 'Chill', network: 'SomaFM', url: 'https://ice5.somafm.com/groovesalad-128-aac', desc: 'A nicely chilled plate of ambient/downtempo beats and grooves' },
+  { id: 'lush', name: 'Lush', genre: 'Chill', network: 'SomaFM', url: 'https://ice4.somafm.com/lush-128-aac', desc: 'Sensuous and mellow vocals, mostly female, with jazzy undertones' },
+  { id: 'secretagent', name: 'Secret Agent', genre: 'Lounge', network: 'SomaFM', url: 'https://ice4.somafm.com/secretagent-128-aac', desc: 'The soundtrack for your stylish, mysterious, dangerous life' },
+
+  // Electronic / Dance
+  { id: 'beatblender', name: 'Beat Blender', genre: 'Deep House', network: 'SomaFM', url: 'https://ice4.somafm.com/beatblender-128-aac', desc: 'A late night blend of steep beats and deep house' },
+  { id: 'defcon', name: 'DEF CON Radio', genre: 'Electronic', network: 'SomaFM', url: 'https://ice5.somafm.com/defcon-128-aac', desc: 'Music for hacking. Dark EDM, industrial, and synthwave' },
+  { id: 'thetrip', name: 'The Trip', genre: 'Progressive', network: 'SomaFM', url: 'https://ice4.somafm.com/thetrip-128-aac', desc: 'Progressive house and trance. Tip-top dance music' },
+
+  // Ambient / Atmospheric
+  { id: 'spacestation', name: 'Space Station Soma', genre: 'Ambient', network: 'SomaFM', url: 'https://ice5.somafm.com/spacestation-128-aac', desc: 'Tune in, turn on, space out. Ambient and mid-tempo' },
+  { id: 'dronezone', name: 'Drone Zone', genre: 'Ambient', network: 'SomaFM', url: 'https://ice4.somafm.com/dronezone-128-aac', desc: 'Served best chilled, safe with most medications' },
+
+  // Hip Hop / Soul / R&B
+  { id: 'fluid', name: 'Fluid', genre: 'Hip Hop', network: 'SomaFM', url: 'https://ice4.somafm.com/fluid-128-aac', desc: 'Drown in the heavy beats and positive rhymes' },
+  { id: '7soul', name: 'Seven Inch Soul', genre: 'Soul', network: 'SomaFM', url: 'https://ice4.somafm.com/7soul-128-aac', desc: 'Vintage soul tracks from the original 45 RPM vinyl' },
+
+  // Rock / Indie / Retro
+  { id: 'indiepop', name: 'Indie Pop Rocks!', genre: 'Indie', network: 'SomaFM', url: 'https://ice4.somafm.com/indiepop-128-aac', desc: 'New and classic indie pop and some sub-genres' },
+  { id: 'u80s', name: 'Underground 80s', genre: '80s', network: 'SomaFM', url: 'https://ice4.somafm.com/u80s-128-aac', desc: 'Early 80s new wave, post-punk, and underground' },
+  { id: 'seventies', name: 'Left Coast 70s', genre: 'Classic Rock', network: 'SomaFM', url: 'https://ice4.somafm.com/seventies-128-aac', desc: 'Mellow album rock from the Seventies. West coast vibes' },
+
+  // Country / Folk
+  { id: 'bootliquor', name: 'Boot Liquor', genre: 'Americana', network: 'SomaFM', url: 'https://ice4.somafm.com/bootliquor-128-aac', desc: 'Americana roots music for dusty backroads and campfires' },
+
+  // Metal
+  { id: 'metal', name: 'Metal Detector', genre: 'Metal', network: 'SomaFM', url: 'https://ice4.somafm.com/metal-128-aac', desc: 'From black to doom, heavy metal in all its forms' },
+
+  // ── Naxi Radio (Serbia) ───────────────────────────────
+  // Main
+  { id: 'naxi-main', name: 'Naxi Radio', genre: 'Pop', network: 'Naxi', url: 'https://naxi128.streaming.rs:9152/;', desc: 'Belgrade 96.9 FM — Serbia\'s most popular radio station' },
+
+  // Dance / Electronic
+  { id: 'naxi-dance', name: 'Naxi Dance', genre: 'Dance', network: 'Naxi', url: 'https://naxidigital-dance128.streaming.rs:8112/;', desc: 'Non-stop dance music from Belgrade' },
+  { id: 'naxi-house', name: 'Naxi House', genre: 'House', network: 'Naxi', url: 'https://naxidigital-house128.streaming.rs:8002/;', desc: 'Deep house and electronic grooves' },
+  { id: 'naxi-clubbing', name: 'Naxi Clubbing', genre: 'Club', network: 'Naxi', url: 'https://naxidigital-clubbing128.streaming.rs:8092/;', desc: 'Club hits and party anthems all night long' },
+
+  // Chill / Lounge / Cafe
+  { id: 'naxi-cafe', name: 'Naxi Cafe', genre: 'Cafe', network: 'Naxi', url: 'https://naxidigital-cafe128.streaming.rs:8022/;', desc: 'Smooth cafe vibes, perfect for relaxing or working' },
+  { id: 'naxi-love', name: 'Naxi Love', genre: 'Love Songs', network: 'Naxi', url: 'https://naxidigital-love128.streaming.rs:8102/;', desc: 'The best love songs and romantic ballads' },
+
+  // Rock / Blues
+  { id: 'naxi-rock', name: 'Naxi Rock', genre: 'Rock', network: 'Naxi', url: 'https://naxidigital-rock128.streaming.rs:8182/;', desc: 'Rock classics and new rock from around the world' },
+
+  // Jazz / Classic
+  { id: 'naxi-jazz', name: 'Naxi Jazz', genre: 'Jazz', network: 'Naxi', url: 'https://naxidigital-jazz128.streaming.rs:8172/;', desc: 'Smooth jazz, classic standards, and modern jazz' },
+  { id: 'naxi-classic', name: 'Naxi Classic', genre: 'Classical', network: 'Naxi', url: 'https://naxidigital-classic128.streaming.rs:8032/;', desc: 'Classical music masterpieces from all eras' },
+
+  // Retro / Decades
+  { id: 'naxi-80s', name: 'Naxi 80e', genre: '80s', network: 'Naxi', url: 'https://naxidigital-80s128.streaming.rs:8042/;', desc: 'The greatest hits of the 1980s' },
+  { id: 'naxi-evergreen', name: 'Naxi Evergreen', genre: 'Evergreen', network: 'Naxi', url: 'https://naxidigital-evergreen128.streaming.rs:8012/;', desc: 'Timeless classics and unforgettable melodies' },
+  { id: 'naxi-gold', name: 'Naxi Gold', genre: 'Gold Hits', network: 'Naxi', url: 'https://naxidigital-gold128.streaming.rs:8062/;', desc: 'Golden oldies and all-time favorites' },
+
+  // Serbian / Ex-YU
+  { id: 'naxi-exyu', name: 'Naxi EX YU', genre: 'Ex-YU', network: 'Naxi', url: 'https://naxidigital-exyu128.streaming.rs:8242/;', desc: 'Best music from the former Yugoslavia' },
+  { id: 'naxi-boem', name: 'Naxi Boem', genre: 'Boem', network: 'Naxi', url: 'https://naxidigital-boem128.streaming.rs:8052/;', desc: 'Traditional bohemian and folk music' },
+
+  // Urban / Fresh
+  { id: 'naxi-rnb', name: 'Naxi R\'n\'B', genre: 'R&B', network: 'Naxi', url: 'https://naxidigital-rnb128.streaming.rs:8122/;', desc: 'R&B, soul, and hip-hop flavors' },
+  { id: 'naxi-fresh', name: 'Naxi Fresh', genre: 'Fresh', network: 'Naxi', url: 'https://naxidigital-fresh128.streaming.rs:8212/;', desc: 'Freshest new music and trending hits' },
+  { id: 'naxi-latino', name: 'Naxi Latino', genre: 'Latino', network: 'Naxi', url: 'https://naxidigital-latino128.streaming.rs:8232/;', desc: 'Latin rhythms, reggaeton, and salsa beats' },
+
+  // Special
+  { id: 'naxi-kids', name: 'Naxi Kids', genre: 'Kids', network: 'Naxi', url: 'https://naxidigital-kids128.streaming.rs:8052/;', desc: 'Music and fun for the little ones' },
+
+  // ── BiG Radio (Bosnia) ──────────────────────────────────
+  { id: 'big1', name: 'BiG 1', genre: 'Pop', network: 'BiG', url: 'https://big1.bigportal.ba:8100/big1', desc: 'BiG Radio main channel' },
+  { id: 'big2', name: 'BiG 2', genre: 'Pop', network: 'BiG', url: 'https://big2.bigportal.ba:8100/big2', desc: 'BiG Radio second channel' },
+  { id: 'big3', name: 'BiG 3', genre: 'Pop', network: 'BiG', url: 'https://big3.bigportal.ba:8100/big3', desc: 'BiG Radio third channel' },
+  { id: 'big4', name: 'BiG 4', genre: 'Pop', network: 'BiG', url: 'https://domacica.bigportal.ba:8100/domacica', desc: 'BiG Radio fourth channel' },
+  { id: 'big-house', name: 'BiG House', genre: 'House', network: 'BiG', url: 'https://188.124.211.103:8100/house', desc: 'BiG house music' },
+  { id: 'big-lounge', name: 'BiG Lounge Cafee', genre: 'Lounge', network: 'BiG', url: 'https://188.124.211.103:8100/lounge', desc: 'BiG lounge & cafe vibes' },
+  { id: 'big-folk', name: 'BiG Folk', genre: 'Folk', network: 'BiG', url: 'https://big-folk.bigportal.ba:8100/folk', desc: 'BiG folk music' },
+
+  // ── Soundset (Bosnia) ───────────────────────────────────
+  { id: 'soundset-visoko', name: 'Soundset Visoko', genre: 'Pop', network: 'Soundset', url: 'https://50.7.77.114:8057/;', desc: 'Soundset Visoko' },
+  { id: 'soundset-zenica', name: 'Soundset Zenica', genre: 'Pop', network: 'Soundset', url: 'https://50.7.77.114:8059/;', desc: 'Soundset Zenica' },
+  { id: 'soundset-bl', name: 'Soundset Banja Luka', genre: 'Pop', network: 'Soundset', url: 'https://50.7.77.114:8061/;', desc: 'Soundset Banja Luka' },
+  { id: 'soundset-sarajevo', name: 'Soundset Sarajevo', genre: 'Pop', network: 'Soundset', url: 'https://50.7.77.114:8063/;', desc: 'Soundset Sarajevo' },
+  { id: 'soundset-mostar', name: 'Soundset Mostar', genre: 'Pop', network: 'Soundset', url: 'https://50.7.77.114:8065/;', desc: 'Soundset Mostar' },
+
+  // ── Radio M (Bosnia) ────────────────────────────────────
+  { id: 'radiom-cafe', name: 'Radio M Cafee', genre: 'Cafe', network: 'Radio M', url: 'https://206.190.135.28:8037/;', desc: 'Radio M cafe channel' },
+  { id: 'radiom-prvi', name: 'Radio M Prvi', genre: 'Pop', network: 'Radio M', url: 'https://195.222.33.217:8026/;', desc: 'Radio M first program' },
+  { id: 'radiom-drugi', name: 'Radio M Drugi', genre: 'Pop', network: 'Radio M', url: 'https://mobile.ba:23500/;', desc: 'Radio M second program' },
+  { id: 'radiom-folk', name: 'Radio M Folk', genre: 'Folk', network: 'Radio M', url: 'https://206.190.135.28:8092/;', desc: 'Radio M folk music' },
+
+  // ── TDI Radio (Serbia) ──────────────────────────────────
+  { id: 'tdi', name: 'TDI Radio', genre: 'Pop', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/tdiradio', desc: 'TDI main program' },
+  { id: 'tdi-hq', name: 'TDI HQ', genre: 'Pop', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/tdiradio96', desc: 'TDI high quality stream' },
+  { id: 'tdi-alltime', name: 'TDI Alltime', genre: 'Hits', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/alltime', desc: 'All-time greatest hits' },
+  { id: 'tdi-chillout', name: 'TDI Chillout', genre: 'Chill', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/chillout', desc: 'Chill & relax' },
+  { id: 'tdi-classics', name: 'TDI Classics', genre: 'Classics', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/classics', desc: 'Classic hits' },
+  { id: 'tdi-cg', name: 'TDI Crna Gora', genre: 'Pop', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/crnagora', desc: 'TDI Montenegro' },
+  { id: 'tdi-dj', name: 'TDI DJ Akademija', genre: 'Electronic', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/djakademija', desc: 'DJ mixes & electronic' },
+  { id: 'tdi-domacica', name: 'TDI Doma\u0107ica', genre: 'Folk', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/domacica', desc: 'Domestic music' },
+  { id: 'tdi-edm', name: 'TDI EDM', genre: 'Electronic', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/edm', desc: 'Electronic dance music' },
+  { id: 'tdi-house', name: 'TDI House', genre: 'House', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/house', desc: 'House music' },
+  { id: 'tdi-love', name: 'TDI Love', genre: 'Love Songs', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/love', desc: 'Love songs & ballads' },
+  { id: 'tdi-rnb', name: 'TDI RnB', genre: 'R&B', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/rnb', desc: 'R&B and soul' },
+  { id: 'tdi-starogradska', name: 'TDI Starogradska', genre: 'Folk', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/starogradska', desc: 'Traditional old-town music' },
+  { id: 'tdi-top40', name: 'TDI Top 40', genre: 'Pop', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/top40', desc: 'Top 40 hits' },
+  { id: 'tdi-eurodance', name: 'TDI Euro Dance', genre: 'Dance', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/eurodance', desc: 'Euro dance hits' },
+  { id: 'tdi-yudance', name: 'TDI Yu Dance', genre: 'Dance', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/yudance', desc: 'Yu dance music' },
+  { id: 'tdi-kids', name: 'TDI Kids', genre: 'Kids', network: 'TDI', url: 'https://streaming.tdiradio.com:8000/kids', desc: 'Music for kids' },
+
+  // ── B92 / Play (Serbia) ─────────────────────────────────
+  { id: 'b92', name: 'B92', genre: 'Pop', network: 'B92', url: 'https://stream.b92.net:7999/radio-b92.mp3', desc: 'B92 radio Belgrade' },
+  { id: 'play-radio', name: 'Play Radio', genre: 'Pop', network: 'B92', url: 'https://stream.playradio.rs:8001/play.mp3', desc: 'Play Radio Serbia' },
+
+  // ── Radio 101 (Croatia) ─────────────────────────────────
+  { id: 'radio101', name: 'Radio 101 Zagreb', genre: 'Pop', network: 'Radio 101', url: 'https://live.radio101.hr:7038/;', desc: 'Radio 101 Zagreb' },
+  { id: 'radio101-rock', name: 'Radio 101 Rock', genre: 'Rock', network: 'Radio 101', url: 'https://live.radio101.hr:7005/;', desc: 'Radio 101 Rock Zagreb' },
+
+  // ── Other Regional ──────────────────────────────────────
+  { id: 'antena-zg', name: 'Radio Antena Zagreb', genre: 'Pop', network: 'Other', url: 'https://173.192.137.34:8050/;', desc: 'Radio Antena Zagreb' },
+  { id: 'otvoreni', name: 'Otvoreni Radio', genre: 'Pop', network: 'Other', url: 'https://87.98.250.149:8002/;', desc: 'Otvoreni Radio Croatia' },
+  { id: 'nes', name: 'Nes Radio', genre: 'Pop', network: 'Other', url: 'https://mobile.ba:16500/;', desc: 'Nes Radio Bosnia' },
+  { id: 'nes-castra', name: 'Nes Castra', genre: 'Pop', network: 'Other', url: 'https://mobile.ba:17000/;', desc: 'Nes Castra Bosnia' },
+  { id: 'radio-as', name: 'Radio AS', genre: 'Pop', network: 'Other', url: 'https://radioas.kbcnet.rs:8045/;', desc: 'Radio AS Serbia' },
+  { id: 'urban-city', name: 'Urban City Radio', genre: 'Electronic', network: 'Other', url: 'https://cp2.striming.info:8216/;', desc: 'Urban City Radio' },
+  { id: 'uno1', name: 'Uno Radio', genre: 'Pop', network: 'Other', url: 'https://stream.btgport.net:8008/unoradiobl.com', desc: 'Uno Radio Banja Luka' },
+  { id: 'kontakt', name: 'Kontakt Radio', genre: 'Pop', network: 'Other', url: 'https://stream.mojkontakt.com:8092/kontaktradio', desc: 'Kontakt Radio' },
+  { id: 'balkan-radio', name: 'Balkan Radio', genre: 'Folk', network: 'Other', url: 'https://176.9.59.144:8038/balkanbl', desc: 'Balkan Radio' },
+  { id: 'radio-srbac', name: 'Radio Srbac', genre: 'Pop', network: 'Other', url: 'https://91.121.195.222:4858/;', desc: 'Radio Srbac' },
+  { id: 'yu-poprock', name: 'YU Pop-Rock', genre: 'Rock', network: 'Other', url: 'https://listen.radionomy.com/yugopoprock', desc: 'Yugoslav pop and rock classics' },
+
+  // ── Classical ───────────────────────────────────────────
+  { id: 'wguc', name: 'WGUC Classical', genre: 'Classical', network: 'Classical', url: 'https://cpr2.streamguys.net/wguc', desc: 'WGUC Cincinnati classical' },
+  { id: 'kmfa', name: 'KMFA Classical', genre: 'Classical', network: 'Classical', url: 'https://pubint.ic.llnwd.net/stream/pubint_kmfa', desc: 'KMFA Austin classical' },
+  { id: 'wcpe', name: 'WCPE Classical', genre: 'Classical', network: 'Classical', url: 'https://audio-ogg.ibiblio.org:8000/wcpe.ogg', desc: 'WCPE TheClassicalStation.org' },
+];
+
+const audio = new Audio();
+let currentStation = null;
+let paused = false;
+let listeners = new Set();
+let sleepTimerId = null;
+let sleepEndTime = null;
+
+// Restore volume from localStorage
+const savedVolume = localStorage.getItem('radio_volume');
+audio.volume = savedVolume ? parseFloat(savedVolume) : 0.7;
+
+// Restore playing station from localStorage on load
+const savedStation = localStorage.getItem('radio_playing');
+if (savedStation) {
+  try {
+    const stationId = JSON.parse(savedStation);
+    const station = STATIONS.find((s) => s.id === stationId);
+    if (station) {
+      currentStation = station;
+      audio.src = station.url;
+      audio.play().then(() => {
+        updateMediaSession(station);
+      }).catch(() => {
+        // Autoplay blocked — keep station selected but paused
+        paused = true;
+        notifyListeners();
+      });
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function notifyListeners() {
+  listeners.forEach((fn) => fn());
+}
+
+// Media Session API — show station name in OS media controls
+function updateMediaSession(station) {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: station.name,
+      artist: station.network ? `${station.network} — ${station.genre}` : station.genre,
+      album: station.desc,
+    });
+    navigator.mediaSession.setActionHandler('play', () => {
+      radioAudio.resume();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      radioAudio.pause();
+    });
+    navigator.mediaSession.setActionHandler('stop', () => {
+      radioAudio.stop();
+    });
+  }
+}
+
+function clearMediaSession() {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = null;
+  }
+}
+
+// Favorites management
+function getFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem('radio_favorites') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function setFavorites(favs) {
+  localStorage.setItem('radio_favorites', JSON.stringify(favs));
+}
+
+// Recently played
+function getRecent() {
+  try {
+    return JSON.parse(localStorage.getItem('radio_recent') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function addToRecent(stationId) {
+  const recent = getRecent().filter((id) => id !== stationId);
+  recent.unshift(stationId);
+  localStorage.setItem('radio_recent', JSON.stringify(recent.slice(0, 5)));
+}
+
+// Player position: 'bottom-right' (default) or 'top-bar'
+function getPlayerPosition() {
+  return localStorage.getItem('radio_player_position') || 'bottom-right';
+}
+
+const radioAudio = {
+  STATIONS,
+
+  getStation() {
+    return currentStation;
+  },
+
+  getVolume() {
+    return audio.volume;
+  },
+
+  isPlaying() {
+    return currentStation !== null && !audio.paused;
+  },
+
+  isPaused() {
+    return paused;
+  },
+
+  play(station) {
+    // If clicking the same station: toggle pause/resume
+    if (currentStation?.id === station.id) {
+      if (paused) {
+        return this.resume();
+      }
+      this.pause();
+      return Promise.resolve();
+    }
+
+    // Switch to a different station
+    audio.pause();
+    paused = false;
+    audio.src = station.url;
+    audio.volume = this.getVolume();
+
+    return audio.play()
+      .then(() => {
+        currentStation = station;
+        paused = false;
+        localStorage.setItem('radio_playing', JSON.stringify(station.id));
+        addToRecent(station.id);
+        updateMediaSession(station);
+        notifyListeners();
+      })
+      .catch(() => {
+        currentStation = null;
+        paused = false;
+        localStorage.removeItem('radio_playing');
+        notifyListeners();
+        throw new Error('playback_failed');
+      });
+  },
+
+  pause() {
+    if (!currentStation) return;
+    audio.pause();
+    paused = true;
+    notifyListeners();
+  },
+
+  resume() {
+    if (!currentStation) return Promise.resolve();
+    paused = false;
+    // For live streams, we need to reload src to resume from live position
+    audio.src = currentStation.url;
+    audio.volume = this.getVolume();
+    return audio.play()
+      .then(() => {
+        paused = false;
+        updateMediaSession(currentStation);
+        notifyListeners();
+      })
+      .catch(() => {
+        paused = true;
+        notifyListeners();
+      });
+  },
+
+  stop() {
+    audio.pause();
+    audio.src = '';
+    currentStation = null;
+    paused = false;
+    localStorage.removeItem('radio_playing');
+    clearMediaSession();
+    this.clearSleepTimer();
+    notifyListeners();
+  },
+
+  setVolume(val) {
+    const v = parseFloat(val);
+    audio.volume = v;
+    localStorage.setItem('radio_volume', v);
+    notifyListeners();
+  },
+
+  // Favorites
+  getFavorites,
+  isFavorite(stationId) {
+    return getFavorites().includes(stationId);
+  },
+  toggleFavorite(stationId) {
+    const favs = getFavorites();
+    if (favs.includes(stationId)) {
+      setFavorites(favs.filter((id) => id !== stationId));
+    } else {
+      setFavorites([...favs, stationId]);
+    }
+    notifyListeners();
+  },
+
+  // Recently played
+  getRecent,
+  getRecentStations() {
+    const recent = getRecent();
+    return recent.map((id) => STATIONS.find((s) => s.id === id)).filter(Boolean);
+  },
+
+  // Sleep timer
+  setSleepTimer(minutes) {
+    this.clearSleepTimer();
+    if (minutes <= 0) return;
+    sleepEndTime = Date.now() + minutes * 60 * 1000;
+    sleepTimerId = setTimeout(() => {
+      this.stop();
+      sleepTimerId = null;
+      sleepEndTime = null;
+      notifyListeners();
+    }, minutes * 60 * 1000);
+    notifyListeners();
+  },
+
+  clearSleepTimer() {
+    if (sleepTimerId) {
+      clearTimeout(sleepTimerId);
+      sleepTimerId = null;
+    }
+    sleepEndTime = null;
+    notifyListeners();
+  },
+
+  getSleepTimeRemaining() {
+    if (!sleepEndTime) return null;
+    const remaining = sleepEndTime - Date.now();
+    return remaining > 0 ? Math.ceil(remaining / 1000) : null;
+  },
+
+  hasSleepTimer() {
+    return sleepEndTime !== null && sleepEndTime > Date.now();
+  },
+
+  // Player position
+  getPlayerPosition,
+  setPlayerPosition(pos) {
+    localStorage.setItem('radio_player_position', pos);
+    notifyListeners();
+  },
+
+  subscribe(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  },
+};
+
+export default radioAudio;

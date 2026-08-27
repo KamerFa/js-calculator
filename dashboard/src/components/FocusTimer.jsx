@@ -1,0 +1,453 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { DB } from '../db';
+import { useData } from '../context/DataContext';
+import { useTranslation } from '../i18n';
+
+const PRESETS = [
+  { label: '25m', seconds: 1500 },
+  { label: '15m', seconds: 900 },
+  { label: '50m', seconds: 3000 },
+  { label: '5m', seconds: 300 },
+];
+
+const BREAK_DURATION = 300; // 5 min break
+const STORAGE_KEY = 'focus_timer_state';
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDuration(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function saveTimerState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, savedAt: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+function loadTimerState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const state = JSON.parse(raw);
+    if (!state || !state.phase || state.phase === 'idle') return null;
+    return state;
+  } catch { return null; }
+}
+
+function clearTimerState() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+}
+
+export default function FocusTimer() {
+  const { tasks } = useData();
+  const { t } = useTranslation();
+
+  // Timer state — initialized from localStorage if an active session exists
+  const [phase, setPhase] = useState(() => {
+    const saved = loadTimerState();
+    return saved ? saved.phase : 'idle';
+  });
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const saved = loadTimerState();
+    if (!saved) return 0;
+    // Subtract elapsed time since save
+    if ((saved.phase === 'focus' || saved.phase === 'break') && !saved.paused) {
+      const elapsed = Math.floor((Date.now() - saved.savedAt) / 1000);
+      const remaining = saved.timeLeft - elapsed;
+      return remaining > 0 ? remaining : 0;
+    }
+    return saved.timeLeft || 0;
+  });
+  const [totalDuration, setTotalDuration] = useState(() => {
+    const saved = loadTimerState();
+    return saved ? saved.totalDuration : 1500;
+  });
+  const [sessionId, setSessionId] = useState(() => {
+    const saved = loadTimerState();
+    return saved ? saved.sessionId : null;
+  });
+  const [selectedTaskId, setSelectedTaskId] = useState(() => {
+    const saved = loadTimerState();
+    return saved ? (saved.selectedTaskId || '') : '';
+  });
+  const [paused, setPaused] = useState(() => {
+    const saved = loadTimerState();
+    return saved ? !!saved.paused : false;
+  });
+
+  // Daily stats
+  const [todayStats, setTodayStats] = useState({ sessions: 0, totalSeconds: 0 });
+
+  // UI state
+  const [expanded, setExpanded] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('');
+  const intervalRef = useRef(null);
+  const panelRef = useRef(null);
+  const audioCtxRef = useRef(null);
+
+  // Handle case where timer expired while page was closed
+  useEffect(() => {
+    if ((phase === 'focus' || phase === 'break') && timeLeft <= 0) {
+      if (phase === 'focus') {
+        handleFocusComplete();
+      } else {
+        setPhase('idle');
+        clearTimerState();
+      }
+    }
+  }, []); // only on mount
+
+  // Persist timer state whenever it changes
+  useEffect(() => {
+    if (phase === 'idle') {
+      clearTimerState();
+    } else {
+      saveTimerState({ phase, timeLeft, totalDuration, sessionId, selectedTaskId, paused });
+    }
+  }, [phase, timeLeft, totalDuration, sessionId, selectedTaskId, paused]);
+
+  // Load today's stats
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await DB.getFocusToday();
+      setTodayStats(data);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  // Timer tick
+  useEffect(() => {
+    if ((phase === 'focus' || phase === 'break') && !paused) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(intervalRef.current);
+            if (phase === 'focus') {
+              handleFocusComplete();
+            } else {
+              setPhase('idle');
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(intervalRef.current);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [phase, paused]);
+
+  // Keyboard shortcut: Shift+F to toggle focus timer
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'f' || e.key === 'F') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          if (phase === 'focus' || phase === 'break') {
+            togglePause();
+          } else {
+            setExpanded((prev) => !prev);
+          }
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [phase, paused]);
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [expanded]);
+
+  const handleFocusComplete = async () => {
+    if (sessionId) {
+      try {
+        await DB.completeFocusSession(sessionId);
+      } catch { /* ignore */ }
+    }
+    setPhase('done');
+    setSessionId(null);
+    loadStats();
+
+    // Play a completion chime (two-tone)
+    try {
+      const ctx = audioCtxRef.current || new AudioContext();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      const playTone = (freq, startAt, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.18, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+        osc.start(startAt);
+        osc.stop(startAt + duration);
+      };
+
+      const now = ctx.currentTime;
+      playTone(660, now, 0.5);
+      playTone(880, now + 0.25, 0.6);
+    } catch { /* ignore */ }
+
+    // Vibrate on devices that support it (phones)
+    try {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+    } catch { /* ignore */ }
+  };
+
+  const startFocus = async (duration) => {
+    // Init AudioContext on user gesture so completion sound works later
+    if (!audioCtxRef.current) {
+      try { audioCtxRef.current = new AudioContext(); } catch { /* ignore */ }
+    }
+    const dur = duration || 1500;
+    setTotalDuration(dur);
+    setTimeLeft(dur);
+    setPaused(false);
+    setPhase('focus');
+
+    try {
+      const data = await DB.startFocusSession(selectedTaskId || null, dur);
+      setSessionId(data.id);
+    } catch { /* ignore */ }
+  };
+
+  const startBreak = () => {
+    setTimeLeft(BREAK_DURATION);
+    setTotalDuration(BREAK_DURATION);
+    setPaused(false);
+    setPhase('break');
+  };
+
+  const skipBreak = () => {
+    setPhase('idle');
+  };
+
+  const togglePause = () => {
+    setPaused((prev) => !prev);
+  };
+
+  const cancelSession = async () => {
+    clearInterval(intervalRef.current);
+    if (sessionId) {
+      try { await DB.cancelFocusSession(sessionId); } catch { /* ignore */ }
+    }
+    setPhase('idle');
+    setSessionId(null);
+    setTimeLeft(0);
+    setPaused(false);
+  };
+
+  // Progress ring
+  const progress = totalDuration > 0 ? (totalDuration - timeLeft) / totalDuration : 0;
+  const circumference = 2 * Math.PI * 36;
+  const strokeDashoffset = circumference * (1 - progress);
+
+  const activeTasks = tasks.filter((t) => t.status !== 'done');
+  const selectedTask = selectedTaskId ? tasks.find((t) => t.id === selectedTaskId) : null;
+
+  // Minimized pill (always visible when a session is active and panel collapsed)
+  if ((phase === 'focus' || phase === 'break') && !expanded) {
+    return (
+      <div className="focus-float">
+        <button
+          className={`focus-pill${phase === 'break' ? ' break' : ''}`}
+          onClick={() => setExpanded(true)}
+        >
+          <span className="focus-pill-dot" />
+          <span className="focus-pill-time">{formatTime(timeLeft)}</span>
+          {paused && <span className="focus-pill-paused">||</span>}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="focus-float" ref={panelRef}>
+      {/* Toggle button (when idle / done) */}
+      {phase === 'idle' && !expanded && (
+        <button
+          className="focus-toggle-btn"
+          onClick={() => setExpanded(true)}
+          title="Focus Timer (Shift+F)"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          {todayStats.sessions > 0 && (
+            <span className="focus-toggle-badge">{todayStats.sessions}</span>
+          )}
+        </button>
+      )}
+
+      {/* Expanded panel */}
+      {(expanded || phase === 'done') && (
+        <div className="focus-panel">
+          {/* Header */}
+          <div className="focus-panel-header">
+            <span className="focus-panel-title">
+              {phase === 'focus' ? t('focusTimer.focusing') : phase === 'break' ? t('focusTimer.break') : phase === 'done' ? t('focusTimer.sessionComplete') : t('focusTimer.title')}
+            </span>
+            <button className="focus-panel-close" onClick={() => setExpanded(false)} title="Minimize">
+              {(phase === 'focus' || phase === 'break')
+                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                : '\u00D7'
+              }
+            </button>
+          </div>
+
+          {/* Timer ring */}
+          {(phase === 'focus' || phase === 'break') && (
+            <div className="focus-ring-wrap">
+              <svg className="focus-ring" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="var(--bg-3, #eee)" strokeWidth="4" />
+                <circle
+                  cx="40" cy="40" r="36"
+                  fill="none"
+                  stroke={phase === 'break' ? 'var(--success, #4caf50)' : 'var(--accent, #2a5caa)'}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  transform="rotate(-90 40 40)"
+                  style={{ transition: 'stroke-dashoffset 1s linear' }}
+                />
+              </svg>
+              <div className="focus-ring-time">{formatTime(timeLeft)}</div>
+            </div>
+          )}
+
+          {/* Task label when focusing */}
+          {phase === 'focus' && selectedTask && (
+            <div className="focus-task-label" title={selectedTask.title}>
+              {selectedTask.title}
+            </div>
+          )}
+
+          {/* Controls for active session */}
+          {(phase === 'focus' || phase === 'break') && (
+            <div className="focus-controls">
+              <button className="focus-ctrl-btn" onClick={togglePause}>
+                {paused ? '\u25B6' : '\u23F8'}
+              </button>
+              <button className="focus-ctrl-btn danger" onClick={cancelSession} title="Cancel session">
+                &times;
+              </button>
+            </div>
+          )}
+
+          {/* Done state */}
+          {phase === 'done' && (
+            <div className="focus-done">
+              <div className="focus-done-icon">{'\u2705'}</div>
+              <p>{t('focusTimer.greatWork')}</p>
+              <div className="focus-done-actions">
+                <button className="btn btn-primary" onClick={startBreak}>
+                  {t('focusTimer.fiveMinBreak')}
+                </button>
+                <button className="btn" onClick={skipBreak}>
+                  {t('focusTimer.skip')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Idle: setup */}
+          {phase === 'idle' && expanded && (
+            <div className="focus-setup">
+              {/* Task picker */}
+              <div className="focus-field">
+                <label>{t('focusTimer.focusOn')}</label>
+                <select
+                  className="form-select"
+                  value={selectedTaskId}
+                  onChange={(e) => setSelectedTaskId(e.target.value)}
+                >
+                  <option value="">{t('focusTimer.noSpecificTask')}</option>
+                  {activeTasks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Duration presets */}
+              <div className="focus-presets">
+                {PRESETS.map((p) => (
+                  <button
+                    key={p.seconds}
+                    className="focus-preset-btn"
+                    onClick={() => startFocus(p.seconds)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom duration */}
+              <div className="focus-custom-time">
+                <input
+                  type="number"
+                  className="focus-custom-input"
+                  placeholder={t('focusTimer.min')}
+                  min="1"
+                  max="180"
+                  value={customMinutes}
+                  onChange={(e) => setCustomMinutes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const mins = parseInt(customMinutes, 10);
+                      if (mins > 0 && mins <= 180) startFocus(mins * 60);
+                    }
+                  }}
+                />
+                <button
+                  className="focus-custom-go"
+                  disabled={!customMinutes || parseInt(customMinutes, 10) < 1 || parseInt(customMinutes, 10) > 180}
+                  onClick={() => {
+                    const mins = parseInt(customMinutes, 10);
+                    if (mins > 0 && mins <= 180) startFocus(mins * 60);
+                  }}
+                >
+                  {t('focusTimer.start')}
+                </button>
+              </div>
+
+              {/* Today's stats */}
+              {todayStats.sessions > 0 && (
+                <div className="focus-today-stats">
+                  <span>{todayStats.sessions !== 1 ? t('focusTimer.sessionPlural', { count: todayStats.sessions }) : t('focusTimer.sessions', { count: todayStats.sessions })}</span>
+                  <span className="focus-stats-dot" />
+                  <span>{t('focusTimer.focusedToday', { duration: formatDuration(todayStats.totalSeconds) })}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
